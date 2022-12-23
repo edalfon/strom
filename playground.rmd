@@ -1,0 +1,25 @@
+---
+title: "Untitled"
+format: html
+---
+
+```{r}
+dbcon <- duckdb::dbConnect(duckdb::duckdb())
+DBI::dbExecute(dbcon, "INSTALL sqlite;")
+DBI::dbExecute(dbcon, "LOAD sqlite;")
+
+```
+
+https://duckdb.org/docs/extensions/sqlite_scanner.html
+
+```{sql connection="dbcon"}
+
+INSTALL sqlite;
+LOAD sqlite;
+CALL sqlite_attach('data/2022-12-23-ecas-export.db');
+PRAGMA show_tables;
+```
+
+
+CALL sqlite_attach('data/2022-12-23-ecas-export.db');
+PRAGMA show_tables;
