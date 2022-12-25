@@ -4,6 +4,7 @@ format: html
 ---
 
 ```{r}
+library(duckdb)
 dbcon <- duckdb::dbConnect(duckdb::duckdb())
 DBI::dbExecute(dbcon, "INSTALL sqlite;")
 DBI::dbExecute(dbcon, "LOAD sqlite;")
