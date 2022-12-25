@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.280">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Untitled</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="playground_quarto_files/libs/clipboard/clipboard.min.js"></script>
+<script src="playground_quarto_files/libs/quarto-html/quarto.js"></script>
+<script src="playground_quarto_files/libs/quarto-html/popper.min.js"></script>
+<script src="playground_quarto_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="playground_quarto_files/libs/quarto-html/anchor.min.js"></script>
+<link href="playground_quarto_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="playground_quarto_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="playground_quarto_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="playground_quarto_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="playground_quarto_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+        <script type="text/javascript">
+        window.PlotlyConfig = {MathJaxConfig: 'local'};
+        if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}
+        if (typeof require !== 'undefined') {
+        require.undef("plotly");
+        requirejs.config({
+            paths: {
+                'plotly': ['https://cdn.plot.ly/plotly-2.16.1.min']
+            }
+        });
+        require(['plotly'], function(Plotly) {
+            window._Plotly = Plotly;
+        });
+        }
+        </script>
+        
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Untitled</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="set-up-ipython-sql-to-be-able-to-write-sql-queries-directly" class="level1">
+<h1>Set-up <code>ipython-sql</code> to be able to write sql queries directly</h1>
+<p>To do it with DuckDB, basically following <a href="https://duckdb.org/docs/guides/python/jupyter">this guide</a>, just need to make sure <code>ipython-sql</code>, <code>SQLAlchemy</code> and <code>duckdb-engine</code> are installed, besides the core libraries (<code>notebook</code>, <code>pandas</code>, <code>duckdb</code>). If any of them mssing, einfach pip install them.</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlalchemy <span class="co"># No need to import duckdb_engine, SQLAlchemy will auto-detect </span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Import ipython-sql Jupyter extension to create SQL cells</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext sql</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config SqlMagic.autopandas <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config SqlMagic.feedback <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>config SqlMagic.displaycon <span class="op">=</span> <span class="va">False</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And fire-up DuckDB, either in memory or pointing to a file.</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql duckdb:<span class="op">///</span>:memory:</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># %sql duckdb:///path/to/file.db</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Test it’S working</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql SELECT <span class="st">'Off and flying!'</span> <span class="im">as</span> a_duckdb_column</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+
+<div>
+
+<table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>a_duckdb_column</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Off and flying!</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+<section id="load-sqlite-file" class="level1">
+<h1>Load SQLite file</h1>
+<div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">SQL (DuckDB)</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">R</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-3" role="tab" aria-controls="tabset-1-3" aria-selected="false" href="">Python</a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>sql</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">--</span> SQLite Scanner</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">--</span> https:<span class="op">//</span>duckdb.org<span class="op">/</span>docs<span class="op">/</span>extensions<span class="op">/</span>sqlite_scanner.html</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">--</span> TODO: perhaps consider SET GLOBAL sqlite_all_varchar<span class="op">=</span>true<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="op">--</span>       to avoid things getting read <span class="im">as</span> blob</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>INSTALL sqlite<span class="op">;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>LOAD sqlite<span class="op">;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>CALL sqlite_attach(<span class="st">'data/2022-12-24-ecas-export.db'</span>)<span class="op">;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>PRAGMA show_tables<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+
+<div>
+
+<table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>name</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>android_metadata</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>meter</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>reading</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
+
+</div>
+<div id="tabset-1-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-3-tab">
+
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>sql </span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>SELECT <span class="op">*</span> FROM meter<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+
+<div>
+
+<table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+      <th>_id</th>
+      <th>name</th>
+      <th>units</th>
+      <th>comment</th>
+      <th>vsf</th>
+      <th>tsf</th>
+      <th>cost</th>
+      <th>fcost</th>
+      <th>invert</th>
+      <th>vmsetup</th>
+      <th>type</th>
+      <th>currency</th>
+      <th>scaling</th>
+      <th>phyunits</th>
+      <th>bidir</th>
+      <th>prod</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>b'Strom'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>b'W\xc3\xa4rmestrom 18.2'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>b'W\xc3\xa4rmestrom 18.1'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4</td>
+      <td>b'Wasser'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5</td>
+      <td>b'L\xc3\xbcftungsanlage'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>6</td>
+      <td>b'Waschmaschine'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>7</td>
+      <td>b'Geschirrsp\xc3\xbcler'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>8</td>
+      <td>b'Offen'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>9</td>
+      <td>b'Reset'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>10</td>
+      <td>b'Nachladen'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>11</td>
+      <td>b'Temp'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>12</td>
+      <td>b'W\xc3\xa4rmer'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'50'</td>
+      <td>b'50'</td>
+      <td>b''</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>None</td>
+      <td>b'0'</td>
+      <td>b'$'</td>
+      <td>b'1.0'</td>
+      <td>b''</td>
+      <td>b'0'</td>
+      <td>b'0'</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>sql </span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="op">--</span> Blob Functions, because most columns get read <span class="im">as</span> blob</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">--</span> https:<span class="op">//</span>duckdb.org<span class="op">/</span>docs<span class="op">/</span>sql<span class="op">/</span>functions<span class="op">/</span>blob</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>CREATE OR REPLACE VIEW strom AS </span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>SELECT meterid, decode(date)::DATETIME AS date, decode(value)::INT AS value </span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>FROM reading WHERE meterid <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+
+<div>
+
+<table class="dataframe table table-sm table-striped">
+  <thead>
+    <tr>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>sql </span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>strom_df <span class="op">&lt;&lt;</span> SELECT </span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">*</span>, </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  date_sub(<span class="st">'minute'</span>, lag(date) over(order by date), date) AS minutes, </span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  value <span class="op">-</span> lag(value) over(order by date) AS consumption,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fl">24.0</span> <span class="op">*</span> <span class="fl">60.0</span> <span class="op">*</span> consumption <span class="op">/</span> minutes AS consumption_per_day</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>FROM strom</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>ORDER BY date</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Returning data to local variable strom_df</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>strom_df <span class="op">=</span> strom_df.query(<span class="st">"minutes &lt; 10000"</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>pyplot.scatter(strom_df[<span class="st">"minutes"</span>], strom_df[<span class="st">"consumption_per_day"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<pre><code>&lt;matplotlib.collections.PathCollection at 0x1faaff155a0&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="playground_quarto_files/figure-html/cell-9-output-2.png" width="566" height="411"></p>
+</div>
+</div>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.express <span class="im">as</span> px</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> px.scatter(strom_df, x<span class="op">=</span><span class="st">"minutes"</span>, y<span class="op">=</span><span class="st">"consumption_per_day"</span>, hover_data<span class="op">=</span>[<span class="st">'date'</span>],</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>marginal_x<span class="op">=</span><span class="st">"histogram"</span>, marginal_y<span class="op">=</span><span class="st">"histogram"</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+
+<div>                            <div id="b117d580-f7a2-4ac0-a354-c3a7a6cd8b4b" class="plotly-graph-div" style="height:525px; width:100%;"></div>            <script type="text/javascript">                require(["plotly"], function(Plotly) {                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("b117d580-f7a2-4ac0-a354-c3a7a6cd8b4b")) {                    Plotly.newPlot(                        "b117d580-f7a2-4ac0-a354-c3a7a6cd8b4b",                        [{"customdata":[["2020-11-30T17:35:00"],["2020-11-30T23:59:00"],["2020-12-01T07:18:00"],["2020-12-01T14:23:00"],["2020-12-01T20:21:00"],["2020-12-02T00:01:00"],["2020-12-02T07:28:00"],["2020-12-02T12:48:00"],["2020-12-03T02:38:00"],["2020-12-03T08:53:00"],["2020-12-03T22:58:00"],["2020-12-04T09:57:00"],["2020-12-05T09:52:00"],["2020-12-06T08:09:00"],["2020-12-07T00:26:00"],["2020-12-07T17:16:00"],["2020-12-08T00:28:00"],["2020-12-08T08:48:00"],["2020-12-08T19:50:00"],["2020-12-09T11:06:00"],["2020-12-09T23:25:00"],["2020-12-10T07:43:00"],["2020-12-12T09:22:00"],["2020-12-12T15:39:00"],["2020-12-13T05:01:00"],["2020-12-13T15:44:00"],["2020-12-14T07:44:00"],["2020-12-14T22:13:00"],["2020-12-15T09:24:00"],["2020-12-15T12:07:00"],["2020-12-15T17:15:00"],["2020-12-16T09:02:00"],["2020-12-17T01:31:00"],["2020-12-17T08:23:00"],["2020-12-17T20:48:00"],["2020-12-18T00:35:00"],["2020-12-18T08:39:00"],["2020-12-19T08:10:00"],["2020-12-19T20:03:00"],["2020-12-20T01:37:00"],["2020-12-20T08:38:00"],["2020-12-20T09:35:00"],["2020-12-20T12:33:00"],["2020-12-20T15:33:00"],["2020-12-21T10:30:00"],["2020-12-22T00:04:00"],["2020-12-22T11:29:00"],["2020-12-22T18:15:00"],["2020-12-23T09:14:00"],["2020-12-23T16:16:00"],["2020-12-23T20:55:00"],["2020-12-23T23:43:00"],["2020-12-24T00:18:00"],["2020-12-24T07:04:00"],["2020-12-25T00:53:00"],["2020-12-25T09:20:00"],["2020-12-26T05:11:00"],["2020-12-26T21:20:00"],["2020-12-27T08:41:00"],["2020-12-27T22:40:00"],["2020-12-28T08:34:00"],["2020-12-29T00:04:00"],["2020-12-29T10:04:00"],["2020-12-29T15:30:00"],["2020-12-30T00:22:00"],["2020-12-30T12:08:00"],["2020-12-30T23:26:00"],["2020-12-31T22:22:00"],["2021-01-01T01:18:00"],["2021-01-01T08:38:00"],["2021-01-01T09:48:00"],["2021-01-01T11:57:00"],["2021-01-01T13:15:00"],["2021-01-01T14:42:00"],["2021-01-01T23:08:00"],["2021-01-02T08:27:00"],["2021-01-02T14:20:00"],["2021-01-03T00:42:00"],["2021-01-03T22:42:00"],["2021-01-04T08:35:00"],["2021-01-04T12:17:00"],["2021-01-04T15:10:00"],["2021-01-04T16:58:00"],["2021-01-05T09:57:00"],["2021-01-05T11:40:00"],["2021-01-06T09:21:00"],["2021-01-07T00:52:00"],["2021-01-07T08:22:00"],["2021-01-07T17:20:00"],["2021-01-07T19:56:00"],["2021-01-08T00:50:00"],["2021-01-08T09:45:00"],["2021-01-08T15:22:00"],["2021-01-09T00:21:00"],["2021-01-09T07:15:00"],["2021-01-10T00:12:00"],["2021-01-10T10:42:00"],["2021-01-11T00:37:00"],["2021-01-11T08:52:00"],["2021-01-11T14:53:00"],["2021-01-11T18:46:00"],["2021-01-12T01:19:00"],["2021-01-12T07:38:00"],["2021-01-12T19:26:00"],["2021-01-13T01:41:00"],["2021-01-13T08:38:00"],["2021-01-13T14:58:00"],["2021-01-14T01:09:00"],["2021-01-14T09:59:00"],["2021-01-14T21:03:00"],["2021-01-15T00:49:00"],["2021-01-15T08:36:00"],["2021-01-15T14:39:00"],["2021-01-15T22:53:00"],["2021-01-16T00:39:00"],["2021-01-16T09:05:00"],["2021-01-16T10:49:00"],["2021-01-16T16:39:00"],["2021-01-17T00:34:00"],["2021-01-17T09:38:00"],["2021-01-18T00:10:00"],["2021-01-18T08:45:00"],["2021-01-18T10:42:00"],["2021-01-18T23:51:00"],["2021-01-19T05:30:00"],["2021-01-19T07:00:00"],["2021-01-19T17:27:00"],["2021-01-19T19:07:00"],["2021-01-19T23:58:00"],["2021-01-20T07:43:00"],["2021-01-20T22:08:00"],["2021-01-21T00:35:00"],["2021-01-21T10:43:00"],["2021-01-21T19:03:00"],["2021-01-22T01:38:00"],["2021-01-22T08:51:00"],["2021-01-22T13:12:00"],["2021-01-22T18:14:00"],["2021-01-23T08:25:00"],["2021-01-23T17:10:00"],["2021-01-23T20:28:00"],["2021-01-24T07:57:00"],["2021-01-24T22:52:00"],["2021-01-25T00:12:00"],["2021-01-25T08:14:00"],["2021-01-25T13:34:00"],["2021-01-26T07:27:00"],["2021-01-26T21:32:00"],["2021-01-27T00:11:00"],["2021-01-27T08:29:00"],["2021-01-27T14:13:00"],["2021-01-27T20:11:00"],["2021-01-28T08:26:00"],["2021-01-28T22:10:00"],["2021-01-29T01:12:00"],["2021-01-29T07:54:00"],["2021-01-29T21:17:00"],["2021-01-29T23:46:00"],["2021-01-30T09:58:00"],["2021-01-30T13:22:00"],["2021-01-30T20:37:00"],["2021-01-31T08:40:00"],["2021-01-31T20:35:00"],["2021-02-01T00:47:00"],["2021-02-01T18:01:00"],["2021-02-02T09:56:00"],["2021-02-02T22:20:00"],["2021-02-03T07:34:00"],["2021-02-03T15:11:00"],["2021-02-03T23:51:00"],["2021-02-04T07:47:00"],["2021-02-05T00:05:00"],["2021-02-05T08:51:00"],["2021-02-05T14:40:00"],["2021-02-06T07:54:00"],["2021-02-07T08:59:00"],["2021-02-07T18:59:00"],["2021-02-07T23:55:00"],["2021-02-08T10:39:00"],["2021-02-09T00:56:00"],["2021-02-09T10:11:00"],["2021-02-09T21:20:00"],["2021-02-10T21:55:00"],["2021-02-11T08:45:00"],["2021-02-11T10:41:00"],["2021-02-11T12:09:00"],["2021-02-11T14:52:00"],["2021-02-12T00:07:00"],["2021-02-12T04:51:00"],["2021-02-12T09:03:00"],["2021-02-13T00:50:00"],["2021-02-13T07:33:00"],["2021-02-13T16:45:00"],["2021-02-14T01:03:00"],["2021-02-14T08:48:00"],["2021-02-14T20:59:00"],["2021-02-14T23:48:00"],["2021-02-15T09:17:00"],["2021-02-16T07:19:00"],["2021-02-16T20:48:00"],["2021-02-17T00:11:00"],["2021-02-17T08:16:00"],["2021-02-18T00:27:00"],["2021-02-18T20:01:00"],["2021-02-18T23:55:00"],["2021-02-19T20:59:00"],["2021-02-21T07:44:00"],["2021-02-22T00:03:00"],["2021-02-22T07:09:00"],["2021-02-22T10:38:00"],["2021-02-22T20:02:00"],["2021-02-23T08:44:00"],["2021-02-24T08:45:00"],["2021-02-24T20:52:00"],["2021-02-24T23:52:00"],["2021-02-25T22:51:00"],["2021-02-26T07:41:00"],["2021-02-26T22:17:00"],["2021-02-27T08:07:00"],["2021-02-28T00:52:00"],["2021-02-28T10:47:00"],["2021-03-01T10:44:00"],["2021-03-02T13:42:00"],["2021-03-03T00:03:00"],["2021-03-03T09:25:00"],["2021-03-04T11:24:00"],["2021-03-04T23:35:00"],["2021-03-05T08:00:00"],["2021-03-06T08:27:00"],["2021-03-06T21:24:00"],["2021-03-07T06:36:00"],["2021-03-08T07:44:00"],["2021-03-09T06:46:00"],["2021-03-09T17:55:00"],["2021-03-09T22:46:00"],["2021-03-10T06:46:00"],["2021-03-12T10:50:00"],["2021-03-13T00:34:00"],["2021-03-13T08:27:00"],["2021-03-13T20:39:00"],["2021-03-14T07:05:00"],["2021-03-14T20:12:00"],["2021-03-15T07:01:00"],["2021-03-16T06:51:00"],["2021-03-17T00:14:00"],["2021-03-17T11:56:00"],["2021-03-17T23:36:00"],["2021-03-18T08:02:00"],["2021-03-19T07:25:00"],["2021-03-20T08:16:00"],["2021-03-20T23:45:00"],["2021-03-21T09:02:00"],["2021-03-22T08:27:00"],["2021-03-23T08:42:00"],["2021-03-24T00:05:00"],["2021-03-24T14:31:00"],["2021-03-25T00:47:00"],["2021-03-25T09:15:00"],["2021-03-25T16:20:00"],["2021-03-26T00:31:00"],["2021-03-26T08:48:00"],["2021-03-28T07:48:00"],["2021-03-30T00:29:00"],["2021-03-30T08:23:00"],["2021-03-31T00:27:00"],["2021-03-31T11:12:00"],["2021-04-01T08:00:00"],["2021-04-01T22:50:00"],["2021-04-02T09:35:00"],["2021-04-03T00:28:00"],["2021-04-03T10:05:00"],["2021-04-04T12:21:00"],["2021-04-05T00:35:00"],["2021-04-05T07:01:00"],["2021-04-06T00:14:00"],["2021-04-06T11:54:00"],["2021-04-07T10:12:00"],["2021-04-07T23:51:00"],["2021-04-08T08:28:00"],["2021-04-08T19:02:00"],["2021-04-10T09:02:00"],["2021-04-11T01:25:00"],["2021-04-11T09:19:00"],["2021-04-12T00:18:00"],["2021-04-12T14:40:00"],["2021-04-12T23:38:00"],["2021-04-14T00:33:00"],["2021-04-14T09:18:00"],["2021-04-15T19:09:00"],["2021-04-16T08:33:00"],["2021-04-18T00:51:00"],["2021-04-18T09:16:00"],["2021-04-19T08:33:00"],["2021-04-21T09:10:00"],["2021-04-22T08:21:00"],["2021-04-22T23:59:00"],["2021-04-26T01:36:00"],["2021-04-26T23:52:00"],["2021-04-29T08:29:00"],["2021-04-29T20:35:00"],["2021-04-30T05:41:00"],["2021-05-01T00:01:00"],["2021-05-01T08:41:00"],["2021-05-01T22:07:00"],["2021-05-02T07:11:00"],["2021-05-02T23:44:00"],["2021-05-03T08:20:00"],["2021-05-04T00:29:00"],["2021-05-05T00:30:00"],["2021-05-05T07:11:00"],["2021-05-06T07:26:00"],["2021-05-06T23:33:00"],["2021-05-07T07:59:00"],["2021-05-08T02:54:00"],["2021-05-08T08:06:00"],["2021-05-08T21:46:00"],["2021-05-10T01:45:00"],["2021-05-10T08:26:00"],["2021-05-11T07:59:00"],["2021-05-14T00:08:00"],["2021-05-14T08:36:00"],["2021-05-15T23:43:00"],["2021-05-16T08:41:00"],["2021-05-16T19:47:00"],["2021-05-17T00:59:00"],["2021-05-17T23:58:00"],["2021-05-20T11:35:00"],["2021-05-21T00:02:00"],["2021-05-21T13:12:00"],["2021-05-23T09:29:00"],["2021-05-24T20:00:00"],["2021-05-25T09:36:00"],["2022-12-01T09:49:00"],["2022-12-03T15:38:00"],["2022-12-04T18:56:00"],["2022-12-05T16:10:00"],["2022-12-07T14:39:00"],["2022-12-11T18:11:00"],["2022-12-14T10:17:00"],["2022-12-15T18:44:00"],["2022-12-16T08:28:00"],["2022-12-16T17:26:00"],["2022-12-17T11:54:00"],["2022-12-18T08:31:00"],["2022-12-19T07:17:00"],["2022-12-20T10:55:00"],["2022-12-21T08:13:00"],["2022-12-22T07:31:00"],["2022-12-23T10:39:00"],["2022-12-23T13:03:00"],["2022-12-23T17:47:00"],["2022-12-24T07:44:00"],["2022-12-24T10:17:00"]],"hovertemplate":"minutes=%{x}<br>consumption_per_day=%{y}<br>date=%{customdata[0]}<extra></extra>","legendgroup":"","marker":{"color":"#636efa","symbol":"circle"},"mode":"markers","name":"","orientation":"v","showlegend":false,"x":[628.0,384.0,439.0,425.0,358.0,220.0,447.0,320.0,830.0,375.0,845.0,659.0,1435.0,1337.0,977.0,1010.0,432.0,500.0,662.0,916.0,739.0,498.0,2979.0,377.0,802.0,643.0,960.0,869.0,671.0,163.0,308.0,947.0,989.0,412.0,745.0,227.0,484.0,1411.0,713.0,334.0,421.0,57.0,178.0,180.0,1137.0,814.0,685.0,406.0,899.0,422.0,279.0,168.0,35.0,406.0,1069.0,507.0,1191.0,969.0,681.0,839.0,594.0,930.0,600.0,326.0,532.0,706.0,678.0,1376.0,176.0,440.0,70.0,129.0,78.0,87.0,506.0,559.0,353.0,622.0,1320.0,593.0,222.0,173.0,108.0,1019.0,103.0,1301.0,931.0,450.0,538.0,156.0,294.0,535.0,337.0,539.0,414.0,1017.0,630.0,835.0,495.0,361.0,233.0,393.0,379.0,708.0,375.0,417.0,380.0,611.0,530.0,664.0,226.0,467.0,363.0,494.0,106.0,506.0,104.0,350.0,475.0,544.0,872.0,515.0,117.0,789.0,339.0,90.0,627.0,100.0,291.0,465.0,865.0,147.0,608.0,500.0,395.0,433.0,261.0,302.0,851.0,525.0,198.0,689.0,895.0,80.0,482.0,320.0,1073.0,845.0,159.0,498.0,344.0,358.0,735.0,824.0,182.0,402.0,803.0,149.0,612.0,204.0,435.0,723.0,715.0,252.0,1034.0,955.0,744.0,554.0,457.0,520.0,476.0,978.0,526.0,349.0,1034.0,1505.0,600.0,296.0,644.0,857.0,555.0,669.0,1475.0,650.0,116.0,88.0,163.0,555.0,284.0,252.0,947.0,403.0,552.0,498.0,465.0,731.0,169.0,569.0,1322.0,809.0,203.0,485.0,971.0,1174.0,234.0,1264.0,2085.0,979.0,426.0,209.0,564.0,762.0,1441.0,727.0,180.0,1379.0,530.0,876.0,590.0,1005.0,595.0,1437.0,1618.0,621.0,562.0,1559.0,731.0,505.0,1467.0,777.0,552.0,1508.0,1382.0,669.0,291.0,480.0,3124.0,824.0,473.0,732.0,626.0,787.0,649.0,1430.0,1043.0,702.0,700.0,506.0,1403.0,1491.0,929.0,557.0,1405.0,1455.0,923.0,866.0,616.0,508.0,425.0,491.0,497.0,2820.0,2441.0,474.0,964.0,645.0,1248.0,890.0,645.0,893.0,577.0,1576.0,734.0,386.0,1033.0,700.0,1338.0,819.0,517.0,634.0,2280.0,983.0,474.0,899.0,862.0,538.0,1495.0,525.0,2031.0,804.0,2418.0,505.0,1397.0,2917.0,1391.0,938.0,4417.0,1336.0,3397.0,726.0,546.0,1100.0,520.0,806.0,544.0,993.0,516.0,969.0,1441.0,401.0,1455.0,967.0,506.0,1135.0,312.0,820.0,1679.0,401.0,1413.0,3849.0,508.0,2347.0,538.0,666.0,312.0,1379.0,3577.0,747.0,790.0,2657.0,2071.0,816.0,1135.0,3229.0,1638.0,1274.0,2789.0,5972.0,3846.0,1947.0,824.0,538.0,1108.0,1237.0,1366.0,1658.0,1278.0,1398.0,1628.0,144.0,284.0,837.0,153.0],"xaxis":"x","y":[6.8789808917197455,11.25,6.560364464692483,10.16470588235294,16.089385474860336,13.090909090909092,0.0,22.5,6.9397590361445785,3.84,15.337278106508876,6.555386949924127,10.034843205574912,8.616305160807778,13.265097236438075,9.98019801980198,6.666666666666667,5.76,10.876132930513595,11.004366812227074,15.588633288227335,2.891566265060241,8.700906344410877,7.639257294429708,8.977556109725686,13.437013996889581,6.0,11.599539700805524,10.730253353204173,8.83435582822086,9.35064935064935,12.164730728616684,14.560161779575328,0.0,11.59731543624161,12.687224669603523,5.950413223140496,11.226080793763288,12.11781206171108,12.934131736526947,3.4204275534441804,25.263157894736842,0.0,8.0,11.398416886543536,10.614250614250615,4.204379562043796,14.187192118226601,9.610678531701891,10.236966824644549,20.64516129032258,8.571428571428571,41.142857142857146,3.5467980295566504,14.81758652946679,5.680473372781065,8.463476070528968,13.374613003095975,4.229074889867841,12.01430274135876,4.848484848484849,10.838709677419354,4.8,17.66871165644172,10.827067669172932,4.079320113314448,16.991150442477878,8.372093023255815,8.181818181818182,6.545454545454546,0.0,22.325581395348838,0.0,33.10344827586207,14.229249011857707,7.728085867620751,4.079320113314448,16.205787781350484,9.818181818181818,4.856661045531197,12.972972972972974,8.323699421965317,13.333333333333334,8.478900883218841,13.980582524271844,8.854727132974634,13.920515574650913,3.2,16.059479553903344,9.23076923076923,14.693877551020408,10.766355140186915,4.27299703264095,16.02968460111317,6.956521739130435,9.91150442477876,6.857142857142857,8.622754491017965,5.818181818181818,11.966759002770083,6.180257510729613,14.65648854961832,7.598944591029023,10.169491525423728,11.52,3.4532374100719423,7.578947368421052,14.14075286415712,2.7169811320754715,10.843373493975903,19.115044247787612,3.0835117773019274,7.933884297520661,11.65991902834008,13.584905660377359,2.8458498023715415,13.846153846153847,8.228571428571428,6.063157894736842,2.6470588235294117,14.862385321100918,0.0,12.307692307692308,12.775665399239545,0.0,16.0,11.483253588516746,28.8,9.896907216494846,6.193548387096774,11.653179190751445,9.795918367346939,4.7368421052631575,14.4,7.291139240506329,3.325635103926097,11.03448275862069,9.536423841059603,6.7685076380728555,10.971428571428572,7.2727272727272725,6.269956458635704,11.262569832402235,0.0,2.987551867219917,9.0,8.052190121155638,11.928994082840237,9.056603773584905,2.891566265060241,12.55813953488372,12.067039106145252,3.9183673469387754,15.728155339805825,7.912087912087912,3.582089552238806,16.13947696139477,0.0,7.0588235294117645,14.117647058823529,19.862068965517242,1.991701244813278,12.083916083916083,11.428571428571429,6.963249516441006,6.031413612565445,11.612903225806452,5.1985559566787005,12.603938730853391,16.615384615384617,3.0252100840336134,14.723926380368098,2.7376425855513307,24.75644699140401,5.570599613152805,8.611295681063122,12.0,9.72972972972973,4.472049689440993,11.76196032672112,5.1891891891891895,17.219730941704036,6.8338983050847455,2.2153846153846155,12.413793103448276,16.363636363636363,17.66871165644172,10.378378378378379,5.070422535211268,11.428571428571429,12.164730728616684,3.5732009925558312,15.652173913043478,17.349397590361445,3.096774193548387,9.849521203830369,8.520710059171599,2.530755711775044,10.892586989409985,10.679851668726823,14.187192118226601,0.0,13.347064881565396,11.039182282793867,12.307692307692308,10.253164556962025,6.906474820143885,14.708886618998978,0.0,6.889952153110048,12.76595744680851,7.559055118110236,6.9951422623178345,15.845942228335625,8.0,9.39811457577955,5.433962264150943,11.506849315068493,2.440677966101695,8.597014925373134,4.840336134453781,7.014613778705637,10.679851668726823,13.91304347826087,5.124555160142349,9.236690186016677,11.819425444596444,5.702970297029703,9.815950920245399,12.972972972972974,2.608695652173913,8.594164456233422,10.419681620839363,17.219730941704036,9.896907216494846,3.0,8.297055057618438,13.980582524271844,6.088794926004228,7.868852459016393,6.900958466453674,9.148665819567979,6.656394453004623,9.062937062937063,11.045062320230105,4.102564102564102,8.228571428571428,8.537549407114625,8.210976478973627,8.69215291750503,13.95048439181916,5.170556552962298,7.174377224199288,6.927835051546392,12.48104008667389,9.97690531177829,9.35064935064935,2.8346456692913384,3.388235294117647,17.596741344195518,2.89738430583501,8.170212765957446,7.079065956575174,6.075949367088608,10.45643153526971,4.465116279069767,9.23076923076923,11.325842696629213,2.2325581395348837,16.12541993281075,2.4956672443674175,8.223350253807107,13.732970027247957,3.7305699481865284,9.757986447241045,6.171428571428572,10.762331838565023,8.791208791208792,5.570599613152805,20.441640378548897,5.684210526315789,13.18413021363174,3.037974683544304,11.21245828698554,6.682134570765661,13.382899628252789,9.632107023411372,0.0,9.926144756277695,5.373134328358209,10.124069478908188,5.702970297029703,8.246241947029349,9.379499485773055,5.176132278936017,10.746268656716419,9.1283676703645,10.778443113772456,8.0541654400942,7.933884297520661,2.6373626373626373,10.472727272727273,2.769230769230769,10.719602977667494,2.6470588235294117,7.2507552870090635,2.7906976744186047,10.402476780185758,5.995836224843859,3.5910224438902745,7.917525773195877,5.956566701137539,2.8458498023715415,6.343612334801762,4.615384615384615,8.78048780487805,7.718880285884455,3.5910224438902745,10.19108280254777,7.856586126266563,2.8346456692913384,6.135492117596932,2.676579925650558,6.486486486486487,9.23076923076923,5.221174764321972,5.636007827788649,7.710843373493976,3.6455696202531644,5.961610839292435,7.648478995654274,3.5294117647058822,8.881057268722467,10.25704552493032,9.67032967032967,10.172684458398743,10.326281821441377,8.921634293369056,10.48361934477379,13.312788906009246,5.242718446601942,16.059479553903344,7.79783393501805,11.6410670978173,8.433382137628112,12.159227985524728,9.014084507042254,10.300429184549357,7.96068796068796,30.0,15.211267605633802,6.881720430107527,18.823529411764707],"yaxis":"y","type":"scatter"},{"alignmentgroup":"True","bingroup":"x","hovertemplate":"minutes=%{x}<br>count=%{y}<extra></extra>","legendgroup":"","marker":{"color":"#636efa"},"name":"","offsetgroup":"","opacity":0.5,"showlegend":false,"x":[628.0,384.0,439.0,425.0,358.0,220.0,447.0,320.0,830.0,375.0,845.0,659.0,1435.0,1337.0,977.0,1010.0,432.0,500.0,662.0,916.0,739.0,498.0,2979.0,377.0,802.0,643.0,960.0,869.0,671.0,163.0,308.0,947.0,989.0,412.0,745.0,227.0,484.0,1411.0,713.0,334.0,421.0,57.0,178.0,180.0,1137.0,814.0,685.0,406.0,899.0,422.0,279.0,168.0,35.0,406.0,1069.0,507.0,1191.0,969.0,681.0,839.0,594.0,930.0,600.0,326.0,532.0,706.0,678.0,1376.0,176.0,440.0,70.0,129.0,78.0,87.0,506.0,559.0,353.0,622.0,1320.0,593.0,222.0,173.0,108.0,1019.0,103.0,1301.0,931.0,450.0,538.0,156.0,294.0,535.0,337.0,539.0,414.0,1017.0,630.0,835.0,495.0,361.0,233.0,393.0,379.0,708.0,375.0,417.0,380.0,611.0,530.0,664.0,226.0,467.0,363.0,494.0,106.0,506.0,104.0,350.0,475.0,544.0,872.0,515.0,117.0,789.0,339.0,90.0,627.0,100.0,291.0,465.0,865.0,147.0,608.0,500.0,395.0,433.0,261.0,302.0,851.0,525.0,198.0,689.0,895.0,80.0,482.0,320.0,1073.0,845.0,159.0,498.0,344.0,358.0,735.0,824.0,182.0,402.0,803.0,149.0,612.0,204.0,435.0,723.0,715.0,252.0,1034.0,955.0,744.0,554.0,457.0,520.0,476.0,978.0,526.0,349.0,1034.0,1505.0,600.0,296.0,644.0,857.0,555.0,669.0,1475.0,650.0,116.0,88.0,163.0,555.0,284.0,252.0,947.0,403.0,552.0,498.0,465.0,731.0,169.0,569.0,1322.0,809.0,203.0,485.0,971.0,1174.0,234.0,1264.0,2085.0,979.0,426.0,209.0,564.0,762.0,1441.0,727.0,180.0,1379.0,530.0,876.0,590.0,1005.0,595.0,1437.0,1618.0,621.0,562.0,1559.0,731.0,505.0,1467.0,777.0,552.0,1508.0,1382.0,669.0,291.0,480.0,3124.0,824.0,473.0,732.0,626.0,787.0,649.0,1430.0,1043.0,702.0,700.0,506.0,1403.0,1491.0,929.0,557.0,1405.0,1455.0,923.0,866.0,616.0,508.0,425.0,491.0,497.0,2820.0,2441.0,474.0,964.0,645.0,1248.0,890.0,645.0,893.0,577.0,1576.0,734.0,386.0,1033.0,700.0,1338.0,819.0,517.0,634.0,2280.0,983.0,474.0,899.0,862.0,538.0,1495.0,525.0,2031.0,804.0,2418.0,505.0,1397.0,2917.0,1391.0,938.0,4417.0,1336.0,3397.0,726.0,546.0,1100.0,520.0,806.0,544.0,993.0,516.0,969.0,1441.0,401.0,1455.0,967.0,506.0,1135.0,312.0,820.0,1679.0,401.0,1413.0,3849.0,508.0,2347.0,538.0,666.0,312.0,1379.0,3577.0,747.0,790.0,2657.0,2071.0,816.0,1135.0,3229.0,1638.0,1274.0,2789.0,5972.0,3846.0,1947.0,824.0,538.0,1108.0,1237.0,1366.0,1658.0,1278.0,1398.0,1628.0,144.0,284.0,837.0,153.0],"xaxis":"x3","yaxis":"y3","type":"histogram"},{"alignmentgroup":"True","bingroup":"y","hovertemplate":"consumption_per_day=%{y}<br>count=%{x}<extra></extra>","legendgroup":"","marker":{"color":"#636efa"},"name":"","offsetgroup":"","opacity":0.5,"showlegend":false,"xaxis":"x2","y":[6.8789808917197455,11.25,6.560364464692483,10.16470588235294,16.089385474860336,13.090909090909092,0.0,22.5,6.9397590361445785,3.84,15.337278106508876,6.555386949924127,10.034843205574912,8.616305160807778,13.265097236438075,9.98019801980198,6.666666666666667,5.76,10.876132930513595,11.004366812227074,15.588633288227335,2.891566265060241,8.700906344410877,7.639257294429708,8.977556109725686,13.437013996889581,6.0,11.599539700805524,10.730253353204173,8.83435582822086,9.35064935064935,12.164730728616684,14.560161779575328,0.0,11.59731543624161,12.687224669603523,5.950413223140496,11.226080793763288,12.11781206171108,12.934131736526947,3.4204275534441804,25.263157894736842,0.0,8.0,11.398416886543536,10.614250614250615,4.204379562043796,14.187192118226601,9.610678531701891,10.236966824644549,20.64516129032258,8.571428571428571,41.142857142857146,3.5467980295566504,14.81758652946679,5.680473372781065,8.463476070528968,13.374613003095975,4.229074889867841,12.01430274135876,4.848484848484849,10.838709677419354,4.8,17.66871165644172,10.827067669172932,4.079320113314448,16.991150442477878,8.372093023255815,8.181818181818182,6.545454545454546,0.0,22.325581395348838,0.0,33.10344827586207,14.229249011857707,7.728085867620751,4.079320113314448,16.205787781350484,9.818181818181818,4.856661045531197,12.972972972972974,8.323699421965317,13.333333333333334,8.478900883218841,13.980582524271844,8.854727132974634,13.920515574650913,3.2,16.059479553903344,9.23076923076923,14.693877551020408,10.766355140186915,4.27299703264095,16.02968460111317,6.956521739130435,9.91150442477876,6.857142857142857,8.622754491017965,5.818181818181818,11.966759002770083,6.180257510729613,14.65648854961832,7.598944591029023,10.169491525423728,11.52,3.4532374100719423,7.578947368421052,14.14075286415712,2.7169811320754715,10.843373493975903,19.115044247787612,3.0835117773019274,7.933884297520661,11.65991902834008,13.584905660377359,2.8458498023715415,13.846153846153847,8.228571428571428,6.063157894736842,2.6470588235294117,14.862385321100918,0.0,12.307692307692308,12.775665399239545,0.0,16.0,11.483253588516746,28.8,9.896907216494846,6.193548387096774,11.653179190751445,9.795918367346939,4.7368421052631575,14.4,7.291139240506329,3.325635103926097,11.03448275862069,9.536423841059603,6.7685076380728555,10.971428571428572,7.2727272727272725,6.269956458635704,11.262569832402235,0.0,2.987551867219917,9.0,8.052190121155638,11.928994082840237,9.056603773584905,2.891566265060241,12.55813953488372,12.067039106145252,3.9183673469387754,15.728155339805825,7.912087912087912,3.582089552238806,16.13947696139477,0.0,7.0588235294117645,14.117647058823529,19.862068965517242,1.991701244813278,12.083916083916083,11.428571428571429,6.963249516441006,6.031413612565445,11.612903225806452,5.1985559566787005,12.603938730853391,16.615384615384617,3.0252100840336134,14.723926380368098,2.7376425855513307,24.75644699140401,5.570599613152805,8.611295681063122,12.0,9.72972972972973,4.472049689440993,11.76196032672112,5.1891891891891895,17.219730941704036,6.8338983050847455,2.2153846153846155,12.413793103448276,16.363636363636363,17.66871165644172,10.378378378378379,5.070422535211268,11.428571428571429,12.164730728616684,3.5732009925558312,15.652173913043478,17.349397590361445,3.096774193548387,9.849521203830369,8.520710059171599,2.530755711775044,10.892586989409985,10.679851668726823,14.187192118226601,0.0,13.347064881565396,11.039182282793867,12.307692307692308,10.253164556962025,6.906474820143885,14.708886618998978,0.0,6.889952153110048,12.76595744680851,7.559055118110236,6.9951422623178345,15.845942228335625,8.0,9.39811457577955,5.433962264150943,11.506849315068493,2.440677966101695,8.597014925373134,4.840336134453781,7.014613778705637,10.679851668726823,13.91304347826087,5.124555160142349,9.236690186016677,11.819425444596444,5.702970297029703,9.815950920245399,12.972972972972974,2.608695652173913,8.594164456233422,10.419681620839363,17.219730941704036,9.896907216494846,3.0,8.297055057618438,13.980582524271844,6.088794926004228,7.868852459016393,6.900958466453674,9.148665819567979,6.656394453004623,9.062937062937063,11.045062320230105,4.102564102564102,8.228571428571428,8.537549407114625,8.210976478973627,8.69215291750503,13.95048439181916,5.170556552962298,7.174377224199288,6.927835051546392,12.48104008667389,9.97690531177829,9.35064935064935,2.8346456692913384,3.388235294117647,17.596741344195518,2.89738430583501,8.170212765957446,7.079065956575174,6.075949367088608,10.45643153526971,4.465116279069767,9.23076923076923,11.325842696629213,2.2325581395348837,16.12541993281075,2.4956672443674175,8.223350253807107,13.732970027247957,3.7305699481865284,9.757986447241045,6.171428571428572,10.762331838565023,8.791208791208792,5.570599613152805,20.441640378548897,5.684210526315789,13.18413021363174,3.037974683544304,11.21245828698554,6.682134570765661,13.382899628252789,9.632107023411372,0.0,9.926144756277695,5.373134328358209,10.124069478908188,5.702970297029703,8.246241947029349,9.379499485773055,5.176132278936017,10.746268656716419,9.1283676703645,10.778443113772456,8.0541654400942,7.933884297520661,2.6373626373626373,10.472727272727273,2.769230769230769,10.719602977667494,2.6470588235294117,7.2507552870090635,2.7906976744186047,10.402476780185758,5.995836224843859,3.5910224438902745,7.917525773195877,5.956566701137539,2.8458498023715415,6.343612334801762,4.615384615384615,8.78048780487805,7.718880285884455,3.5910224438902745,10.19108280254777,7.856586126266563,2.8346456692913384,6.135492117596932,2.676579925650558,6.486486486486487,9.23076923076923,5.221174764321972,5.636007827788649,7.710843373493976,3.6455696202531644,5.961610839292435,7.648478995654274,3.5294117647058822,8.881057268722467,10.25704552493032,9.67032967032967,10.172684458398743,10.326281821441377,8.921634293369056,10.48361934477379,13.312788906009246,5.242718446601942,16.059479553903344,7.79783393501805,11.6410670978173,8.433382137628112,12.159227985524728,9.014084507042254,10.300429184549357,7.96068796068796,30.0,15.211267605633802,6.881720430107527,18.823529411764707],"yaxis":"y2","type":"histogram"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmapgl":[{"type":"heatmapgl","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"xaxis":{"anchor":"y","domain":[0.0,0.7363],"title":{"text":"minutes"}},"yaxis":{"anchor":"x","domain":[0.0,0.7326],"title":{"text":"consumption_per_day"}},"xaxis2":{"anchor":"y2","domain":[0.7413,1.0],"matches":"x2","showticklabels":false,"showline":false,"ticks":"","showgrid":true},"yaxis2":{"anchor":"x2","domain":[0.0,0.7326],"matches":"y","showticklabels":false,"showgrid":true},"xaxis3":{"anchor":"y3","domain":[0.0,0.7363],"matches":"x","showticklabels":false,"showgrid":true},"yaxis3":{"anchor":"x3","domain":[0.7426,1.0],"matches":"y3","showticklabels":false,"showline":false,"ticks":"","showgrid":true},"xaxis4":{"anchor":"y4","domain":[0.7413,1.0],"matches":"x2","showticklabels":false,"showgrid":true,"showline":false,"ticks":""},"yaxis4":{"anchor":"x4","domain":[0.7426,1.0],"matches":"y3","showticklabels":false,"showline":false,"ticks":"","showgrid":true},"legend":{"tracegroupgap":0},"margin":{"t":60},"barmode":"overlay"},                        {"responsive": true}                    ).then(function(){
+                            
+var gd = document.getElementById('b117d580-f7a2-4ac0-a354-c3a7a6cd8b4b');
+var x = new MutationObserver(function (mutations, observer) {{
+        var display = window.getComputedStyle(gd).display;
+        if (!display || display === 'none') {{
+            console.log([gd, 'removed!']);
+            Plotly.purge(gd);
+            observer.disconnect();
+        }}
+}});
+
+// Listen for the removal of the full notebook cells
+var notebookContainer = gd.closest('#notebook-container');
+if (notebookContainer) {{
+    x.observe(notebookContainer, {childList: true});
+}}
+
+// Listen for the clearing of the current output cell
+var outputEl = gd.closest('.output');
+if (outputEl) {{
+    x.observe(outputEl, {childList: true});
+}}
+
+                        })                };                });            </script>        </div>
+</div>
+</div>
+<p>import pandas as pd from numpy import nansum</p>
+<p>minute = pd.date_range(start=min(strom_df[‘date’]), end=max(strom_df[‘date’]), freq=‘min’)</p>
+<p>minute_df = pd.DataFrame(dict(date = minute)) minute_df = minute_df.merge(strom_df, on=‘date’, how=‘left’) minute_df[‘day’] = minute_df[‘date’].dt.date minute_df[‘hour’] = minute_df[‘date’].dt.hour minute_df[‘minute’] = minute_df[‘date’].dt.minute</p>
+<p>hour_df = minute_df.groupby([‘day’, ‘hour’]).agg({‘value’: [‘max’], ‘minutes’: ‘sum’}) hour_df = minute_df.groupby([‘day’, ‘hour’]).agg({‘value’: [‘max’], ‘minutes’: ‘sum’})</p>
+<p>fig = px.scatter(hour_df, x=‘index’, y=‘consumption_per_day’) fig.show()</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
