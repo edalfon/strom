@@ -1,0 +1,140 @@
+---
+title: "Untitled"
+format: html
+---
+
+# Set-up `ipython-sql` to be able to write sql queries directly
+
+To do it with DuckDB, basically following [this guide](https://duckdb.org/docs/guides/python/jupyter), just need to make sure `ipython-sql`, `SQLAlchemy` and `duckdb-engine` are installed, besides the core libraries (`notebook`, `pandas`, `duckdb`). If any of them mssing, einfach pip install them.
+
+```{python}
+import duckdb
+import pandas as pd
+import sqlalchemy # No need to import duckdb_engine, SQLAlchemy will auto-detect 
+
+# Import ipython-sql Jupyter extension to create SQL cells
+%load_ext sql
+%config SqlMagic.autopandas = True
+%config SqlMagic.feedback = False
+%config SqlMagic.displaycon = False
+```
+
+And fire-up DuckDB, either in memory or pointing to a file.
+```{python}
+%sql duckdb:///:memory:
+# %sql duckdb:///path/to/file.db
+```
+
+Test it'S working
+```{python}
+%sql SELECT 'Off and flying!' as a_duckdb_column
+```
+
+
+# Load SQLite file
+::: {.panel-tabset}
+
+## SQL (DuckDB)
+```{python}
+%%sql
+
+-- SQLite Scanner
+-- https://duckdb.org/docs/extensions/sqlite_scanner.html
+-- TODO: perhaps consider SET GLOBAL sqlite_all_varchar=true;
+--       to avoid things getting read as blob
+INSTALL sqlite;
+LOAD sqlite;
+CALL sqlite_attach('data/2022-12-24-ecas-export.db');
+PRAGMA show_tables;
+```
+
+## R
+
+## Python
+
+:::
+
+
+```{python}
+%%sql 
+
+SELECT * FROM meter;
+```
+
+
+
+
+
+```{python}
+%%sql 
+
+-- Blob Functions, because most columns get read as blob
+-- https://duckdb.org/docs/sql/functions/blob
+CREATE OR REPLACE VIEW strom AS 
+SELECT meterid, decode(date)::DATETIME AS date, decode(value)::INT AS value 
+FROM reading WHERE meterid = 1
+;
+```
+
+
+
+```{python}
+%%sql 
+
+strom_df << SELECT 
+  *, 
+  date_sub('minute', lag(date) over(order by date), date) AS minutes, 
+  value - lag(value) over(order by date) AS consumption,
+  24.0 * 60.0 * consumption / minutes AS consumption_per_day
+FROM strom
+ORDER BY date
+;
+```
+
+```{python}
+
+strom_df = strom_df.query("minutes < 10000")
+
+from matplotlib import pyplot
+pyplot.scatter(strom_df["minutes"], strom_df["consumption_per_day"])
+```
+
+
+```{python}
+import plotly.express as px
+fig = px.scatter(strom_df, x="minutes", y="consumption_per_day", hover_data=['date'],
+marginal_x="histogram", marginal_y="histogram")
+fig.show()
+```
+
+
+```{python}
+import pandas as pd
+
+minute = pd.date_range(
+    start=min(strom_df['date']), end=max(strom_df['date']), freq='min'
+)
+minute_df = pd.DataFrame(dict(date = minute))
+minute_df = minute_df.merge(strom_df, on='date', how='left')
+minute_df['day'] = minute_df['date'].dt.date
+minute_df['hour'] = minute_df['date'].dt.hour
+minute_df['minute'] = minute_df['date'].dt.minute
+
+hour_df = minute_df.groupby(['day', 'hour']).agg({'value': ['max'], 'minutes': 'sum'})
+```
+
+
+```{python}
+fig = px.line(strom_df, x='date', y="consumption_per_day")
+fig.show()
+```
+
+
+
+hour_df = minute_df.groupby(['day', 'hour']).agg({'value': ['max'], 'minutes': 'sum'})
+hour_df = minute_df.groupby(['day', 'hour']).agg({'value': ['max'], 'minutes': 'sum'})
+
+fig = px.scatter(hour_df, x='index', y='consumption_per_day')
+fig.show()
+
+
