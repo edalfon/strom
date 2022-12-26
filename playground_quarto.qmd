@@ -54,7 +54,7 @@ Test it's working
 --       to avoid things getting read as blob
 INSTALL sqlite;
 LOAD sqlite;
-CALL sqlite_attach('data/2022-12-24-ecas-export.db');
+CALL sqlite_attach('data/2022-12-26-ecas-export.db');
 PRAGMA show_tables;
 ```
 
@@ -87,11 +87,6 @@ SELECT
   decode(value)::INT AS value
 FROM reading WHERE meterid = 1
 ;
-```
-
-```{python}
-%%sql
-
 SELECT * FROM strom_sqlite;
 ```
 
@@ -191,7 +186,7 @@ SELECT
   1.0 * consumption / minutes AS consumption_per_minute
 FROM generate_series(
     TIMESTAMP '2020-11-30 07:07:00', 
-    TIMESTAMP '2022-12-24 10:17:00', 
+    TIMESTAMP '2022-12-26 12:31:00', 
     INTERVAL 1 MINUTE
 ) tbl(minute)
 LEFT JOIN strom
@@ -231,8 +226,7 @@ Now we can simply aggregate per day and hour, and the average will be correct, a
 ```{python}
 %%sql
 
-SELECT 
-  hour(minute) AS hour, 
+consumption_hour_avg << SELECT 
   hour(minute) AS hour, 
   AVG(cm)*60*24*365 AS consumption
 FROM consumption_minute
@@ -241,11 +235,64 @@ GROUP BY hour(minute)
 ```
 
 ```{python}
+import plotly.express as px
+fig = px.bar(consumption_hour_avg, y='consumption', x='hour')
+fig.show()
+```
+
+Ok, good enough. But this includes a very long period withour measurements, which would have the effect to smooth everything.
+Let's take that chunk out to see how it looks.
+
+```{python}
+%%sql
+
+consumption_hour_avg << SELECT 
+  hour(minute) AS hour, 
+  AVG(cm)*60*24*365 AS consumption
+FROM consumption_minute
+WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+GROUP BY hour(minute)
+;
+```
+
+That looks more accurate. It still should have some smoothing going on, giving that there are still long-ish periods without measurements (a few days).
+```{python}
+import plotly.express as px
+fig = px.bar(consumption_hour_avg, y='consumption', x='hour')
+fig.show()
+```
+
+
+
+
+
+
+
+
+
+```{python}
 %sql toy << SELECT * FROM consumption_minute WHERE year(minute) >= 2022 AND month(minute) > 11;
+```
+
+
+```{python}
+%%sql 
+
+toy << SELECT 
+  *,
+  'H'||hour(minute) AS hour
+FROM consumption_minute 
+WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+;
 ```
 
 ```{python}
 px.line(toy, x='minute', y='cm')
+```
+
+
+```{python}
+px.histogram(toy, x='cm')
 ```
 
 
