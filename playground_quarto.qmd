@@ -263,8 +263,14 @@ fig.show()
 ```
 
 
+```{python}
+%%sql
 
+select * from consumption_hour_avg;
+```
 
+(x1+...+x12)/12
+400/12
 
 
 

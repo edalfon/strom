@@ -1,0 +1,17 @@
+---
+title: "A. Quarto Web Site"
+---
+
+This is a Quarto website that will contain all the strom project.
+
+It uses ["Auto Generation"](https://quarto.org/docs/websites/website-navigation.html) to populate the contents of the web site, so al lthe `qmd` files will be included. You just need to arrange them in folders so they will be arranged in the navigation accordingly.
+
+The website is a sub-directory of the main project. We want everything relative to the main project. Therefore, when rendering/previewing the website, you should set the working directory. For example, using Quarto's CLI:
+
+```
+quarto preview /OneDrive/All/R/strom/quarto --execute-dir /OneDrive/All/R/strom
+```
+
+Otherwise, Quarto would use the website sub-directory as the working directory to run the code. And we do not want that!
+
+

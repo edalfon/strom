@@ -1,0 +1,32 @@
+---
+title: "C. Loading Data"
+---
+
+{{< include ../_load_sql_ext.qmd >}}
+
+```{python}
+%sql duckdb:///:memory:
+# %sql duckdb:///path/to/file.db
+```
+
+Test it's working
+```{python}
+%sql SELECT 'back to normal!' as a_duckdb_column
+```
+
+```{python}
+%%sql
+
+-- SQLite Scanner
+-- https://duckdb.org/docs/extensions/sqlite_scanner.html
+-- TODO: perhaps consider SET GLOBAL sqlite_all_varchar=true;
+--       to avoid things getting read as blob
+INSTALL sqlite;
+LOAD sqlite;
+CALL sqlite_attach('data/2022-12-26-ecas-export.db');
+PRAGMA show_tables;
+```
+
+
+
+

@@ -1,0 +1,46 @@
+---
+title: "B. DuckDB"
+---
+
+We will be setting-up DuckDB to work in Jupyter-powered Quarto Documents.
+
+# Set-up `ipython-sql` to be able to write sql queries directly
+
+To do it with DuckDB, basically following [this guide](https://duckdb.org/docs/guides/python/jupyter), just need to make sure `ipython-sql`, `SQLAlchemy` and `duckdb-engine` are installed, besides the core libraries (`notebook`, `pandas`, `duckdb`). If any of them mssing, simply pip install them.
+
+Step 1 is then to import ipython-sql Jupyter extension. It enables SQL cells in Jupyter. It supports inline SQL using `%sql` and a whole SQL cell starting it with `%%sql`.
+
+```{python}
+import duckdb
+import pandas as pd
+import sqlalchemy # No need to import duckdb_engine, 
+                  # SQLAlchemy will auto-detect 
+
+%load_ext sql
+%config SqlMagic.autopandas = True
+%config SqlMagic.feedback = False
+%config SqlMagic.displaycon = False
+```
+
+I prefer Quarto to edit my notebooks, and the above still works. However, [it seems Quarto's SQL engine is still only for `R`](https://github.com/quarto-dev/quarto-cli/discussions/1737) since it requires `knitr` and does not seem to support the combo `ipython-sql`-`SQLAlchemy`. So you cannot simply use an SQl chunk like this
+
+```{{sql}}
+SELECT * FROM test;
+```
+
+But you have to use a standard python chunk and use the `%sql` or `%%sql` to be able to write SQL direcly.
+
+Step 2 is to fire-up DuckDB, either in memory or pointing to a file.
+```{python}
+%sql duckdb:///:memory:
+# %sql duckdb:///path/to/file.db
+```
+
+Test it's working
+```{python}
+%sql SELECT 'Off and flying!' as a_duckdb_column
+```
+
+We will need to make sure we load the extension for all Quarto documents, as they will all be different jupyter notebooks (TODO: double-check this). So we will use [`Quarto includes`](https://quarto.org/docs/authoring/includes.html) to keep the source files not-so-verbose.
+
+> Note that we use an underscore (_) prefix for the included file. You should always use an underscore prefix with included files so that they are automatically ignored (i.e. not treated as standalone files) by a quarto render of a project).
