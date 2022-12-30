@@ -1,80 +1,30 @@
 ---
-title: "Untitled"
-format: html
+title: "Strom"
 ---
 
-# Set-up `ipython-sql` to be able to write sql queries directly
-
-To do it with DuckDB, basically following [this guide](https://duckdb.org/docs/guides/python/jupyter), just need to make sure `ipython-sql`, `SQLAlchemy` and `duckdb-engine` are installed, besides the core libraries (`notebook`, `pandas`, `duckdb`). If any of them mssing, simply pip install them.
-
-Step 1 is then to import ipython-sql Jupyter extension. It enables SQL cells in Jupyter. It supports inline SQL using `%sql` and a whole SQL cell starting it with `%%sql`.
-
 ```{python}
+#| include: false
+# https://quarto.org/docs/computations/execution-options.html
 import duckdb
 import pandas as pd
 import sqlalchemy # No need to import duckdb_engine, 
                   # SQLAlchemy will auto-detect 
-
 %load_ext sql
 %config SqlMagic.autopandas = True
 %config SqlMagic.feedback = False
 %config SqlMagic.displaycon = False
-```
 
-I prefer Quarto to edit my notebooks, and the above still works. However, [it seems Quarto's SQL engine is still only for `R`](https://github.com/quarto-dev/quarto-cli/discussions/1737) since it requires `knitr` and does not seem to support the combo `ipython-sql`-`SQLAlchemy`. So you cannot simply use an SQl chunk like this
-
-```{{sql}}
-SELECT * FROM test;
-```
-
-But you have to use a standard python chunk and use the `%sql` or `%%sql` to be able to write SQL direcly.
-
-Step 2 is to fire-up DuckDB, either in memory or pointing to a file.
-```{python}
+#%sql duckdb:///strom.duckdb
 %sql duckdb:///:memory:
-# %sql duckdb:///path/to/file.db
-```
-
-Test it's working
-```{python}
-%sql SELECT 'Off and flying!' as a_duckdb_column
+%sql INSTALL sqlite;
+%sql LOAD sqlite;
+%sql SELECT * FROM sqlite_scan('data/2022-12-28-ecas-export.db', 'meter');
 ```
 
 
-# Load SQLite file
-::: {.panel-tabset}
+# Get strom data
 
-## SQL (DuckDB)
-```{python}
-%%sql
-
--- SQLite Scanner
--- https://duckdb.org/docs/extensions/sqlite_scanner.html
--- TODO: perhaps consider SET GLOBAL sqlite_all_varchar=true;
---       to avoid things getting read as blob
-INSTALL sqlite;
-LOAD sqlite;
-CALL sqlite_attach('data/2022-12-28-ecas-export.db');
-PRAGMA show_tables;
-```
-
-## R
-
-## Python
-
-:::
-
-
-```{python}
-%%sql 
-
-SELECT * FROM meter;
-```
-
-
-# And filter only strom meter
-
-
+By querying directly the SQLite table and filtering by meter id.
 ```{python}
 %%sql 
 
@@ -85,12 +35,13 @@ SELECT
   -- https://duckdb.org/docs/sql/functions/blob
   decode(date)::DATETIME AS date, 
   decode(value)::INT AS value
-FROM reading WHERE meterid = 1
+FROM sqlite_scan('data/2022-12-28-ecas-export.db', 'reading') 
+WHERE meterid = 1
 ;
 SELECT * FROM strom_sqlite;
 ```
 
-# And put the consumption data in there
+And put the consumption data in there
 
 ```{python}
 %%sql 
@@ -115,18 +66,19 @@ SELECT * FROM strom;
 
 Of course noisy data, with substantial variation in the consumption day equivalent and there is 1.5 years without data.
 ```{python}
+%sql strom << SELECT * FROM strom;
 import plotly.express as px
 fig = px.line(strom, x='date', y="consumption_day_equivalent")
 fig.show()
 ```
 
 ```{python}
-import pandas as pd
-from pandas_profiling import ProfileReport
+#import pandas as pd
+#from pandas_profiling import ProfileReport
 
 #EDA using pandas-profiling
-profile = ProfileReport(strom, explorative=True)
-profile.to_file("output.html")
+#profile = ProfileReport(strom, explorative=True)
+#profile.to_file("output.html")
 ```
 
 With the exception of the long period without data, the number of minutes shows there are measurements from a few hours away, to a few days away. Most measurements are between 7 and 16 hours apart. That's worrisome, as the periods are relatively long. In addition, the measurements are scattered and do not follow a systematic pattern.
@@ -136,7 +88,7 @@ fig = px.histogram(strom.query("minutes < 10000"), x="minutes", marginal="box")
 fig.show()
 ```
 
-The consumption day equivalent varies also substantially. Median 8.8, which is consistent with the long-run consumption (equivalent to `r 8.8*365` per year.). The distribution has a long tight tail, with very high consumptions, presumably, associated to very short measurements periods.
+The consumption day equivalent varies also substantially. Median 8.8, which is consistent with the long-run consumption (equivalent to ```python 8.8*365``` per year.). The distribution has a long tight tail, with very high consumptions, presumably, associated to very short measurements periods.
 ```{python}
 import plotly.express as px
 fig = px.histogram(strom.query("minutes < 10000"), x="consumption_day_equivalent", marginal="box")
@@ -164,19 +116,20 @@ fig = px.scatter(
 fig.show()
 ```
 
-Let's try to see what hours have the highest consumption. That's tricky given this messy data. One approach is to just interpoate between data points and assume a constant consumption. That's of course not realistic (specially during the day), but it would get us closer.
 
+# Consumption by hour
+Let's try to see what hours have the highest consumption. That's tricky given this messy data. One approach is to just interpolate between data points and assume a constant consumption. That's of course not realistic (specially during the day), but it would get us closer.
 
 ```{python}
 %%sql
 SELECT MIN(date), MAX(DATE) FROM strom_sqlite;
 ```
 
-This is pretty inefficient, as it will create a table with as many rows as minutes there are. So more than a million, and thenleft join the actual data to that huge table. We end up with a table with a bunch of nulls, and only observations where there are actual measurements.
+This is pretty inefficient, as it will create a table with as many rows as minutes there are. So more than a million, and then left join the actual data to that huge table. We end up with a table with a bunch of nulls, and only observations where there are actual measurements. But let's move on; this is quick-and-dirty.
 ```{python}
 %%sql
 
-CREATE OR REPLACE TABLE strom_minute AS
+CREATE OR REPLACE VIEW strom_minute AS
 SELECT 
   minute,
   date,
@@ -186,13 +139,13 @@ SELECT
   1.0 * consumption / minutes AS consumption_per_minute
 FROM generate_series(
     TIMESTAMP '2020-11-30 07:07:00', 
-    TIMESTAMP '2022-12-26 12:31:00', 
+    TIMESTAMP '2022-12-28 15:39:00', 
     INTERVAL 1 MINUTE
 ) tbl(minute)
 LEFT JOIN strom
 ON minute = strom.date
 ;
-SELECT * FROM strom_minute;
+SELECT * FROM strom_minute ORDER BY minute;
 ```
 
 And now we just interpolate the consumption per minute, filling the nulls with the next non-null value (i.e. the consumption is constant in all the measurement period -all the minutes between one measurement and the other-).
@@ -227,6 +180,7 @@ Now we can simply aggregate per day and hour, and the average will be correct, a
 %%sql
 
 consumption_hour_avg << SELECT 
+  COUNT(*) AS cnt,
   hour(minute) AS hour, 
   AVG(cm)*60*24*365 AS consumption
 FROM consumption_minute
@@ -240,7 +194,7 @@ fig = px.bar(consumption_hour_avg, y='consumption', x='hour')
 fig.show()
 ```
 
-Ok, good enough. But this includes a very long period withour measurements, which would have the effect to smooth everything.
+Ok, good enough. But this includes a very long period without measurements, which would have the effect to smooth everything.
 Let's take that chunk out to see how it looks.
 
 ```{python}
@@ -255,7 +209,7 @@ GROUP BY hour(minute)
 ;
 ```
 
-That looks more accurate. It still should have some smoothing going on, giving that there are still long-ish periods without measurements (a few days).
+This looks more accurate. It still should have some smoothing going on, giving that there are still long-ish periods without measurements (a few days) and the non-systematic measurement pattern, than frequently spans more than one hour.
 ```{python}
 import plotly.express as px
 fig = px.bar(consumption_hour_avg, y='consumption', x='hour')
@@ -276,12 +230,9 @@ select * from consumption_hour_avg;
 
 
 
-```{python}
 %sql toy << SELECT * FROM consumption_minute WHERE year(minute) >= 2022 AND month(minute) > 11;
-```
 
 
-```{python}
 %%sql 
 
 toy << SELECT 
@@ -290,19 +241,14 @@ toy << SELECT
 FROM consumption_minute 
 WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
 ;
-```
 
-```{python}
+
 px.line(toy, x='minute', y='cm')
-```
 
 
-```{python}
 px.histogram(toy, x='cm')
-```
 
 
-```{python}
 %%sql
 SELECT COUNT(*)
 FROM strom
@@ -315,7 +261,7 @@ WHERE date IS NOT NULL
 ;
 
 SELECT * FROM strom_minute LIMIT 10 OFFSET 1000;
-```
+
 
 
 
@@ -358,3 +304,4 @@ https://www.rstudio.com/blog/6-productivity-hacks-for-quarto/#write-verbatim-cod
 
 
 https://quarto.org/docs/computations/execution-options.html
+
