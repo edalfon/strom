@@ -3,6 +3,11 @@ title: "Wärmestrom"
 ---
 
 ```{python}
+latest_file = './data/' + max(os.listdir('./data')) # TODO: make this a fn, and robust
+```
+
+
+```{python}
 #| include: false
 # https://quarto.org/docs/computations/execution-options.html
 import duckdb
@@ -18,7 +23,17 @@ import sqlalchemy # No need to import duckdb_engine,
 %sql duckdb:///:memory:
 %sql INSTALL sqlite;
 %sql LOAD sqlite;
-%sql SELECT * FROM sqlite_scan('data/2022-12-28-ecas-export.db', 'meter');
+%sql SELECT * FROM sqlite_scan(:latest_file, 'meter');
+```
+
+
+Please note that you cannot use this as prepared statements to create views.
+Therefore, below we will now use tables.
+
+```{{python}}
+%%sql
+CREATE OR REPLACE VIEW fail AS
+SELECT * FROM sqlite_scan(:latest_file, 'meter');
 ```
 
 
@@ -28,14 +43,14 @@ By querying directly the SQLite table and filtering by meter id. But for Wärmes
 ```{python}
 %%sql 
 
-CREATE OR REPLACE VIEW waermestrom_sqlite AS 
+CREATE OR REPLACE TABLE waermestrom_sqlite AS 
 SELECT 
   meterid, 
   -- Blob Functions, because most columns get read as blob
   -- https://duckdb.org/docs/sql/functions/blob
   decode(date)::DATETIME AS date, 
   decode(value)::INT AS value
-FROM sqlite_scan('data/2022-12-28-ecas-export.db', 'reading') 
+FROM sqlite_scan(:latest_file, 'reading') 
 WHERE meterid = 2 OR meterid = 3
 ;
 SELECT * FROM waermestrom_sqlite;
@@ -68,14 +83,14 @@ Safest would be to just join the dates and make sure to fill in the gaps with th
 ```{python}
 %%sql
 
-CREATE OR REPLACE VIEW waermestrom_nulls AS
+CREATE OR REPLACE TABLE waermestrom_nulls AS
 WITH
 ws181 AS (
   SELECT 
     'Hoch' AS tariff,
     decode(date)::DATETIME AS date, 
     decode(value)::INT AS value
-  FROM sqlite_scan('data/2022-12-28-ecas-export.db', 'reading') 
+  FROM sqlite_scan(:latest_file, 'reading') 
   WHERE meterid = 3 
 ),
 ws182 AS (
@@ -83,7 +98,7 @@ ws182 AS (
     'Niedrig' AS tariff, 
     decode(date)::DATETIME AS date, 
     decode(value)::INT AS value
-  FROM sqlite_scan('data/2022-12-28-ecas-export.db', 'reading') 
+  FROM sqlite_scan(:latest_file, 'reading') 
   WHERE meterid = 2
 )
 SELECT
@@ -148,8 +163,9 @@ SELECT
   1.0 * consumption / minutes_lag AS cm,
   24.0 * 60.0 * consumption / minutes_lag AS consumption_day_equivalent
 FROM waermestrom_nonulls 
+WHERE minutes > 1 --get rid of the artificially short periods
 ;
-SELECT * FROM waermestrom LIMIT 20;
+SELECT * FROM waermestrom;
 ```
 
 
@@ -210,7 +226,7 @@ So, again let's take the inefficient but straightforward way. First expand in mi
 ```{python}
 %%sql
 
-CREATE OR REPLACE VIEW waermestrom_minute AS
+CREATE OR REPLACE VIEW waermestrom_minute_nulls AS
 WITH minutes_table AS (
   SELECT UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) as minute
   FROM (VALUES (
@@ -222,29 +238,33 @@ FROM minutes_table
 LEFT JOIN waermestrom
 ON minutes_table.minute = waermestrom.date
 ;
-SELECT * FROM waermestrom_minute ORDER BY minute LIMIT 10;
+SELECT * FROM waermestrom_minute_nulls ORDER BY minute LIMIT 10;
 ```
 
 And fill in the NULLS
 ```{python}
 %%sql
 
-CREATE OR REPLACE VIEW waermestrom_filledin AS
+CREATE OR REPLACE VIEW waermestrom_minute AS
 SELECT
-  *,
+  minute,
+  date,
+  value,
+  minutes,
+  consumption,
   CASE 
     WHEN cm IS NULL THEN
       (SELECT cm 
-      FROM waermestrom_minute t2 
+      FROM waermestrom_minute_nulls t2 
       WHERE t2.minute > t1.minute and cm is not null 
       ORDER BY minute
       LIMIT 1)
     else cm 
   END AS cm
-FROM waermestrom_minute t1
+FROM waermestrom_minute_nulls t1
 ORDER BY t1.minute
 ;
-SELECT * FROM waermestrom_filledin ORDER BY minute LIMIT 100;
+SELECT * FROM waermestrom_minute ORDER BY minute LIMIT 100;
 ```
 
 And now we can simply aggregate per day and hour, and the average will be correct, as all the rows have comparable units (consumption for one minute, with equal weight).
@@ -254,15 +274,15 @@ And now we can simply aggregate per day and hour, and the average will be correc
 consumption_hour_avg << SELECT 
   COUNT(*) AS cnt,
   hour(minute) AS hour, 
-  AVG(cm)*60*24*365 AS consumption
-FROM waermestrom_filledin
+  AVG(cm)*60*24*365 AS cmy
+FROM waermestrom_minute
 GROUP BY hour(minute)
 ;
 ```
 
 ```{python}
 import plotly.express as px
-fig = px.bar(consumption_hour_avg, y='consumption', x='hour')
+fig = px.bar(consumption_hour_avg, y='cmy', x='hour')
 fig.show()
 ```
 
@@ -272,8 +292,8 @@ fig.show()
 
 consumption_hour_avg << SELECT 
   hour(minute) AS hour, 
-  AVG(cm)*60*24*365 AS consumption
-FROM waermestrom_filledin
+  1.0*AVG(cm)*60*24 AS cmy
+FROM waermestrom_minute
 WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
 GROUP BY hour(minute)
 ;
@@ -282,7 +302,7 @@ GROUP BY hour(minute)
 
 ```{python}
 import plotly.express as px
-fig = px.bar(consumption_hour_avg, y='consumption', x='hour')
+fig = px.bar(consumption_hour_avg, y='cmy', x='hour')
 fig.show()
 ```
 
@@ -291,6 +311,109 @@ fig.show()
 %%sql
 
 
+SELECT
+  hour(minute) AS hour, 
+  AVG(1.0 * 60 * 24 * cm) AS cm
+FROM waermestrom_minute
+WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+GROUP BY hour(minute)
+;
+
 ```
 
 
+```{python}
+%%sql
+
+SELECT 
+  minute,
+  date,
+  1.0 * 60 * 24 * cm AS cm,
+  AVG(1.0 * 60 * 24 * cm) OVER(
+    ORDER BY minute ROWS BETWEEN 240 PRECEDING AND CURRENT ROW
+  ) AS cmma
+FROM waermestrom_minute
+WHERE minute > '2022-11-30'
+;
+```
+
+```{python}
+%%sql
+
+CREATE OR REPLACE VIEW toy AS
+WITH hourly_average AS (
+  SELECT
+    hour(minute) AS hour, 
+    AVG(1.0 * 60 * 24 * cm) AS cmha
+  FROM waermestrom_minute
+  --This was originally here, because we wanted to see the hourly variation
+  --and keeping this long period without measurements just smoothed things
+  --but for waermestrom, it has a misleading implication: since we have 
+  --measurements mostly in the wintertime, the average without this period
+  --is high, reflecting the higher energy consumption during winter
+  --WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+  GROUP BY hour(minute)
+),
+last_measurements AS (
+  SELECT 
+    minute,
+    date,
+    1.0 * 60 * 24 * cm AS cm,
+    AVG(1.0 * 60 * 24 * cm) OVER(
+      ORDER BY minute ROWS BETWEEN 60*4 PRECEDING AND CURRENT ROW
+    ) AS cmma
+  FROM waermestrom_minute
+  WHERE minute >= '2022-11-30'
+)
+SELECT *, CASE WHEN date IS NOT NULL THEN cm ELSE NULL END AS cmdate
+FROM last_measurements
+LEFT JOIN hourly_average
+ON hour(last_measurements.minute) = hourly_average.hour
+;
+```
+
+```{python}
+%sql toy << SELECT * FROM toy;
+```
+
+```{python}
+import plotly.graph_objects as go
+fig = px.area(toy, x='minute', y='cmha')
+fig.add_trace(go.Scatter(
+  x=toy['minute'], y=toy['cmma'], mode='lines', showlegend=False
+))
+fig.add_trace(go.Scatter(
+  x=toy['date'], y=toy['cmdate'], mode='markers', showlegend=False
+))
+
+# Add range slider
+fig.update_layout(
+    xaxis=dict(
+        rangeselector=dict(
+            buttons=list([
+                dict(count=1,
+                     label="1m",
+                     step="month",
+                     stepmode="backward"),
+                dict(count=7,
+                     label="7d",
+                     step="day",
+                     stepmode="backward"),
+                dict(count=15,
+                     label="15d",
+                     step="day",
+                     stepmode="backward"),
+                dict(step="all")
+            ])
+        ),
+        rangeslider=dict(
+            visible=True
+        ),
+        type="date"
+    )
+)
+
+fig.show()
+```
+
+TODO: fix the range
