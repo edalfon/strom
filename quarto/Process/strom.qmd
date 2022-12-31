@@ -56,6 +56,7 @@ SELECT
   *, 
   date_sub('minute', lag(date) over(order by date), date) AS minutes, 
   value - lag(value) over(order by date) AS consumption,
+  1.0 * consumption / minutes AS cm,
   24.0 * 60.0 * consumption / minutes AS consumption_day_equivalent
 FROM strom_sqlite
 ORDER BY date
@@ -134,23 +135,19 @@ This is pretty inefficient, as it will create a table with as many rows as minut
 ```{python}
 %%sql
 
-CREATE OR REPLACE TABLE strom_minute AS
-SELECT 
-  minute,
-  date,
-  value,
-  minutes, 
-  consumption,
-  1.0 * consumption / minutes AS consumption_per_minute
-FROM generate_series(
-    TIMESTAMP '2020-11-30 07:07:00', 
-    TIMESTAMP '2022-12-28 15:39:00', 
-    INTERVAL 1 MINUTE
-) tbl(minute)
+CREATE OR REPLACE TABLE strom_minute_nulls AS
+WITH minutes_table AS (
+  SELECT UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) as minute
+  FROM (VALUES (
+    [(SELECT MIN(date) FROM strom), (SELECT MAX(DATE) FROM strom)]
+  )) t(ts)
+)
+SELECT * 
+FROM minutes_table
 LEFT JOIN strom
-ON minute = strom.date
+ON minutes_table.minute = strom.date
 ;
-SELECT * FROM strom_minute ORDER BY minute;
+SELECT * FROM strom_minute_nulls ORDER BY minute LIMIT 10;
 ```
 
 And now we just interpolate the consumption per minute, filling the nulls with the next non-null value (i.e. the consumption is constant in all the measurement period -all the minutes between one measurement and the other-).
@@ -159,25 +156,32 @@ https://dba.stackexchange.com/questions/279039/how-to-get-the-last-non-null-valu
 ```{python}
 %%sql
 
-CREATE OR REPLACE TABLE consumption_minute AS
-select
-  *,
-  case when consumption_per_minute is null then
-    (select consumption_per_minute 
-     from strom_minute t2 
-     where t2.minute > t1.minute and consumption_per_minute is not null 
-     order by minute
-     limit 1)
-  else consumption_per_minute end as cm
-FROM strom_minute t1
+CREATE OR REPLACE TABLE strom_minute AS
+SELECT
+  minute,
+  date,
+  value,
+  minutes,
+  consumption,
+  CASE 
+    WHEN cm IS NULL THEN
+      (SELECT cm 
+      FROM strom_minute_nulls t2 
+      WHERE t2.minute > t1.minute and cm is not null 
+      ORDER BY minute
+      LIMIT 1)
+    else cm 
+  END AS cm
+FROM strom_minute_nulls t1
 ORDER BY t1.minute
 ;
+SELECT * FROM strom_minute ORDER BY minute LIMIT 100;
 ```
 
 ```{python}
 %%sql
 
-toy << SELECT * FROM consumption_minute ORDER BY minute LIMIT 5000;
+toy << SELECT * FROM strom_minute ORDER BY minute LIMIT 5000;
 ```
 
 Now we can simply aggregate per day and hour, and the average will be correct, as all the rows have comparable units (consumption for one minute, with equal weight).
@@ -188,7 +192,7 @@ consumption_hour_avg << SELECT
   COUNT(*) AS cnt,
   hour(minute) AS hour, 
   AVG(cm)*60*24*365 AS consumption
-FROM consumption_minute
+FROM strom_minute
 GROUP BY hour(minute)
 ;
 ```
@@ -208,7 +212,7 @@ Let's take that chunk out to see how it looks.
 consumption_hour_avg << SELECT 
   hour(minute) AS hour, 
   AVG(cm)*60*24*365 AS consumption
-FROM consumption_minute
+FROM strom_minute
 WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
 GROUP BY hour(minute)
 ;
@@ -228,6 +232,111 @@ fig.show()
 select * from consumption_hour_avg;
 ```
 
+
+# Traces plot
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE toy AS
+WITH hourly_average AS (
+  SELECT
+    hour(minute) AS hour, 
+    AVG(1.0 * 60 * 24 * cm) AS cmha
+  FROM strom_minute
+  --This was originally here, because we wanted to see the hourly variation
+  --and keeping this long period without measurements just smoothed things
+  --but for waermestrom, it has a misleading implication: since we have 
+  --measurements mostly in the wintertime, the average without this period
+  --is high, reflecting the higher energy consumption during winter
+  --WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+  GROUP BY hour(minute)
+),
+last_measurements AS (
+  SELECT 
+    minute,
+    date,
+    1.0 * 60 * 24 * cm AS cm,
+    AVG(1.0 * 60 * 24 * cm) OVER(
+      ORDER BY minute ROWS BETWEEN 60*4 PRECEDING AND CURRENT ROW
+    ) AS cmma
+  FROM strom_minute
+  WHERE minute >= '2022-11-30'
+)
+SELECT *, CASE WHEN date IS NOT NULL THEN cm ELSE NULL END AS cmdate
+FROM last_measurements
+LEFT JOIN hourly_average
+ON hour(last_measurements.minute) = hourly_average.hour
+;
+```
+
+```{python}
+%sql toy << SELECT * FROM toy;
+```
+
+```{python}
+import plotly.graph_objects as go
+fig = px.area(toy, x='minute', y='cmha')
+fig.add_trace(go.Scatter(
+  x=toy['minute'], y=toy['cmma'], mode='lines', showlegend=False
+))
+fig.add_trace(go.Scatter(
+  x=toy['date'], y=toy['cmdate'], mode='markers', showlegend=False
+))
+
+# Add range slider
+fig.update_layout(
+    xaxis=dict(
+        rangeselector=dict(
+            buttons=list([
+                dict(count=1,
+                     label="1m",
+                     step="month",
+                     stepmode="backward"),
+                dict(count=7,
+                     label="7d",
+                     step="day",
+                     stepmode="backward"),
+                dict(count=15,
+                     label="15d",
+                     step="day",
+                     stepmode="backward"),
+                dict(step="all")
+            ])
+        ),
+        rangeslider=dict(
+            visible=True
+        ),
+        type="date"
+    )
+)
+
+fig.show()
+```
+
+TODO: fix the range
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 (x1+...+x12)/12
 400/12
 
@@ -235,7 +344,7 @@ select * from consumption_hour_avg;
 
 
 
-%sql toy << SELECT * FROM consumption_minute WHERE year(minute) >= 2022 AND month(minute) > 11;
+%sql toy << SELECT * FROM strom_minute WHERE year(minute) >= 2022 AND month(minute) > 11;
 
 
 %%sql 
@@ -243,7 +352,7 @@ select * from consumption_hour_avg;
 toy << SELECT 
   *,
   'H'||hour(minute) AS hour
-FROM consumption_minute 
+FROM strom_minute 
 WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
 ;
 

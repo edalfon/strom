@@ -308,6 +308,7 @@ fig.show()
 ```
 
 
+# Traces plot
 ```{python}
 %%sql
 
