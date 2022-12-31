@@ -3,6 +3,10 @@ title: "Strom"
 ---
 
 ```{python}
+latest_file = './data/' + max(os.listdir('./data')) # TODO: make this a fn, and robust
+```
+
+```{python}
 #| include: false
 # https://quarto.org/docs/computations/execution-options.html
 import duckdb
@@ -18,7 +22,7 @@ import sqlalchemy # No need to import duckdb_engine,
 %sql duckdb:///:memory:
 %sql INSTALL sqlite;
 %sql LOAD sqlite;
-%sql SELECT * FROM sqlite_scan('data/2022-12-28-ecas-export.db', 'meter');
+%sql SELECT * FROM sqlite_scan(:latest_file, 'meter');
 ```
 
 
@@ -28,14 +32,14 @@ By querying directly the SQLite table and filtering by meter id.
 ```{python}
 %%sql 
 
-CREATE OR REPLACE VIEW strom_sqlite AS 
+CREATE OR REPLACE TABLE strom_sqlite AS 
 SELECT 
   meterid, 
   -- Blob Functions, because most columns get read as blob
   -- https://duckdb.org/docs/sql/functions/blob
   decode(date)::DATETIME AS date, 
   decode(value)::INT AS value
-FROM sqlite_scan('data/2022-12-28-ecas-export.db', 'reading') 
+FROM sqlite_scan(latest_file, 'reading') 
 WHERE meterid = 1
 ;
 SELECT * FROM strom_sqlite;
