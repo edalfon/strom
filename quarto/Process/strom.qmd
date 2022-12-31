@@ -3,6 +3,7 @@ title: "Strom"
 ---
 
 ```{python}
+import os
 latest_file = './data/' + max(os.listdir('./data')) # TODO: make this a fn, and robust
 ```
 
@@ -39,7 +40,7 @@ SELECT
   -- https://duckdb.org/docs/sql/functions/blob
   decode(date)::DATETIME AS date, 
   decode(value)::INT AS value
-FROM sqlite_scan(latest_file, 'reading') 
+FROM sqlite_scan(:latest_file, 'reading') 
 WHERE meterid = 1
 ;
 SELECT * FROM strom_sqlite;

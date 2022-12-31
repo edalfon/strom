@@ -3,6 +3,7 @@ title: "Wärmestrom"
 ---
 
 ```{python}
+import os
 latest_file = './data/' + max(os.listdir('./data')) # TODO: make this a fn, and robust
 ```
 
