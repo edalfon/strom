@@ -122,7 +122,7 @@ So now we want to fill in those gaps using the value of the same column, that ha
 ```{python}
 %%sql
 
-CREATE OR REPLACE VIEW waermestrom_nonulls AS
+CREATE OR REPLACE TABLE waermestrom_nonulls AS
 SELECT
   date,
   value_hoch, value_niedrig, 
@@ -155,7 +155,7 @@ Good, now we just need to calculate the consumption and create the main table.
 ```{python}
 %%sql 
 
-CREATE OR REPLACE VIEW waermestrom AS
+CREATE OR REPLACE TABLE waermestrom AS
 SELECT 
   date,
   value,
@@ -227,7 +227,7 @@ So, again let's take the inefficient but straightforward way. First expand in mi
 ```{python}
 %%sql
 
-CREATE OR REPLACE VIEW waermestrom_minute_nulls AS
+CREATE OR REPLACE TABLE waermestrom_minute_nulls AS
 WITH minutes_table AS (
   SELECT UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) as minute
   FROM (VALUES (
@@ -246,7 +246,7 @@ And fill in the NULLS
 ```{python}
 %%sql
 
-CREATE OR REPLACE VIEW waermestrom_minute AS
+CREATE OR REPLACE TABLE waermestrom_minute AS
 SELECT
   minute,
   date,
@@ -341,7 +341,7 @@ WHERE minute > '2022-11-30'
 ```{python}
 %%sql
 
-CREATE OR REPLACE VIEW toy AS
+CREATE OR REPLACE TABLE toy AS
 WITH hourly_average AS (
   SELECT
     hour(minute) AS hour, 

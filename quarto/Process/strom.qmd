@@ -51,7 +51,7 @@ And put the consumption data in there
 ```{python}
 %%sql 
 
-CREATE OR REPLACE VIEW strom AS
+CREATE OR REPLACE TABLE strom AS
 SELECT 
   *, 
   date_sub('minute', lag(date) over(order by date), date) AS minutes, 
@@ -134,7 +134,7 @@ This is pretty inefficient, as it will create a table with as many rows as minut
 ```{python}
 %%sql
 
-CREATE OR REPLACE VIEW strom_minute AS
+CREATE OR REPLACE TABLE strom_minute AS
 SELECT 
   minute,
   date,
@@ -159,7 +159,7 @@ https://dba.stackexchange.com/questions/279039/how-to-get-the-last-non-null-valu
 ```{python}
 %%sql
 
-CREATE OR REPLACE VIEW consumption_minute AS
+CREATE OR REPLACE TABLE consumption_minute AS
 select
   *,
   case when consumption_per_minute is null then
