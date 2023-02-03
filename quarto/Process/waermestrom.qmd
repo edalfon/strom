@@ -2,6 +2,10 @@
 title: "Wärmestrom"
 ---
 
+https://learnsql.com/blog/moving-average-in-sql/
+https://stackoverflow.com/questions/55491046/how-to-set-the-running-file-path-of-jupyter-in-vscode
+
+
 ```{python}
 import os
 latest_file = './data/' + max(os.listdir('./data')) # TODO: make this a fn, and robust
@@ -162,7 +166,12 @@ SELECT
   minutes_lag AS minutes,
   value - lag(value) over(order by date) AS consumption,
   1.0 * consumption / minutes_lag AS cm,
-  24.0 * 60.0 * consumption / minutes_lag AS consumption_day_equivalent
+  24.0 * 60.0 * consumption / minutes_lag AS consumption_day_equivalent,
+  -- now calculate consumption per tariff
+  value_hoch_fix - lag(value_hoch_fix) over(order by date) AS consumption_hoch,
+  value_niedrig_fix - lag(value_niedrig_fix) over(order by date) AS consumption_niedrig,
+  1.0 * consumption_hoch / minutes_lag AS cm_hoch,
+  1.0 * consumption_niedrig / minutes_lag AS cm_niedrig
 FROM waermestrom_nonulls 
 WHERE minutes > 1 --get rid of the artificially short periods
 ;
@@ -253,15 +262,9 @@ SELECT
   value,
   minutes,
   consumption,
-  CASE 
-    WHEN cm IS NULL THEN
-      (SELECT cm 
-      FROM waermestrom_minute_nulls t2 
-      WHERE t2.minute > t1.minute and cm is not null 
-      ORDER BY minute
-      LIMIT 1)
-    else cm 
-  END AS cm
+  LAST_VALUE(cm IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS cm
 FROM waermestrom_minute_nulls t1
 ORDER BY t1.minute
 ;

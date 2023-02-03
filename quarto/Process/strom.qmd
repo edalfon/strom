@@ -53,9 +53,11 @@ And put the consumption data in there
 
 CREATE OR REPLACE TABLE strom AS
 SELECT 
-  *, 
-  date_sub('minute', lag(date) over(order by date), date) AS minutes, 
-  value - lag(value) over(order by date) AS consumption,
+  *,
+  -- add default values to lag(), to prevent null in the first row
+  date_sub('minute', lag(date, 1, '2020-11-30 00:00:00') over(order by date), date) AS minutes, 
+  -- add default values to lag(), to prevent null in the first row
+  value - lag(value, 1, 12160) over(order by date) AS consumption,
   1.0 * consumption / minutes AS cm,
   24.0 * 60.0 * consumption / minutes AS consumption_day_equivalent
 FROM strom_sqlite
@@ -154,6 +156,7 @@ And now we just interpolate the consumption per minute, filling the nulls with t
 TODO: this uses a correlated subquery. Look for a better solution
 https://dba.stackexchange.com/questions/279039/how-to-get-the-last-non-null-value-that-came-before-the-current-row
 ```{python}
+#| eval: false
 %%sql
 
 CREATE OR REPLACE TABLE strom_minute AS
@@ -178,10 +181,40 @@ ORDER BY t1.minute
 SELECT * FROM strom_minute ORDER BY minute LIMIT 100;
 ```
 
+
+It turns out DuckDB already implements ignore nulls
 ```{python}
 %%sql
 
-toy << SELECT * FROM strom_minute ORDER BY minute LIMIT 5000;
+CREATE OR REPLACE TABLE strom_minute AS
+SELECT
+  minute,
+  date,
+  value,
+  minutes,
+  consumption,
+  LAST_VALUE(cm IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS cm
+FROM strom_minute_nulls t1
+ORDER BY t1.minute
+;
+SELECT * FROM strom_minute ORDER BY minute LIMIT 100;
+```
+
+
+```{python}
+%%sql
+
+toy << SELECT * FROM strom_minute_nulls ORDER BY minute LIMIT 7000;
+```
+
+
+
+```{python}
+%%sql
+
+toy << SELECT * FROM strom_minute ORDER BY minute LIMIT 7000;
 ```
 
 Now we can simply aggregate per day and hour, and the average will be correct, as all the rows have comparable units (consumption for one minute, with equal weight).
