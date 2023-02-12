@@ -3,17 +3,19 @@ title: "Strom"
 ---
 
 ```{python}
-import os
-latest_file = './data/' + max(os.listdir('./data')) # TODO: make this a fn, and robust
-```
-
-```{python}
+#| context: setup
+#| label: setup
 #| include: false
-# https://quarto.org/docs/computations/execution-options.html
+
+import os
 import duckdb
 import pandas as pd
 import sqlalchemy # No need to import duckdb_engine, 
                   # SQLAlchemy will auto-detect 
+
+# TODO: make this a fn, and make it robust
+latest_file = './data/' + max(os.listdir('./data')) 
+
 %load_ext sql
 %config SqlMagic.autopandas = True
 %config SqlMagic.feedback = False
@@ -69,12 +71,12 @@ SELECT * FROM strom;
 # Visualize the data
 
 ```{python}
-%sql strom << SELECT * FROM strom;
+%%sql 
+strom << SELECT * FROM strom;
 ```
 
 Of course noisy data, with substantial variation in the consumption day equivalent and there is 1.5 years without data.
 ```{python}
-%sql strom << SELECT * FROM strom;
 import plotly.express as px
 fig = px.line(strom, x='date', y="consumption_day_equivalent")
 fig.show()
@@ -281,7 +283,7 @@ WITH hourly_average AS (
   --but for waermestrom, it has a misleading implication: since we have 
   --measurements mostly in the wintertime, the average without this period
   --is high, reflecting the higher energy consumption during winter
-  --WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+  WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
   GROUP BY hour(minute)
 ),
 last_measurements AS (
@@ -303,7 +305,9 @@ ON hour(last_measurements.minute) = hourly_average.hour
 ```
 
 ```{python}
-%sql toy << SELECT * FROM toy;
+%%sql 
+
+toy << SELECT * FROM toy;
 ```
 
 ```{python}
@@ -350,6 +354,13 @@ TODO: fix the range
 
 
 
+```{python}
+%%sql
+
+--SELECT COUNT(*) FROM strom_minute;
+SELECT * FROM strom_minute LIMIT 10;
+
+```
 
 
 
@@ -367,11 +378,6 @@ TODO: fix the range
 
 
 
-
-
-
-(x1+...+x12)/12
-400/12
 
 
 
@@ -451,4 +457,7 @@ https://www.rstudio.com/blog/6-productivity-hacks-for-quarto/#write-verbatim-cod
 
 
 https://quarto.org/docs/computations/execution-options.html
+
+ffmpeg -i ./heidi1.webm -crf 0 heidi1.mp4
+ffmpeg -i ./heidi2.webm -crf 0 heidi2.mp4
 

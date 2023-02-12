@@ -2,6 +2,7 @@
 title: "Wärmestrom"
 ---
 
+
 https://learnsql.com/blog/moving-average-in-sql/
 https://stackoverflow.com/questions/55491046/how-to-set-the-running-file-path-of-jupyter-in-vscode
 
@@ -182,12 +183,12 @@ SELECT * FROM waermestrom;
 # Visualize the data
 
 ```{python}
-%sql waermestrom << SELECT * FROM waermestrom;
+%%sql 
+waermestrom << SELECT * FROM waermestrom;
 ```
 
 Again, very noisy data, with substantial variation in the consumption day equivalent and there is 1.5 years without data. But here you kinda already see the seasonal pattern of higher consumption in winter time.
 ```{python}
-%sql waermestrom << SELECT * FROM waermestrom;
 import plotly.express as px
 fig = px.line(waermestrom, x='date', y="consumption_day_equivalent")
 fig.show()
