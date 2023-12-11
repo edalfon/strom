@@ -1,0 +1,62 @@
+---
+title: "C. Loading Data"
+---
+
+{{< include ../includes/_load_sql_ext.qmd >}}
+
+We need to fire up DuckDB, in-memory or pointing to a file.
+```{{python}}
+%%sql
+
+duckdb:///:memory:
+-- duckdb:///path/to/file.db
+```
+
+And the data come in a SQLite file. DuckDB has a SQLite extension, so we just need to make sure it is installed and load it.
+
+```{{python}}
+%%sql
+
+INSTALL sqlite;
+LOAD sqlite;
+```
+
+And finally we just need to attach the SQLite file, which creates a bunch of views in the DuckDB side, for each table in the SQLite file.
+
+```{{python}}
+%%sql
+
+CALL sqlite_attach('data/2022-12-28-ecas-export.db');
+PRAGMA show_tables;
+```
+
+```{python}
+#| include: false
+%%sql
+
+duckdb:///:memory:
+-- duckdb:///path/to/file.db
+
+-- SQLite Scanner
+-- https://duckdb.org/docs/extensions/sqlite_scanner.html
+-- TODO: perhaps consider SET GLOBAL sqlite_all_varchar=true;
+--       to avoid things getting read as blob
+INSTALL sqlite;
+LOAD sqlite;
+CALL sqlite_attach('data/2022-12-28-ecas-export.db');
+PRAGMA show_tables;
+```
+
+With everything loaded, we can simply query the tables. For example, let's see the data about the meters.
+
+```{python}
+%%sql 
+
+SELECT * FROM meter;
+```
+
+
+
+TODO: Temporarilly we will put this in a file to include. Later we will improve how to load and share the data across scripts.
+
+Also, let's not use `sqlite_attach`. Otherwise you would need a new session every time you want to attach a new file because it fails trying to attach again the same table names (the views already exist). And there does not seem to be a way of telling `sqlite_attach` to simply replace everything. So better to use `sqlite_scan` to query only what we need.

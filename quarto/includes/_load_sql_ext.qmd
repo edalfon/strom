@@ -1,0 +1,13 @@
+```{python}
+#| include: false
+# https://quarto.org/docs/computations/execution-options.html
+import duckdb
+import pandas as pd
+import sqlalchemy # No need to import duckdb_engine, 
+                  # SQLAlchemy will auto-detect 
+
+%load_ext sql
+%config SqlMagic.autopandas = True
+%config SqlMagic.feedback = False
+%config SqlMagic.displaycon = False
+```

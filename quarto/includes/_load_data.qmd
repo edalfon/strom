@@ -1,0 +1,18 @@
+```{python}
+#| include: false
+%%sql
+
+duckdb:///:memory:
+-- duckdb:///path/to/file.db
+
+-- SQLite Scanner
+-- https://duckdb.org/docs/extensions/sqlite_scanner.html
+-- TODO: perhaps consider SET GLOBAL sqlite_all_varchar=true;
+--       to avoid things getting read as blob
+INSTALL sqlite;
+LOAD sqlite;
+CALL sqlite_attach('data/2022-12-28-ecas-export.db');
+PRAGMA show_tables;
+```
+
+

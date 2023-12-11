@@ -1,0 +1,206 @@
+---
+title: "Pool"
+---
+
+```{python}
+import os
+import chardet
+
+def convert_to_utf8(file_path, output_dir):
+    with open(file_path, 'rb') as file:
+        raw_data = file.read()
+        detected_encoding = chardet.detect(raw_data)['encoding']
+    
+    if detected_encoding != 'utf-8':
+        decoded_data = raw_data.decode(detected_encoding)
+        output_path = os.path.join(output_dir, os.path.basename(file_path))
+        os.makedirs(output_dir, exist_ok=True)
+        with open(output_path, 'w', encoding='utf-8') as utf8_file:
+            utf8_file.write(decoded_data)
+    
+    return detected_encoding
+
+# Example usage:
+#file_path = './data/pooltemp/Outdoor_log_from_20230701_to_20230727.csv'
+#encoding = convert_to_utf8(file_path, "interim/pooltemp")
+#print(f"The file encoding was: {encoding}")
+
+input_directory = './data/pooltemp'
+for filename in os.listdir(input_directory):
+    if filename.endswith('.csv'):
+        input_file = os.path.join(input_directory, filename)
+        convert_to_utf8(input_file, 'interim/pooltemp')
+```
+
+
+```{python}
+%load_ext sql
+%config SqlMagic.autopandas = True
+%config SqlMagic.feedback = False
+%config SqlMagic.displaycon = False
+```
+
+
+```{python}
+%sql duckdb:///:default:
+# %sql duckdb:///:memory:
+# %sql duckdb:///path/to/file.db
+```
+
+
+
+# Ingest
+```{python}
+%%sql
+
+CREATE OR REPLACE VIEW pooltemp AS
+SELECT *
+FROM read_csv(
+  'interim/pooltemp/*.csv',
+  columns = {'time': 'TIMESTAMP', 'temp': 'DOUBLE'},
+  decimal_separator = ',',
+  delim = '\t',
+  filename = True,
+  header = True,
+  skip = 1
+)
+;
+```
+
+```{python}
+#%sqlcmd profile -t pooltemp;
+#this does not seem to be working, it does not work on saved queries, 
+#nor if I create the view, nor if I create the table
+```
+
+
+```{python}
+%%sql
+
+CREATE OR REPLACE MACRO add_dups_count(_srctbl, _cols) AS TABLE 
+(SELECT *, COUNT(*) OVER (PARTITION BY _cols) AS _cnt
+FROM pooltemp)
+--TODO: figure out how to pass a table name to macros in DuckDB
+--FROM _srctbl
+;
+```
+
+
+```{python}
+%%sql
+
+SELECT * FROM add_dups_count(pooltemp, time);
+```
+
+
+```{python}
+%%sql
+
+CREATE OR REPLACE MACRO count_dups_by(_srctbl, _cols) AS TABLE
+SELECT 
+  COUNT(*) AS _tot,
+  COUNT(*) FILTER(WHERE _cnt > 1) AS _dups,
+  COUNT(DISTINCT _cols) AS _uniq,
+  _dups - (_tot - _uniq) AS _duniq,
+  _dups / _duniq AS _puniq
+FROM add_dups_count(_srctbl, _cols) 
+;
+```
+
+```{python}
+%%sql
+
+SELECT * FROM count_dups_by(pooltemp, (time, temp));
+```
+
+
+```{python}
+%%sql --save pooltemp_clean
+
+pooltemp_clean =<< SELECT time, avg(temp) AS temp
+FROM pooltemp
+GROUP BY time
+ORDER BY time
+;
+```
+
+
+```{python}
+pooltemp_clean
+```
+
+```{python}
+import plotly.express as px
+
+import pandas as pd
+import numpy as np
+
+fig = px.scatter(pooltemp_clean, x="time", y="temp", render_mode='webgl')
+fig.update_traces(marker_line=dict(width=1, color='DarkSlateGray'))
+fig.show()
+```
+
+%%timeit
+%%sql 
+SELECT COUNT(DISTINCT (time, temp)), COUNT(*) 
+FROM pooltemp
+;
+
+
+%%timeit
+%%sql 
+SELECT COUNT(*) FROM (
+SELECT time, COUNT(*)
+FROM pooltemp
+GROUP BY time
+HAVING COUNT(*) > 1
+
+)
+;
+
+%%timeit
+%%sql --save duplicates_detail 
+
+SELECT *
+FROM (
+  SELECT 
+    *, 
+    COUNT(*) OVER (PARTITION BY time) AS cnt
+    COUNT(*) OVER (PARTITION BY time, temp) AS cnt2
+  FROM pooltemp
+)
+WHERE cnt > 1     -- AND cnt <> cnt2
+ORDER BY -cnt, time
+;
+
+
+%%sql 
+
+SELECT 
+  COUNT(*),
+  COUNT(DISTINCT time),  
+  COUNT(DISTINCT (time, temp))  
+FROM duplicates_detail
+;
+
+
+
+%%timeit
+%%sql
+
+SELECT time, avg(temp) AS temp
+FROM pooltemp
+GROUP BY time
+ORDER BY time
+
+
+
+%%sql
+
+CREATE OR REPLACE MACRO count_uniq_by(cols) AS TABLE 
+SELECT COUNT(DISTINCT cols) 
+FROM pooltemp
+
+
+
+

@@ -1,0 +1,491 @@
+---
+title: "Wärmestrom"
+---
+
+
+https://learnsql.com/blog/moving-average-in-sql/
+https://stackoverflow.com/questions/55491046/how-to-set-the-running-file-path-of-jupyter-in-vscode
+
+
+```{python}
+import os
+
+def get_latest_file_path(folder_path):
+  
+    # Get a list of all files in the folder
+    files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+    
+    # Sort the list of files in lexicographical order
+    sorted_files = sorted(files)
+    
+    # Get the path of the latest file (the last one in the sorted list)
+    latest_file = sorted_files[-1]
+    
+    # Return the full path of the latest file
+    return os.path.join(folder_path, latest_file)
+```
+
+
+```{python}
+latest_file = get_latest_file_path('./data/')
+```
+
+
+```{python}
+#| include: false
+# https://quarto.org/docs/computations/execution-options.html
+import duckdb
+import pandas as pd
+import sqlalchemy # No need to import duckdb_engine, 
+                  # SQLAlchemy will auto-detect 
+%load_ext sql
+%config SqlMagic.autopandas = True
+%config SqlMagic.feedback = False
+%config SqlMagic.displaycon = False
+
+#%sql duckdb:///./duckdb/strom.duckdb
+%sql duckdb:///:memory:
+%sql INSTALL sqlite;
+%sql LOAD sqlite;
+%sql SELECT * FROM sqlite_scan('{{latest_file}}', 'meter');
+```
+
+
+Please note that you cannot use this as prepared statements to create views.
+Therefore, below we will now use tables.
+
+```{{python}}
+%%sql
+CREATE OR REPLACE VIEW fail AS
+SELECT * FROM sqlite_scan(:latest_file, 'meter');
+```
+
+
+
+
+
+
+# Get Wärmestrom data
+
+By querying directly the SQLite table and filtering by meter id. But for Wärmestrom we have two different meters, because there are two tarifs depending on the time of the day.
+```{python}
+%%sql 
+
+CREATE OR REPLACE TABLE waermestrom_sqlite AS 
+SELECT 
+  meterid, 
+  -- Blob Functions, because most columns get read as blob
+  -- https://duckdb.org/docs/sql/functions/blob
+  decode(date)::DATETIME AS date, 
+  decode(value)::INT AS value
+FROM sqlite_scan('{{latest_file}}', 'reading') 
+WHERE meterid = 2 OR meterid = 3
+;
+SELECT * FROM waermestrom_sqlite;
+```
+
+Ideally, there would be one measurement for each tarif, for every date (minute). But we cannot guarantee that's the case (e.g. measurement for one tarif can be at 13:08:59 and for the other at 12:09:00). So let's see if that's the case.
+```{python}
+%%sql 
+
+SELECT date, count(*) AS cnt
+FROM waermestrom_sqlite
+GROUP BY date
+;
+```
+
+
+Yeap, there are some cases with cnt=1. More precisely, the below number of cases:
+```{python}
+%%sql 
+
+WITH ucnt AS (
+  SELECT date, count(*) AS cnt
+  FROM waermestrom_sqlite
+  GROUP BY date
+)
+SELECT cnt, COUNT(*) FROM ucnt GROUP BY cnt
+;
+```
+
+Safest would be to just join the dates and make sure to fill in the gaps with the closest value. Let's see
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE waermestrom_nulls AS
+WITH
+ws181 AS (
+  SELECT 
+    'Hoch' AS tariff,
+    decode(date)::DATETIME AS date, 
+    decode(value)::INT AS value
+  FROM sqlite_scan('{{latest_file}}', 'reading') 
+  WHERE meterid = 3 
+),
+ws182 AS (
+  SELECT 
+    'Niedrig' AS tariff, 
+    decode(date)::DATETIME AS date, 
+    decode(value)::INT AS value
+  FROM sqlite_scan('{{latest_file}}', 'reading') 
+  WHERE meterid = 2
+)
+SELECT
+  COALESCE(ws181.date, ws182.date) AS date,
+  ws181.value AS value_hoch,
+  ws182.value AS value_niedrig
+FROM ws181 
+FULL JOIN ws182 
+ON ws181.date = ws182.date
+ORDER BY date
+;
+SELECT * FROM waermestrom_nulls LIMIT 20;
+```
+
+
+Yeah, those are the cases: 
+2020-12-01 07:18:00 has value hoch, but no niedrig
+2020-12-01 07:19:00	has value niedrig, but no hoch
+
+So now we want to fill in those gaps using the value of the same column, that has the closest date. So it's tricky, because it cannot simply be a fill-down, or fill-up. Because in one case, the correct value would be one position up, and in other case one position down. Here's one approach (it just assumes there are no consecutive nulls for the value columns; please also note that it takes advantage of DuckDB's flexible SQL syntax -otherwhise it would have been even longer, with a bunch of CTEs-)
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE waermestrom_nonulls AS
+SELECT
+  date,
+  value_hoch, value_niedrig, 
+  -- calculate minutes diff with previous and next date, to see which is closer
+  date_sub('minute', lag(date) over(order by date), date) AS minutes_lag,
+  date_sub('minute', date, lead(date) over(order by date)) AS minutes_lead,
+  -- and we want to replace null values column, with the value from closest date
+  CASE
+    WHEN value_hoch IS NULL AND minutes_lag <= minutes_lead 
+    THEN lag(value_hoch) over(order by date)
+    WHEN value_hoch IS NULL AND minutes_lag > minutes_lead 
+    THEN lead(value_hoch) over(order by date)
+    ELSE value_hoch
+  END AS value_hoch_fix,
+  CASE
+    WHEN value_niedrig IS NULL AND minutes_lag <= minutes_lead 
+    THEN lag(value_niedrig) over(order by date)
+    WHEN value_niedrig IS NULL AND minutes_lag > minutes_lead 
+    THEN lead(value_niedrig) over(order by date)
+    ELSE value_niedrig
+  END AS value_niedrig_fix,
+  value_hoch_fix + value_niedrig_fix AS value
+FROM waermestrom_nulls 
+ORDER BY date
+;
+SELECT * FROM waermestrom_nonulls LIMIT 20;
+```
+
+Good, now we just need to calculate the consumption and create the main table.
+```{python}
+%%sql 
+
+CREATE OR REPLACE TABLE waermestrom AS
+SELECT 
+  date,
+  value,
+  minutes_lag AS minutes,
+  value - lag(value) over(order by date) AS consumption,
+  1.0 * consumption / minutes_lag AS cm,
+  24.0 * 60.0 * consumption / minutes_lag AS consumption_day_equivalent,
+  -- now calculate consumption per tariff
+  value_hoch_fix - lag(value_hoch_fix) over(order by date) AS consumption_hoch,
+  value_niedrig_fix - lag(value_niedrig_fix) over(order by date) AS consumption_niedrig,
+  1.0 * consumption_hoch / minutes_lag AS cm_hoch,
+  1.0 * consumption_niedrig / minutes_lag AS cm_niedrig
+FROM waermestrom_nonulls 
+WHERE minutes > 1 --get rid of the artificially short periods
+;
+SELECT * FROM waermestrom;
+```
+
+```{python}
+%%sql 
+SELECT * FROM waermestrom ORDER BY date;
+```
+
+```{python}
+15483-15472
+16695-16662
+```
+
+# Visualize the data
+
+```{python}
+%%sql 
+waermestrom << SELECT * FROM waermestrom;
+```
+
+Again, very noisy data, with substantial variation in the consumption day equivalent and there is 1.5 years without data. But here you kinda already see the seasonal pattern of higher consumption in winter time.
+```{python}
+import plotly.express as px
+fig = px.line(waermestrom, x='date', y="consumption_day_equivalent")
+fig.show()
+```
+
+
+The minutes show a similar pattern, but with a bunch of very low values (probably 1), that should be due to the combination of the two meters when they do not fall in exactly the same minute.
+```{python}
+import plotly.express as px
+fig = px.histogram(waermestrom.query("minutes < 10000"), x="minutes", marginal="box")
+fig.show()
+```
+
+The consumption day equivalent varies also substantially, and it is of course higher than the normal strom.
+```{python}
+import plotly.express as px
+fig = px.histogram(waermestrom.query("minutes < 10000"), x="consumption_day_equivalent", marginal="box")
+fig.show()
+```
+
+Here the pattern of minutes and consumption is not so marked as in the normal strom.
+```{python}
+from matplotlib import pyplot
+pyplot.scatter(
+    waermestrom.query("minutes < 10000")["minutes"], 
+    waermestrom.query("minutes < 10000")["consumption_day_equivalent"]
+)
+```
+
+```{python}
+import plotly.express as px
+fig = px.scatter(
+    data_frame=waermestrom.query("minutes < 10000"), 
+    x="minutes", 
+    y="consumption_day_equivalent", hover_data=['date'],
+    marginal_x="histogram", 
+    marginal_y="histogram"
+)
+fig.show()
+```
+
+
+# Consumption by hour
+
+So, again let's take the inefficient but straightforward way. First expand in minutes to the whole range.
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE waermestrom_minute_nulls AS
+WITH minutes_table AS (
+  SELECT UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) as minute
+  FROM (VALUES (
+    [(SELECT MIN(date) FROM waermestrom), (SELECT MAX(DATE) FROM waermestrom)]
+  )) t(ts)
+)
+SELECT * 
+FROM minutes_table
+LEFT JOIN waermestrom
+ON minutes_table.minute = waermestrom.date
+;
+SELECT * FROM waermestrom_minute_nulls ORDER BY minute LIMIT 10;
+```
+
+And fill in the NULLS
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE waermestrom_minute AS
+SELECT
+  minute,
+  date,
+  value,
+  minutes,
+  consumption,
+  LAST_VALUE(cm IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS cm,
+  LAST_VALUE(cm_hoch IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS cm_hoch,
+  LAST_VALUE(cm_niedrig IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS cm_niedrig
+FROM waermestrom_minute_nulls t1
+ORDER BY t1.minute
+;
+SELECT * FROM waermestrom_minute ORDER BY minute LIMIT 100;
+```
+
+And now we can simply aggregate per day and hour, and the average will be correct, as all the rows have comparable units (consumption for one minute, with equal weight).
+```{python}
+%%sql
+
+consumption_hour_avg << SELECT 
+  COUNT(*) AS cnt,
+  hour(minute) AS hour, 
+  AVG(cm)*60*24 AS cmy
+FROM waermestrom_minute
+GROUP BY hour(minute)
+;
+```
+
+
+```{python}
+import plotly.express as px
+fig = px.line(consumption_hour_avg, y='cmy', x='hour')
+fig.show()
+```
+
+
+```{python}
+%%sql
+
+consumption_hour_avg << SELECT 
+  hour(minute) AS hour, 
+  1.0*AVG(cm)*60*24 AS cmy
+FROM waermestrom_minute
+WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+GROUP BY hour(minute)
+;
+```
+
+
+```{python}
+import plotly.express as px
+fig = px.bar(consumption_hour_avg, y='cmy', x='hour')
+fig.show()
+```
+
+
+# Traces plot
+```{python}
+%%sql
+
+
+SELECT
+  hour(minute) AS hour, 
+  AVG(1.0 * 60 * 24 * cm) AS cm
+FROM waermestrom_minute
+WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+GROUP BY hour(minute)
+;
+
+```
+
+
+```{python}
+%%sql
+
+SELECT 
+  minute,
+  date,
+  1.0 * 60 * 24 * cm AS cm,
+  AVG(1.0 * 60 * 24 * cm) OVER(
+    ORDER BY minute ROWS BETWEEN 240 PRECEDING AND CURRENT ROW
+  ) AS cmma
+FROM waermestrom_minute
+WHERE minute > '2022-11-30'
+;
+```
+
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE toy AS
+WITH hourly_average AS (
+  SELECT
+    hour(minute) AS hour, 
+    AVG(1.0 * 60 * 24 * cm) AS cmha
+  FROM waermestrom_minute
+  --This was originally here, because we wanted to see the hourly variation
+  --and keeping this long period without measurements just smoothed things
+  --but for waermestrom, it has a misleading implication: since we have 
+  --measurements mostly in the wintertime, the average without this period
+  --is high, reflecting the higher energy consumption during winter
+  --WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+  GROUP BY hour(minute)
+),
+last_measurements AS (
+  SELECT 
+    minute,
+    date,
+    1.0 * 60 * 24 * cm AS cm,
+    AVG(1.0 * 60 * 24 * cm) OVER(
+      ORDER BY minute ROWS BETWEEN 60*4 PRECEDING AND CURRENT ROW
+    ) AS cmma
+  FROM waermestrom_minute
+  WHERE minute >= '2022-11-30'
+)
+SELECT *, CASE WHEN date IS NOT NULL THEN cm ELSE NULL END AS cmdate
+FROM last_measurements
+LEFT JOIN hourly_average
+ON hour(last_measurements.minute) = hourly_average.hour
+;
+```
+
+```{python}
+%sql toy << SELECT * FROM toy;
+```
+
+```{python}
+import plotly.graph_objects as go
+fig = px.area(toy, x='minute', y='cmha')
+fig.add_trace(go.Scatter(
+  x=toy['minute'], y=toy['cmma'], mode='lines', showlegend=False
+))
+fig.add_trace(go.Scatter(
+  x=toy['date'], y=toy['cmdate'], mode='markers', showlegend=False
+))
+
+# Add range slider
+fig.update_layout(
+    xaxis=dict(
+        rangeselector=dict(
+            buttons=list([
+                dict(count=1,
+                     label="1m",
+                     step="month",
+                     stepmode="backward"),
+                dict(count=7,
+                     label="7d",
+                     step="day",
+                     stepmode="backward"),
+                dict(count=15,
+                     label="15d",
+                     step="day",
+                     stepmode="backward"),
+                dict(step="all")
+            ])
+        ),
+        rangeslider=dict(
+            visible=True
+        ),
+        type="date"
+    )
+)
+
+fig.show()
+```
+
+TODO: fix the range
+
+Let's see the rate hoch tarif vs. niedrig
+
+```{python}
+%%sql
+
+niedrig_fraction << SELECT --*,
+  date::Date AS day,
+  AVG(cm_niedrig/cm) AS niedrig_fraction,
+  AVG(cm_niedrig)/AVG(cm) AS niedrig_fraction2,
+  AVG(niedrig_fraction) OVER(
+    ORDER BY minute ROWS BETWEEN 60 * 24 * 7 PRECEDING AND CURRENT ROW
+  ) AS niedrig_fraction_ma
+FROM waermestrom_minute
+GROUP BY date::Date
+ORDER BY date::Date
+;
+```
+
+
+
+```{python}
+import plotly.express as px
+fig = px.bar(niedrig_fraction, x='day', y='niedrig_fraction2')
+fig.show()
+```

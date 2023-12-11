@@ -1,0 +1,474 @@
+---
+title: "Strom"
+---
+
+```{python}
+import strom
+from epyfun.fs import get_latest_file
+latest_file = get_latest_file('./data/')
+```
+
+```{python}
+#| context: setup
+#| label: setup
+#| include: false
+
+#import os
+#import duckdb
+#import pandas as pd
+#import sqlalchemy # No need to import duckdb_engine, 
+                  # SQLAlchemy will auto-detect 
+
+latest_file = get_latest_file('./data/')
+
+%load_ext sql
+%config SqlMagic.autopandas = True
+%config SqlMagic.feedback = False
+%config SqlMagic.displaycon = False
+
+#%sql duckdb:///./duckdb/strom.duckdb
+%sql duckdb:///:memory:
+%sql INSTALL sqlite;
+%sql LOAD sqlite;
+%sql SELECT * FROM sqlite_scan('{{latest_file}}', 'meter');
+```
+
+
+```{python}
+%sql SELECT * FROM duckdb_settings();
+```
+
+# Get strom data
+
+By querying directly the SQLite table and filtering by meter id.
+```{python}
+%%sql 
+
+CREATE OR REPLACE TABLE strom_sqlite AS 
+SELECT 
+  meterid, 
+  -- Blob Functions, because most columns get read as blob
+  -- https://duckdb.org/docs/sql/functions/blob
+  decode(date)::DATETIME AS date, 
+  decode(value)::INT AS value
+FROM sqlite_scan('{{latest_file}}', 'reading') 
+WHERE meterid = 1
+;
+```
+
+```{python}
+%sql SELECT * FROM strom_sqlite;
+```
+
+And put the consumption data in there
+
+```{python}
+%%sql 
+
+CREATE OR REPLACE TABLE strom AS
+SELECT 
+  *,
+  -- add default values to lag(), to prevent null in the first row
+  date_sub('minute', lag(date, 1, '2020-11-30 00:00:00') over(order by date), date) AS minutes, 
+  -- add default values to lag(), to prevent null in the first row
+  value - lag(value, 1, 12160) over(order by date) AS consumption,
+  1.0 * consumption / minutes AS cm,
+  24.0 * 60.0 * consumption / minutes AS consumption_day_equivalent
+FROM strom_sqlite
+ORDER BY date
+;
+```
+
+# Visualize the data
+
+```{python}
+%%sql 
+strom << SELECT * FROM strom;
+```
+
+Of course noisy data, with substantial variation in the consumption day equivalent and there is 1.5 years without data.
+```{python}
+import plotly.express as px
+fig = px.line(strom, x='date', y="consumption_day_equivalent")
+fig.show()
+```
+
+```{python}
+#import pandas as pd
+#from pandas_profiling import ProfileReport
+
+#EDA using pandas-profiling
+#profile = ProfileReport(strom, explorative=True)
+#profile.to_file("output.html")
+```
+
+With the exception of the long period without data, the number of minutes shows there are measurements from a few hours away, to a few days away. Most measurements are between 7 and 16 hours apart. That's worrisome, as the periods are relatively long. In addition, the measurements are scattered and do not follow a systematic pattern.
+```{python}
+import plotly.express as px
+fig = px.histogram(strom.query("minutes < 10000"), x="minutes", marginal="box")
+fig.show()
+```
+
+The consumption day equivalent varies also substantially. Median 8.8, which is consistent with the long-run consumption (equivalent to ```python 8.8*365``` per year.). The distribution has a long tight tail, with very high consumptions, presumably, associated to very short measurements periods.
+```{python}
+import plotly.express as px
+fig = px.histogram(strom.query("minutes < 10000"), x="consumption_day_equivalent", marginal="box")
+fig.show()
+```
+
+Well, yeah, as expected, short measurement periods (few minutes) are associated with higher variability, and with the highest and lowest consumptions.
+```{python}
+from matplotlib import pyplot
+pyplot.scatter(
+    strom.query("minutes < 10000")["minutes"], 
+    strom.query("minutes < 10000")["consumption_day_equivalent"]
+)
+```
+
+```{python}
+import plotly.express as px
+fig = px.scatter(
+    data_frame=strom.query("minutes < 10000"), 
+    x="minutes", 
+    y="consumption_day_equivalent", hover_data=['date'],
+    marginal_x="histogram", 
+    marginal_y="histogram"
+)
+fig.show()
+```
+
+
+# Consumption by hour
+Let's try to see what hours have the highest consumption. That's tricky given this messy data. One approach is to just interpolate between data points and assume a constant consumption. That's of course not realistic (specially during the day), but it would get us closer.
+
+```{python}
+%%sql
+SELECT MIN(date), MAX(DATE) FROM strom_sqlite;
+```
+
+This is pretty inefficient, as it will create a table with as many rows as minutes there are. So more than a million, and then left join the actual data to that huge table. We end up with a table with a bunch of nulls, and only observations where there are actual measurements. But let's move on; this is quick-and-dirty.
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE strom_minute_nulls AS
+WITH minutes_table AS (
+  SELECT UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) as minute
+  FROM (VALUES (
+    [(SELECT MIN(date) FROM strom), (SELECT MAX(DATE) FROM strom)]
+  )) t(ts)
+)
+SELECT * 
+FROM minutes_table
+LEFT JOIN strom
+ON minutes_table.minute = strom.date
+;
+SELECT * FROM strom_minute_nulls ORDER BY minute LIMIT 10;
+```
+
+And now we just interpolate the consumption per minute, filling the nulls with the next non-null value (i.e. the consumption is constant in all the measurement period -all the minutes between one measurement and the other-).
+TODO: this uses a correlated subquery. Look for a better solution
+https://dba.stackexchange.com/questions/279039/how-to-get-the-last-non-null-value-that-came-before-the-current-row
+```{python}
+#| eval: false
+%%sql
+
+CREATE OR REPLACE TABLE strom_minute AS
+SELECT
+  minute,
+  date,
+  value,
+  minutes,
+  consumption,
+  CASE 
+    WHEN cm IS NULL THEN
+      (SELECT cm 
+      FROM strom_minute_nulls t2 
+      WHERE t2.minute > t1.minute and cm is not null 
+      ORDER BY minute
+      LIMIT 1)
+    else cm 
+  END AS cm
+FROM strom_minute_nulls t1
+ORDER BY t1.minute
+;
+SELECT * FROM strom_minute ORDER BY minute LIMIT 100;
+```
+
+
+It turns out DuckDB already implements ignore nulls
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE strom_minute AS
+SELECT
+  minute,
+  date,
+  value,
+  minutes,
+  consumption,
+  LAST_VALUE(cm IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  ) AS cm
+FROM strom_minute_nulls t1
+ORDER BY t1.minute
+;
+SELECT * FROM strom_minute ORDER BY minute LIMIT 100;
+```
+
+
+```{python}
+%%sql
+
+toy << SELECT * FROM strom_minute_nulls ORDER BY minute LIMIT 7000;
+```
+
+
+
+```{python}
+%%sql
+
+toy << SELECT * FROM strom_minute ORDER BY minute LIMIT 7000;
+```
+
+Now we can simply aggregate per day and hour, and the average will be correct, as all the rows have comparable units (consumption for one minute, with equal weight).
+```{python}
+%%sql
+
+consumption_hour_avg << SELECT 
+  COUNT(*) AS cnt,
+  hour(minute) AS hour, 
+  AVG(cm)*60*24*365 AS consumption
+FROM strom_minute
+GROUP BY hour(minute)
+;
+```
+
+```{python}
+import plotly.express as px
+fig = px.bar(consumption_hour_avg, y='consumption', x='hour')
+fig.show()
+```
+
+Ok, good enough. But this includes a very long period without measurements, which would have the effect to smooth everything.
+Let's take that chunk out to see how it looks.
+
+```{python}
+%%sql
+
+consumption_hour_avg << SELECT 
+  hour(minute) AS hour, 
+  AVG(cm)*60*24*365 AS consumption
+FROM strom_minute
+WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+GROUP BY hour(minute)
+;
+```
+
+This looks more accurate. It still should have some smoothing going on, giving that there are still long-ish periods without measurements (a few days) and the non-systematic measurement pattern, than frequently spans more than one hour.
+```{python}
+import plotly.express as px
+fig = px.bar(consumption_hour_avg, y='consumption', x='hour')
+fig.show()
+```
+
+
+```{python}
+%%sql
+
+select * from consumption_hour_avg;
+```
+
+
+# Traces plot
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE toy AS
+WITH hourly_average AS (
+  SELECT
+    hour(minute) AS hour, 
+    AVG(1.0 * 60 * 24 * cm) AS cmha
+  FROM strom_minute
+  --This was originally here, because we wanted to see the hourly variation
+  --and keeping this long period without measurements just smoothed things
+  --but for waermestrom, it has a misleading implication: since we have 
+  --measurements mostly in the wintertime, the average without this period
+  --is high, reflecting the higher energy consumption during winter
+  WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+  GROUP BY hour(minute)
+),
+last_measurements AS (
+  SELECT 
+    minute,
+    date,
+    1.0 * 60 * 24 * cm AS cm,
+    AVG(1.0 * 60 * 24 * cm) OVER(
+      ORDER BY minute ROWS BETWEEN 60*4 PRECEDING AND CURRENT ROW
+    ) AS cmma
+  FROM strom_minute
+  WHERE minute >= '2022-11-30'
+)
+SELECT *, CASE WHEN date IS NOT NULL THEN cm ELSE NULL END AS cmdate
+FROM last_measurements
+LEFT JOIN hourly_average
+ON hour(last_measurements.minute) = hourly_average.hour
+;
+```
+
+```{python}
+%%sql 
+
+toy << SELECT * FROM toy;
+```
+
+```{python}
+import plotly.graph_objects as go
+fig = px.area(toy, x='minute', y='cmha')
+fig.add_trace(go.Scatter(
+  x=toy['minute'], y=toy['cmma'], mode='lines', showlegend=False
+))
+fig.add_trace(go.Scatter(
+  x=toy['date'], y=toy['cmdate'], mode='markers', showlegend=False
+))
+
+# Add range slider
+fig.update_layout(
+    xaxis=dict(
+        rangeselector=dict(
+            buttons=list([
+                dict(count=1,
+                     label="1m",
+                     step="month",
+                     stepmode="backward"),
+                dict(count=7,
+                     label="7d",
+                     step="day",
+                     stepmode="backward"),
+                dict(count=15,
+                     label="15d",
+                     step="day",
+                     stepmode="backward"),
+                dict(step="all")
+            ])
+        ),
+        rangeslider=dict(
+            visible=True
+        ),
+        type="date"
+    )
+)
+
+fig.show()
+```
+
+TODO: fix the range
+
+
+
+```{python}
+%%sql
+
+--SELECT * FROM strom_minute LIMIT 10;
+SELECT COUNT(*) FROM strom_minute;
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%sql toy << SELECT * FROM strom_minute WHERE year(minute) >= 2022 AND month(minute) > 11;
+
+
+%%sql 
+
+toy << SELECT 
+  *,
+  'H'||hour(minute) AS hour
+FROM strom_minute 
+WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+;
+
+
+px.line(toy, x='minute', y='cm')
+
+
+px.histogram(toy, x='cm')
+
+
+%%sql
+SELECT COUNT(*)
+FROM strom
+WHERE date IS NOT NULL
+;
+
+SELECT COUNT(*)
+FROM strom_minute
+WHERE date IS NOT NULL
+;
+
+SELECT * FROM strom_minute LIMIT 10 OFFSET 1000;
+
+
+
+
+
+
+
+
+
+
+import pandas as pd
+
+minute = pd.date_range(
+    start=min(strom_df['date']), end=max(strom_df['date']), freq='min'
+)
+minute_df = pd.DataFrame(dict(date = minute))
+minute_df = minute_df.merge(strom_df, on='date', how='left')
+minute_df['day'] = minute_df['date'].dt.date
+minute_df['hour'] = minute_df['date'].dt.hour
+minute_df['minute'] = minute_df['date'].dt.minute
+
+hour_df = minute_df.groupby(['day', 'hour']).agg({'value': ['max']})
+
+
+
+
+
+
+
+
+hour_df = minute_df.groupby(['day', 'hour']).agg({'value': ['max'], 'minutes': 'sum'})
+hour_df = minute_df.groupby(['day', 'hour']).agg({'value': ['max'], 'minutes': 'sum'})
+
+fig = px.scatter(hour_df, x='index', y='consumption_per_day')
+fig.show()
+
+
+
+
+https://www.rstudio.com/blog/6-productivity-hacks-for-quarto/#write-verbatim-code-chunks-with-echo-fenced
+
+
+https://quarto.org/docs/computations/execution-options.html
+
+ffmpeg -i ./heidi1.webm -crf 0 heidi1.mp4
+ffmpeg -i ./heidi2.webm -crf 0 heidi2.mp4
+
