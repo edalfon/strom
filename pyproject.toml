@@ -8,6 +8,12 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
+epyfun = {path = "C:/OneDrive/All/Python/epyfun", develop = true}
+duckdb = "^0.9.2"
+pandas = "^2.1.4"
+jupysql = "^0.10.4"
+toml = "^0.10.2"
+duckdb-engine = "^0.9.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
