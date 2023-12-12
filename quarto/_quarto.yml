@@ -1,8 +1,17 @@
 project:
   type: website
   execute-dir: project
-  output-dir: ../docs
-
+  output-dir: ../results
+  render:
+    # need to control the order of execution, because other pages depend on these 
+    # two having done their magic. So we use this file to set the order, 
+    # but we still want to render all of them, so we combine explicit definition of 
+    # a couple of files first, and then the use of wildcard
+    # https://quarto.org/docs/projects/quarto-projects.html
+    # https://github.com/quarto-dev/quarto-cli/discussions/6944
+    - Process/strom.qmd
+    - Process/waermestrom.qmd
+    - "*.qmd"
 
 website:
   sidebar:
@@ -16,5 +25,7 @@ format:
     css: styles.css
     toc: true
 
+execute:
+  freeze: auto  # re-render only when source changes
 
 
