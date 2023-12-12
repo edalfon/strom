@@ -4,21 +4,7 @@ title: "Pool"
 
 ```{python}
 import os
-import chardet
-
-def convert_to_utf8(file_path, output_dir):
-    with open(file_path, 'rb') as file:
-        raw_data = file.read()
-        detected_encoding = chardet.detect(raw_data)['encoding']
-    
-    if detected_encoding != 'utf-8':
-        decoded_data = raw_data.decode(detected_encoding)
-        output_path = os.path.join(output_dir, os.path.basename(file_path))
-        os.makedirs(output_dir, exist_ok=True)
-        with open(output_path, 'w', encoding='utf-8') as utf8_file:
-            utf8_file.write(decoded_data)
-    
-    return detected_encoding
+from epyfun.fs import convert_to_utf8
 
 # Example usage:
 #file_path = './data/pooltemp/Outdoor_log_from_20230701_to_20230727.csv'

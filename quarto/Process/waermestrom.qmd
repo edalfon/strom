@@ -7,62 +7,22 @@ https://learnsql.com/blog/moving-average-in-sql/
 https://stackoverflow.com/questions/55491046/how-to-set-the-running-file-path-of-jupyter-in-vscode
 
 
-```{python}
-import os
-
-def get_latest_file_path(folder_path):
-  
-    # Get a list of all files in the folder
-    files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
-    
-    # Sort the list of files in lexicographical order
-    sorted_files = sorted(files)
-    
-    # Get the path of the latest file (the last one in the sorted list)
-    latest_file = sorted_files[-1]
-    
-    # Return the full path of the latest file
-    return os.path.join(folder_path, latest_file)
-```
-
 
 ```{python}
-latest_file = get_latest_file_path('./data/')
-```
-
-
-```{python}
+#| context: setup
+#| label: setup
 #| include: false
-# https://quarto.org/docs/computations/execution-options.html
-import duckdb
-import pandas as pd
-import sqlalchemy # No need to import duckdb_engine, 
-                  # SQLAlchemy will auto-detect 
-%load_ext sql
-%config SqlMagic.autopandas = True
-%config SqlMagic.feedback = False
-%config SqlMagic.displaycon = False
 
-#%sql duckdb:///./duckdb/strom.duckdb
-%sql duckdb:///:memory:
+from epyfun.fs import get_latest_file
+latest_file = get_latest_file('./data/')
+
+%load_ext sql
+%sql duckdb:///./duckdb/strom.duckdb
+#%sql duckdb:///:memory:
 %sql INSTALL sqlite;
 %sql LOAD sqlite;
 %sql SELECT * FROM sqlite_scan('{{latest_file}}', 'meter');
 ```
-
-
-Please note that you cannot use this as prepared statements to create views.
-Therefore, below we will now use tables.
-
-```{{python}}
-%%sql
-CREATE OR REPLACE VIEW fail AS
-SELECT * FROM sqlite_scan(:latest_file, 'meter');
-```
-
-
-
-
 
 
 # Get Wärmestrom data
@@ -84,7 +44,7 @@ WHERE meterid = 2 OR meterid = 3
 SELECT * FROM waermestrom_sqlite;
 ```
 
-Ideally, there would be one measurement for each tarif, for every date (minute). But we cannot guarantee that's the case (e.g. measurement for one tarif can be at 13:08:59 and for the other at 12:09:00). So let's see if that's the case.
+Ideally, there would be one measurement for each tarif, for every date (minute). But we cannot guarantee that's the case (e.g. measurement for one tarif can be at 13:08:59 and for the other at 13:09:00). So let's see if that's the case.
 ```{python}
 %%sql 
 
@@ -156,8 +116,10 @@ SELECT
   date,
   value_hoch, value_niedrig, 
   -- calculate minutes diff with previous and next date, to see which is closer
-  date_sub('minute', lag(date) over(order by date), date) AS minutes_lag,
-  date_sub('minute', date, lead(date) over(order by date)) AS minutes_lead,
+  -- note the use of a default value for lag/lead, substracting and adding one day
+  -- for lag and lead respectively, to avoid NULLs in the first and las rows
+  date_sub('minute', lag(date, 1, date - INTERVAL 1 DAY) over(order by date), date) AS minutes_lag,
+  date_sub('minute', date, lead(date, 1, date + INTERVAL 1 DAY) over(order by date)) AS minutes_lead,
   -- and we want to replace null values column, with the value from closest date
   CASE
     WHEN value_hoch IS NULL AND minutes_lag <= minutes_lead 
@@ -177,8 +139,10 @@ SELECT
 FROM waermestrom_nulls 
 ORDER BY date
 ;
-SELECT * FROM waermestrom_nonulls LIMIT 20;
+SELECT * FROM waermestrom_nonulls ORDER BY date;
 ```
+
+
 
 Good, now we just need to calculate the consumption and create the main table.
 ```{python}
@@ -188,25 +152,27 @@ CREATE OR REPLACE TABLE waermestrom AS
 SELECT 
   date,
   value,
+  value_hoch_fix AS value_hoch,
+  value_niedrig_fix AS value_niedrig,
   minutes_lag AS minutes,
-  value - lag(value) over(order by date) AS consumption,
+  -- add default values to lag(), to prevent null in the first row
+  -- use 11kwh less than the first value which is approximately the avg consumption per day
+  -- and would be equivalent to the minutes in the first row, that we set with the default
+  -- of one day in the previous query 
+  value - lag(value, 1, value-11) over(order by date) AS consumption,
   1.0 * consumption / minutes_lag AS cm,
   24.0 * 60.0 * consumption / minutes_lag AS consumption_day_equivalent,
   -- now calculate consumption per tariff
-  value_hoch_fix - lag(value_hoch_fix) over(order by date) AS consumption_hoch,
-  value_niedrig_fix - lag(value_niedrig_fix) over(order by date) AS consumption_niedrig,
+  value_hoch_fix - lag(value_hoch_fix, 1, value_hoch_fix-11) over(order by date) AS consumption_hoch,
+  value_niedrig_fix - lag(value_niedrig_fix, 1, value_niedrig_fix-11) over(order by date) AS consumption_niedrig,
   1.0 * consumption_hoch / minutes_lag AS cm_hoch,
   1.0 * consumption_niedrig / minutes_lag AS cm_niedrig
 FROM waermestrom_nonulls 
 WHERE minutes > 1 --get rid of the artificially short periods
 ;
-SELECT * FROM waermestrom;
-```
-
-```{python}
-%%sql 
 SELECT * FROM waermestrom ORDER BY date;
 ```
+
 
 ```{python}
 15483-15472
@@ -296,14 +262,14 @@ SELECT
   value,
   minutes,
   consumption,
-  LAST_VALUE(cm IGNORE NULLS) OVER(
-    ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  FIRST_VALUE(cm IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
   ) AS cm,
-  LAST_VALUE(cm_hoch IGNORE NULLS) OVER(
-    ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  FIRST_VALUE(cm_hoch IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
   ) AS cm_hoch,
-  LAST_VALUE(cm_niedrig IGNORE NULLS) OVER(
-    ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  FIRST_VALUE(cm_niedrig IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
   ) AS cm_niedrig
 FROM waermestrom_minute_nulls t1
 ORDER BY t1.minute
@@ -423,6 +389,7 @@ ON hour(last_measurements.minute) = hourly_average.hour
 ```
 
 ```{python}
+#| eval: false
 import plotly.graph_objects as go
 fig = px.area(toy, x='minute', y='cmha')
 fig.add_trace(go.Scatter(
@@ -466,26 +433,21 @@ TODO: fix the range
 
 Let's see the rate hoch tarif vs. niedrig
 
-```{python}
-%%sql
 
-niedrig_fraction << SELECT --*,
-  date::Date AS day,
+niedrig_fraction << SELECT 
+  date AS day,
   AVG(cm_niedrig/cm) AS niedrig_fraction,
   AVG(cm_niedrig)/AVG(cm) AS niedrig_fraction2,
   AVG(niedrig_fraction) OVER(
     ORDER BY minute ROWS BETWEEN 60 * 24 * 7 PRECEDING AND CURRENT ROW
   ) AS niedrig_fraction_ma
 FROM waermestrom_minute
-GROUP BY date::Date
-ORDER BY date::Date
+GROUP BY date
+ORDER BY date
 ;
-```
 
 
 
-```{python}
 import plotly.express as px
 fig = px.bar(niedrig_fraction, x='day', y='niedrig_fraction2')
 fig.show()
-```

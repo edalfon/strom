@@ -2,41 +2,25 @@
 title: "Strom"
 ---
 
-```{python}
-import strom
-from epyfun.fs import get_latest_file
-latest_file = get_latest_file('./data/')
-```
+{{< include /includes/_load_data.qmd >}}
+
 
 ```{python}
 #| context: setup
 #| label: setup
 #| include: false
 
-#import os
-#import duckdb
-#import pandas as pd
-#import sqlalchemy # No need to import duckdb_engine, 
-                  # SQLAlchemy will auto-detect 
-
+from epyfun.fs import get_latest_file
 latest_file = get_latest_file('./data/')
 
 %load_ext sql
-%config SqlMagic.autopandas = True
-%config SqlMagic.feedback = False
-%config SqlMagic.displaycon = False
-
-#%sql duckdb:///./duckdb/strom.duckdb
-%sql duckdb:///:memory:
+%sql duckdb:///./duckdb/strom.duckdb
+#%sql duckdb:///:memory:
 %sql INSTALL sqlite;
 %sql LOAD sqlite;
 %sql SELECT * FROM sqlite_scan('{{latest_file}}', 'meter');
 ```
 
-
-```{python}
-%sql SELECT * FROM duckdb_settings();
-```
 
 # Get strom data
 
@@ -54,13 +38,11 @@ SELECT
 FROM sqlite_scan('{{latest_file}}', 'reading') 
 WHERE meterid = 1
 ;
+SELECT * FROM strom_sqlite;
 ```
 
-```{python}
-%sql SELECT * FROM strom_sqlite;
-```
 
-And put the consumption data in there
+And calculate the consumption
 
 ```{python}
 %%sql 
@@ -77,6 +59,7 @@ SELECT
 FROM strom_sqlite
 ORDER BY date
 ;
+SELECT * FROM strom;
 ```
 
 # Visualize the data
@@ -109,7 +92,7 @@ fig = px.histogram(strom.query("minutes < 10000"), x="minutes", marginal="box")
 fig.show()
 ```
 
-The consumption day equivalent varies also substantially. Median 8.8, which is consistent with the long-run consumption (equivalent to ```python 8.8*365``` per year.). The distribution has a long tight tail, with very high consumptions, presumably, associated to very short measurements periods.
+The consumption day equivalent varies also substantially. Median 8.8, which is consistent with the long-run consumption (equivalent to ```python 8.8*365``` per year.). The distribution has a long right tail, with very high consumptions, presumably, associated to very short measurements periods.
 ```{python}
 import plotly.express as px
 fig = px.histogram(strom.query("minutes < 10000"), x="consumption_day_equivalent", marginal="box")
@@ -162,7 +145,7 @@ FROM minutes_table
 LEFT JOIN strom
 ON minutes_table.minute = strom.date
 ;
-SELECT * FROM strom_minute_nulls ORDER BY minute LIMIT 10;
+SELECT * FROM strom_minute_nulls ORDER BY minute LIMIT 100;
 ```
 
 And now we just interpolate the consumption per minute, filling the nulls with the next non-null value (i.e. the consumption is constant in all the measurement period -all the minutes between one measurement and the other-).
@@ -195,7 +178,9 @@ SELECT * FROM strom_minute ORDER BY minute LIMIT 100;
 ```
 
 
-It turns out DuckDB already implements ignore nulls
+
+It turns out DuckDB already implements ignore nulls, so we can rewrite the query above, 
+to run much more efficiently, like this
 ```{python}
 %%sql
 
@@ -206,22 +191,14 @@ SELECT
   value,
   minutes,
   consumption,
-  LAST_VALUE(cm IGNORE NULLS) OVER(
-    ORDER BY minute ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+  FIRST_VALUE(cm IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
   ) AS cm
 FROM strom_minute_nulls t1
 ORDER BY t1.minute
 ;
 SELECT * FROM strom_minute ORDER BY minute LIMIT 100;
 ```
-
-
-```{python}
-%%sql
-
-toy << SELECT * FROM strom_minute_nulls ORDER BY minute LIMIT 7000;
-```
-
 
 
 ```{python}
@@ -289,11 +266,11 @@ WITH hourly_average AS (
     hour(minute) AS hour, 
     AVG(1.0 * 60 * 24 * cm) AS cmha
   FROM strom_minute
-  --This was originally here, because we wanted to see the hourly variation
-  --and keeping this long period without measurements just smoothed things
-  --but for waermestrom, it has a misleading implication: since we have 
-  --measurements mostly in the wintertime, the average without this period
-  --is high, reflecting the higher energy consumption during winter
+  -- This was originally here, because we wanted to see the hourly variation
+  -- and keeping this long period without measurements just smoothed things
+  -- but for waermestrom, it has a misleading implication: since we have 
+  -- measurements mostly in the wintertime, the average without this period
+  -- is high, reflecting the higher energy consumption during winter
   WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
   GROUP BY hour(minute)
 ),
@@ -322,6 +299,8 @@ toy << SELECT * FROM toy;
 ```
 
 ```{python}
+#| eval: false
+
 import plotly.graph_objects as go
 fig = px.area(toy, x='minute', y='cmha')
 fig.add_trace(go.Scatter(

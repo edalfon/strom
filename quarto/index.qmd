@@ -1,7 +1,92 @@
 ---
-title: "quarto"
+title: "Strom daten"
 ---
 
-This is a Quarto website.
+```{python}
+#| include: false
+%load_ext sql
+%sql duckdb:///./duckdb/strom.duckdb
+```
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+
+# Strom average consumption
+
+```{python}
+#| include: false
+%%sql
+
+strom_avg << SELECT 
+  MAX(value),
+  MIN(value),
+  MAX(value) - MIN(value) AS cmtot,
+
+  MAX(date),
+  MIN(date),
+  date_sub('minute', MIN(date), MAX(date)) AS mintot, 
+
+  24.0 * 60.0 * cmtot / mintot AS avgcm,
+  365.0 * avgcm as avgcy,
+  0.3894 * avgcy AS avgyearexpend
+FROM strom
+;
+```
+
+```{python}
+#| echo: false
+strom_avg
+```
+
+# Wärmestrom average consumption
+
+```{python}
+#| echo: false
+%%sql
+
+SELECT 
+  MAX(value),
+  MIN(value),
+  MAX(value) - MIN(value) AS cmtot,
+
+  MAX(date),
+  MIN(date),
+  date_sub('minute', MIN(date), MAX(date)) AS mintot, 
+
+  24.0 * 60.0 * cmtot / mintot AS avgcm,
+  365.0 * avgcm as avgcy,
+  0.3894 * avgcy AS avgyearexpend
+FROM waermestrom
+;
+```
+
+
+```{python}
+#| echo: false
+%%sql
+
+SELECT 
+  tarif,
+  MAX(value),
+  MIN(value),
+  MAX(value) - MIN(value) AS cmtot,
+  cmtot / max(cmtot) OVER () AS frac,
+
+  MAX(date),
+  MIN(date),
+  date_sub('minute', MIN(date), MAX(date)) AS mintot, 
+
+
+  24.0 * 60.0 * cmtot / mintot AS avgcm,
+  365.0 * avgcm as avgcy,
+  0.2479 * avgcy AS avgyearexpend
+FROM (
+  UNPIVOT waermestrom
+  ON value, value_hoch, value_niedrig
+  INTO
+    NAME tarif
+    VALUE value
+)
+GROUP BY tarif
+ORDER BY tarif
+;
+```
+

@@ -1,18 +1,24 @@
 ```{python}
 #| include: false
+
+from epyfun.fs import get_latest_file
+latest_file = get_latest_file('./data/')
+
+%load_ext sql
+%sql duckdb:///./duckdb/strom.duckdb
+#%sql duckdb:///:memory:
+%sql INSTALL sqlite;
+%sql LOAD sqlite;
+%sql SELECT * FROM sqlite_scan('{{latest_file}}', 'meter');
+```
+
+
+
+```{python}
 %%sql
-
-duckdb:///:memory:
--- duckdb:///path/to/file.db
-
--- SQLite Scanner
--- https://duckdb.org/docs/extensions/sqlite_scanner.html
--- TODO: perhaps consider SET GLOBAL sqlite_all_varchar=true;
---       to avoid things getting read as blob
-INSTALL sqlite;
-LOAD sqlite;
-CALL sqlite_attach('data/2022-12-28-ecas-export.db');
-PRAGMA show_tables;
+CREATE OR REPLACE VIEW fail AS
+SELECT * FROM sqlite_scan('{{latest_file}}', 'meter');
+SELECT * FROM fail;
 ```
 
 

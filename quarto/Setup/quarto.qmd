@@ -12,6 +12,15 @@ The website is a sub-directory of the main project. We want everything relative 
 quarto preview /OneDrive/All/R/strom/quarto --execute-dir /OneDrive/All/R/strom
 ```
 
+or, relative to the current directory in the shell, simply:
+
+```
+quarto render 'quarto' --execute-dir '.'
+```
+
 Otherwise, Quarto would use the website sub-directory as the working directory to run the code. And we do not want that!
 
+Here's a workaround that seems to work to control the order of execution of the different files in the project
+https://github.com/quarto-dev/quarto-cli/discussions/6944
 
+quarto render 'quarto' --execute-dir '.' ; .\results\index.html
