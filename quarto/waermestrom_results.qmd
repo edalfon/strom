@@ -1,0 +1,119 @@
+---
+title: "Wärmestrom"
+execute:
+  echo: false
+---
+
+```{python}
+#| include: false
+%load_ext sql
+%sql duckdb:///./duckdb/strom.duckdb
+```
+
+
+```{python}
+#| include: false
+%%sql
+SELECT * FROM waermestrom_minute;
+```
+
+
+# Wärmestrom average consumption
+
+```{python}
+#| echo: false
+%%sql
+
+SELECT 
+  MIN(value),
+  MAX(value),
+  MAX(value) - MIN(value) AS cmtot,
+
+  MIN(date),
+  MAX(date),
+  date_sub('minute', MIN(date), MAX(date)) AS mintot, 
+
+  24.0 * 60.0 * cmtot / mintot AS avgcm,
+  365.0 * avgcm as avgcy,
+  0.3894 * avgcy AS avgyearexpend
+FROM waermestrom
+;
+```
+
+
+```{python}
+#| echo: false
+%%sql
+
+SELECT 
+  tarif,
+  MIN(value),
+  MAX(value),
+  MAX(value) - MIN(value) AS cmtot,
+  cmtot / max(cmtot) OVER () AS frac,
+
+  MIN(date),
+  MAX(date),
+  date_sub('minute', MIN(date), MAX(date)) AS mintot, 
+
+
+  24.0 * 60.0 * cmtot / mintot AS avgcm,
+  365.0 * avgcm as avgcy,
+  0.2479 * avgcy AS avgyearexpend
+FROM (
+  UNPIVOT waermestrom
+  ON value, value_hoch, value_niedrig
+  INTO
+    NAME tarif
+    VALUE value
+)
+GROUP BY tarif
+ORDER BY tarif
+;
+```
+
+
+
+# Wärmestrom consumption per day
+
+```{python}
+#| include: false
+%%sql
+
+waermestrom_per_day << SELECT 
+  minute::DATE AS date,
+  24.0 * 60.0 * AVG(cm) AS cd,
+FROM waermestrom_minute
+GROUP BY minute::DATE
+;
+```
+
+
+```{python}
+import plotly.express as px
+fig = px.bar(waermestrom_per_day, y='cd', x='date')
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeselector=dict(
+        buttons=list([
+            dict(count=15, label="15d", step="day", stepmode="backward"),
+            dict(count=1, label="1m", step="month", stepmode="backward"),
+            dict(count=6, label="6m", step="month", stepmode="backward"),
+            dict(count=1, label="YTD", step="year", stepmode="todate"),
+            dict(count=1, label="1y", step="year", stepmode="backward"),
+            dict(step="all")
+        ])
+    )
+)
+fig.update_xaxes(rangeslider_thickness = 0.1)
+fig.show()
+```
+
+Wärmestrom zeigt natürlich das saisonale Muster. Es gibt einen hohen und volatilen Verbrauch in der Heizperiode und einen niedrigeren, weniger volatilen Verbrauch in den wärmeren Monaten. Offensichtlich beträgt der normale Verbrauch ohne Heizung etwa 3-4 kWh. Das ist wahrscheinlich nur für Warmwasser. Der Verbrauch an Urlaubstagen beträgt 2,69 kWh. Ist das einfach, um das Wasser warm zu halten?
+
+Der Verbrauch in der Heizperiode liegt zwischen 12 und bis zu 50 kWh. Vermutlich stark abhängig von der Außentemperatur.
+
+Overlay temperature
+Was ist am 25-26 Juli passiert?, warum im sommer solcher hoher verbreauch?
+
+

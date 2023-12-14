@@ -1,0 +1,158 @@
+---
+title: "Strom"
+execute:
+  echo: false
+---
+
+```{python}
+#| include: false
+%load_ext sql
+%sql duckdb:///./duckdb/strom.duckdb
+```
+
+```{python}
+#| include: false
+%sql SELECT * FROM strom;
+```
+```{python}
+#| include: false
+%sql SELECT * FROM strom_minute;
+```
+
+# Stromverbrauch im Durchschnitt
+
+```{python}
+#| include: false
+%%sql
+
+strom_avg << SELECT 
+  MIN(value) AS Min,
+  MAX(value) AS Max,
+  MAX(value) - MIN(value) AS Use,
+
+  MIN(date) AS First,
+  MAX(date) AS Last,
+  date_sub('minute', MIN(date), MAX(date)) AS Mins, 
+
+  24.0 * 60.0 * Use / Mins AS "Use/Day",
+  365.0 * "Use/Day" AS "Use/Year",
+  0.3894 * "Use/Year" AS "Yearly Exp"
+FROM strom
+;
+```
+
+```{python}
+#| echo: false
+strom_avg
+```
+
+```{python}
+#| include: false
+%%sql
+
+SELECT 
+  MIN(value) AS Min,
+  MAX(value) AS Max,
+  MAX(value) - MIN(value) AS Use,
+
+  MIN(date) AS First,
+  MAX(date) AS Last,
+  date_sub('minute', MIN(date), MAX(date)) AS Mins, 
+
+  24.0 * 60.0 * Use / Mins AS "Use/Day",
+  24.0 * 60.0 * AVG(cm), -- this should be the same as the above (perhaps rounding errors are ok)
+
+  365.0 * "Use/Day" AS "Use/Year",
+  0.3894 * "Use/Year" AS "Yearly Exp"
+FROM strom_minute
+;
+```
+
+# Strom consumption per day
+
+```{python}
+#| include: false
+%%sql
+
+strom_per_day << SELECT 
+  minute::DATE AS date,
+  24.0 * 60.0 * AVG(cm) AS cd,
+  24.0 * 60.0 * AVG(consumption/minutes) AS obs,
+FROM strom_minute
+GROUP BY minute::DATE
+;
+```
+
+
+```{python}
+%sql strom_per_measurement << SELECT * FROM strom;
+```
+
+
+```{python}
+import plotly.express as px
+import plotly.graph_objects as go
+fig = px.bar(strom_per_day, y='cd', x='date')
+# trying to add data points for the actual measurements, on top of the daily average
+# but this way to do it, messes with the x-range (which could be fixed, but 
+# requires typing) and with the y-range as well, because the individual data 
+# points have, of course, more variability (this can only be fixed, at the cost 
+# of not including all points in the chart). It also steals the thunder of the 
+# bar plot, at least when you look at the whole-range plot (fiddling with size
+# and opacity could help with this).
+# But overall, I have the feeling this does not add much value or valuable info
+# to the plot.
+# fig.add_trace(go.Scatter(
+#   x=strom_per_measurement['date'], 
+#   y=strom_per_measurement['consumption_day_equivalent'], 
+#   mode='markers', 
+#   marker=dict(
+#     size=2,
+#     color='LightSkyBlue',
+#     opacity=0.5
+#   ),
+#   showlegend=False
+# ))
+# So let' try adding just points on the days there were actual measurements
+# this a bit better, but still I am not convinced this add much value
+# fig.add_trace(go.Scatter(
+#   x=strom_per_day['date'], 
+#   y=strom_per_day['obs'], 
+#   mode='markers', 
+#   marker=dict(
+#     size=3,
+#     color='LightSkyBlue',
+#     opacity=1
+#   ),
+#   showlegend=False
+# ))
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeselector=dict(
+        buttons=list([
+            dict(count=15, label="15d", step="day", stepmode="backward"),
+            dict(count=1, label="1m", step="month", stepmode="backward"),
+            dict(count=6, label="6m", step="month", stepmode="backward"),
+            dict(count=1, label="YTD", step="year", stepmode="todate"),
+            dict(count=1, label="1y", step="year", stepmode="backward"),
+            dict(step="all")
+        ])
+    )
+)
+fig.update_xaxes(rangeslider_thickness = 0.1)
+fig.show()
+```
+
+So, an normalen Tagen beträgt der Stromverbrauch etwa 10-11 kWh. An Urlaubstagen liegt er bei 2,85 kWh. Also, man kann sagen, es sind 3 kWh. Das entspricht wahrscheinlich hauptsächlich dem Stromverbrauch des Kühlschranks, ..., und was noch? Keine Ahnung. Aber gut, 10 - 11 kWh bedeuten bei aktuellen 0,38 Cent pro kWh, dass der Stromverbrauch etwa 4 Euro pro Tag beträgt. Im Urlaub, bei 2,85-3 kWh zu 38 Cent pro kWh, sind es ungefähr 1 Euro pro Tag. Das heißt, 10 Tage Urlaub sparen etwa 30 Euro (3 Euro pro Tag).
+
+
+```{python}
+%%sql
+
+SELECT *
+FROM strom
+ORDER BY date DESC
+LIMIT 10
+;
+```
+
