@@ -1,0 +1,105 @@
+---
+title: "Periods"
+execute:
+  echo: false
+---
+
+```{python}
+#| include: false
+%load_ext sql
+%sql duckdb:///./duckdb/strom.duckdb
+```
+
+
+```{python}
+#| include: false
+%%sql
+
+strom_per_day << SELECT 
+  minute::DATE AS date,
+  24.0 * 60.0 * AVG(cm) AS cd,
+  24.0 * 60.0 * AVG(consumption/minutes) AS obs,
+FROM waermestrom_minute
+GROUP BY minute::DATE
+;
+```
+
+
+
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE periods (
+    name VARCHAR,
+    begin TIMESTAMP,
+    fin TIMESTAMP
+);
+
+INSERT INTO periods (name, begin, fin)
+VALUES
+    ('18 grad', '2023-10-24 22:49:00', '2023-10-27 22:49:00'),
+    ('20 grad', '2023-10-27 22:49:00', '2023-10-30 22:49:00')
+;
+```
+
+
+```{python}
+%%sql
+
+periods << SELECT
+  p.name,
+  p.begin,
+  p.fin,
+  24.0 * 60.0 * AVG(d.cm) AS cd
+FROM periods p
+JOIN waermestrom_minute d
+ON d.minute BETWEEN p.begin AND p.fin
+GROUP BY p.name, p.begin, p.fin
+;
+```
+
+
+
+```{python}
+import plotly.express as px
+import plotly.graph_objects as go
+fig = px.bar(strom_per_day, y='cd', x='date')
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeselector=dict(
+        buttons=list([
+            dict(count=15, label="15d", step="day", stepmode="backward"),
+            dict(count=1, label="1m", step="month", stepmode="backward"),
+            dict(count=6, label="6m", step="month", stepmode="backward"),
+            dict(count=1, label="YTD", step="year", stepmode="todate"),
+            dict(count=1, label="1y", step="year", stepmode="backward"),
+            dict(step="all")
+        ])
+    )
+)
+fig.update_xaxes(rangeslider_thickness = 0.1)
+fig.show()
+```
+
+
+```{python}
+for index, row in periods.iterrows():
+    fig.add_shape(
+        type='line',
+        x0=row['begin'],
+        y0=row['cd'],
+        x1=row['fin'],
+        y1=row['cd'],
+        line=dict(color='Red'),
+        xref='x',
+        yref='y'
+    )
+fig.show()
+```
+
+
+```{python}
+periods
+```
+
+we have to brind the temp data and other climatic variables here
