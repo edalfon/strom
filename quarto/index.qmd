@@ -108,10 +108,6 @@ Ok, entonces paso 1 es que podemos traer todos los datos del mismo peridoso para
 Después de eso, podemos ahí sßi scara l epromedio, y también mostrar todos los datos con líneas en donde cada color es una líneas
 
 
-listo, aquí tenemos los datos a nivel de minuto, 
-le adicionamos  padding o no?
-parece lo correcto, sin embargo, pues es un pquito más complejo porque 
-toca luegoagregar otra vez, pero podría funcionar. Este es en caso  de una de las cosas en donde no podemos decir que sí estamos haciendo a csa cuando no hemos visto lo que pasa en cada caso. Pero igua lpodría funcionar. Si quieres lo podemos hacer en ste sca caos y ahra vamos a hacer la vuelta. A esta sería una delicia.
 
 
 ```{python}
