@@ -14,10 +14,13 @@ project:
     - "*.qmd"
 
 website:
+  title: "Stromverbrauch"
   sidebar:
     style: "docked"
     search: true
     contents: auto
+    collapse-level: 1
+    pinned: true
           
 format:
   html:
