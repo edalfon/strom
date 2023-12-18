@@ -9,8 +9,9 @@ project:
     # a couple of files first, and then the use of wildcard
     # https://quarto.org/docs/projects/quarto-projects.html
     # https://github.com/quarto-dev/quarto-cli/discussions/6944
-    - Process/strom.qmd
-    - Process/waermestrom.qmd
+    - Process/01_strom_process.qmd
+    - Process/02_waermestrom_process.qmd
+    - Process/03_load_data.qmd
     - "*.qmd"
 
 website:

@@ -1,0 +1,217 @@
+---
+title: "DWD Daten"
+execute:
+  echo: true
+---
+
+
+# Deutscher Wetterdienst
+
+https://www.dwd.de/DE/leistungen/cdc/cdc_ueberblick-klimadaten.html
+
+
+## Lufttemperatur - stündliche Auflösung
+
+laden wir die Stationslisten herunter mit allen Klimastationen, die Lufttemperatur - stündliche Auflösung haben.
+
+```{python}
+import epyfun
+stations_file = "interim/climate/latest/TU_Stundenwerte_Beschreibung_Stationen.txt"
+
+epyfun.web.download_file("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/TU_Stundenwerte_Beschreibung_Stationen.txt", stations_file)
+
+epyfun.fs.convert_to_utf8(stations_file)
+```
+
+Zeige die Stationen kurz auf einer Karte an, wobei sich Brannenburg in der Mitte befindet, so dass es leicht ersichtlich ist, welche Stationen näher liegen.
+
+```{python}
+import pandas as pd
+
+df = pd.read_fwf(
+    stations_file,
+    colspecs="infer",
+    skiprows=3,
+    names=[
+        "Stations_id",
+        "von_datum",
+        "bis_datum",
+        "Stationshoehe",
+        "geoBreite",
+        "geoLaenge",
+        "Stationsname",
+        "Bundesland",
+    ],
+)
+```
+
+```{python}
+import folium
+from folium.plugins import MarkerCluster
+import pandas as pd
+
+brannenburg_coords = [47.7424, 12.1041]  # source wikipedia
+my_map = folium.Map(location=brannenburg_coords, zoom_start=10)
+
+for index, row in df.iterrows():
+    folium.Marker(
+        [row["geoBreite"], row["geoLaenge"]],
+        popup=f"""
+            {row["Stationsname"]} ({str(row["Stations_id"])})
+            <br/>
+            {str(row["Stationshoehe"])} m2
+            <br/>
+            Von: {str(row["von_datum"])}
+            <br/>
+            Bis: {str(row["bis_datum"])}
+        """,
+    ).add_to(my_map)
+
+my_map
+```
+
+Also, wir sollten entweder Kiefersfelden-Gach (3679) oder Rosenheim (4261) verwenden. Wendelstein (5467) ist ebenfalls näher, aber höher (832 m²). Daher wäre es möglicherweise besser, Kiefersfelden oder Rosenheim zu wählen, da deren Höhen (518 m² bzw. 442 m²) viel ähnlicher sind als die Höhe von Brannenburg (509 m² laut Wikipedia).
+
+Dann schreiben wir eine kleine Funktion, die nach Dateien für solche Stationen sucht und sie herunterlädt. (Eine Funktion, da wir dies mindestens zweimal machen müssen, weil es Dateien mit historischen Daten und Dateien mit aktuellen Daten gibt.)
+
+```{python}
+import requests
+from bs4 import BeautifulSoup
+
+
+def download_climate_data(listing_url):
+    # Fetch HTML content
+    response = requests.get(listing_url)
+    html_content = response.text
+
+    # Parse HTML content
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    # Extract links that start with 'stundenwerte_TU_XXXX', where XXXXX are codes
+    # for the stations of kiefersfelden or rosenheim
+    target_links = [
+        a["href"]
+        for a in soup.find_all("a", href=True)
+        if a["href"].startswith(("stundenwerte_TU_03679", "stundenwerte_TU_04261"))
+    ]
+
+    downloaded_files = []
+    for link in target_links:
+        print("Downloading: ", link)
+        epyfun.web.download_file(
+            listing_url + "/" + link, "interim/climate/latest/" + link
+        )
+        downloaded_files.append("interim/climate/latest/" + link)
+
+    return downloaded_files
+```
+
+
+```{python}
+historical_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/")
+
+recent_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/")
+```
+
+
+
+```{python}
+import pandas as pd
+import zipfile
+import io
+
+def read_csv_from_zip(zip_file_path):
+    with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+        # Get the list of file names in the zip file
+        file_names = zip_file.namelist()
+
+        # Filter the file names that start with the specified prefix
+        target_files = [file_name for file_name in file_names if file_name.startswith("produkt")]
+
+        print(target_files)
+        if not target_files:
+            raise Exception("No files start with produkt")
+        if len(target_files) > 1:
+            raise Exception("There are more files that start with produkt. Double check")
+        
+        target_file_name = target_files[0]
+
+        # Read the CSV file directly from the zip archive using pandas
+        with zip_file.open(target_file_name) as file_in_zip:
+            df = pd.read_csv(io.TextIOWrapper(file_in_zip), sep=';')  # Adjust the separator based on the file format
+
+        return df
+```
+
+
+```{python}
+all_files = historical_files + recent_files
+#read_csv_from_zip("interim/climate/latest/stundenwerte_TU_04261_akt.zip")
+all_dfs = [read_csv_from_zip(file) for file in all_files]
+result_df = pd.concat(all_dfs, ignore_index=True)
+result_df['MESS_DATUM'] = pd.to_datetime(result_df['MESS_DATUM'], format='%Y%m%d%H')
+```
+
+
+```{python}
+import plotly.express as px
+
+# Filter rows where the date is greater than 2020
+filtered_df = result_df[result_df['MESS_DATUM'] > '2020-01-01']
+
+fig = px.line(
+    filtered_df,
+    x="MESS_DATUM",
+    y=["TT_TU", "RF_TU"],
+    labels={"value": "Values"},
+    line_shape="linear",
+    color_discrete_map={"TT_TU": "blue", "RF_TU": "orange"},
+)
+
+# Display the plot
+fig.show()
+```
+
+Es gibt komische Werte hier. Es scheint, dass -999 als Missing Value-Indikator 
+verwendet wird (für RF_TU, relative Feuchte).
+
+```{python}
+import numpy as np
+result_df.replace(-999, np.nan, inplace=True)
+```
+
+```{python}
+import plotly.express as px
+
+# Filter rows where the date is greater than 2020
+filtered_df = result_df[result_df['MESS_DATUM'] > '2020-01-01']
+
+fig = px.line(
+    filtered_df,
+    x="MESS_DATUM",
+    y=["TT_TU", "RF_TU"],
+    labels={"value": "Values"},
+    line_shape="linear",
+    color_discrete_map={"TT_TU": "blue", "RF_TU": "orange"},
+)
+
+# Display the plot
+fig.show()
+```
+
+
+Jetzt macht es auf tägliche Auslösung
+
+```{python}
+result_df["date"] = result_df["MESS_DATUM"].dt.normalize()
+agg_df = (
+    result_df.groupby("date")
+    .agg({"TT_TU": ["min", "mean", "max"], "RF_TU": ["min", "mean", "max"]})
+    .reset_index()
+)
+```
+
+
+```{python}
+agg_df.to_parquet('./interim/climate/climate_daily.parquet', index=False)
+```
