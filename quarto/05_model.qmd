@@ -1,0 +1,33 @@
+---
+title: "Model"
+execute:
+  echo: false
+---
+
+```{python}
+import pandas as pd
+strom_climate = pd.read_parquet("interim/strom_climate.parquet")
+```
+
+```{python}
+import statsmodels.api as sm
+import pandas as pd
+
+dependent_variable = strom_climate['wd']
+independent_variables = strom_climate[['tt_tu_mean', 'rf_tu_mean']]
+
+independent_variables = sm.add_constant(independent_variables)
+
+# Fit the multiple linear regression model
+model = sm.OLS(dependent_variable, independent_variables).fit()
+
+# Get the summary of the regression
+print(model.summary())
+
+# Extract R-squared value
+r_squared = model.rsquared
+print(f'R-squared: {r_squared}')
+
+```
+
+
