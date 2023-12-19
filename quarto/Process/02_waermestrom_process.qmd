@@ -260,6 +260,8 @@ SELECT
   minute,
   date,
   value,
+  value_hoch,
+  value_niedrig,
   minutes,
   consumption,
   FIRST_VALUE(cm IGNORE NULLS) OVER(
