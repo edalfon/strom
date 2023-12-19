@@ -21,6 +21,7 @@ beautifulsoup4 = "^4.12.2"
 pyarrow = "^14.0.1"
 seaborn = "^0.13.0"
 statsmodels = "^0.14.1"
+sweetviz = "^2.3.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
