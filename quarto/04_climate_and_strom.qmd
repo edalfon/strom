@@ -1,0 +1,174 @@
+---
+title: "Correlations"
+execute:
+  echo: false
+---
+
+```{python}
+#| include: false
+%load_ext sql
+%sql duckdb:///./duckdb/strom.duckdb
+
+import epyfun
+```
+
+```{python}
+#| include: false
+%%sql
+
+SELECT *
+FROM strom_minute
+;
+```
+
+
+```{python}
+#| include: false
+%%sql
+
+strom_per_day << SELECT 
+  minute::DATE AS date,
+  24.0 * 60.0 * AVG(cm) AS cd,
+  SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS obs,
+FROM waermestrom_minute
+WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+GROUP BY minute::DATE
+;
+```
+
+
+```{python}
+import pandas as pd
+climate_daily = pd.read_parquet("./interim/climate/climate_daily.parquet")
+climate_daily = epyfun.pandas.clean_names(climate_daily)
+```
+
+```{python}
+strom_climate = pd.merge(strom_per_day, climate_daily, on='date', how='left')
+```
+
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Assuming df is your DataFrame with the selected columns
+# Replace these column names with the ones you want to include in the correlation matrix
+selected_columns = [
+    "cd",
+    "obs",
+    "tt_tu_min",
+    "tt_tu_mean",
+    "tt_tu_max",
+    "rf_tu_min",
+    "rf_tu_mean",
+    "rf_tu_max",
+]
+
+# Create a DataFrame with the selected columns
+selected_df = strom_climate[selected_columns]
+
+# Calculate the correlation matrix
+correlation_matrix = selected_df.corr()
+
+# Plot the correlation matrix as a heatmap
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=.5)
+plt.title('Correlation Matrix Plot')
+plt.show()
+
+```
+
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+from pandas.plotting import scatter_matrix
+
+# Assuming df is your DataFrame with the selected columns
+# Replace these column names with the ones you want to include in the scatter plot matrix
+selected_columns = [
+    "cd",
+    "obs",
+    "tt_tu_min",
+    "tt_tu_mean",
+    "tt_tu_max",
+    "rf_tu_min",
+    "rf_tu_mean",
+    "rf_tu_max",
+]
+
+# Create a DataFrame with the selected columns
+selected_df = strom_climate[selected_columns]
+
+# Plot the scatter plot matrix
+scatter_matrix(selected_df, alpha=0.8, figsize=(10, 8), diagonal='hist')
+plt.suptitle('Scatter Plot Matrix', y=1.02)
+plt.show()
+
+```
+
+
+
+```{python}
+import pandas as pd
+import plotly.express as px
+
+# Assuming df is your DataFrame with the selected columns
+# Replace these column names with the ones you want to include in the scatter plot matrix
+selected_columns = [
+    "cd",
+    "obs",
+    "tt_tu_min",
+    "tt_tu_mean",
+    "tt_tu_max",
+    "rf_tu_min",
+    "rf_tu_mean",
+    "rf_tu_max",
+]
+
+# Create a DataFrame with the selected columns
+selected_df = strom_climate[selected_columns]
+
+# Create a scatter plot matrix using Plotly
+fig = px.scatter_matrix(selected_df, dimensions=selected_columns, opacity=0.3)
+
+fig.update_traces(selected_marker_color="red", selector=dict(type='splom'))
+
+# Update layout for better visualization
+fig.update_layout(
+    height=800,
+    width=800,
+)
+
+# Show the plot
+fig.show()
+```
+
+
+
+```{python}
+import statsmodels.api as sm
+import pandas as pd
+
+# Assuming you have a DataFrame named df with columns: dependent_variable, other_variable1, other_variable2
+# Replace these column names with your actual column names
+dependent_variable = strom_climate['cd']
+independent_variables = strom_climate[['tt_tu_mean', 'rf_tu_mean']]
+
+# Add a constant term to the independent variables
+independent_variables = sm.add_constant(independent_variables)
+
+# Fit the multiple linear regression model
+model = sm.OLS(dependent_variable, independent_variables).fit()
+
+# Get the summary of the regression
+print(model.summary())
+
+# Extract R-squared value
+r_squared = model.rsquared
+print(f'R-squared: {r_squared}')
+
+```
+
