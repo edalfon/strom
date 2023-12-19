@@ -15,7 +15,7 @@ input_directory = './data/pooltemp'
 for filename in os.listdir(input_directory):
     if filename.endswith('.csv'):
         input_file = os.path.join(input_directory, filename)
-        convert_to_utf8(input_file, 'interim/pooltemp')
+        convert_to_utf8(input_file, 'interim/pooltemp/' + filename)
 ```
 
 
