@@ -18,7 +18,7 @@ execute:
 strom_per_day << SELECT 
   minute::DATE AS date,
   24.0 * 60.0 * AVG(cm) AS cd,
-  24.0 * 60.0 * AVG(consumption/minutes) AS obs,
+  SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS obs,
 FROM waermestrom_minute
 GROUP BY minute::DATE
 ;
