@@ -209,8 +209,8 @@ agg_df = (
     .agg({"TT_TU": ["min", "mean", "max"], "RF_TU": ["min", "mean", "max"]})
     .reset_index()
 )
+agg_df = epyfun.pandas.clean_names(agg_df)
 ```
-
 
 ```{python}
 agg_df.to_parquet('./interim/climate/climate_daily.parquet', index=False)
