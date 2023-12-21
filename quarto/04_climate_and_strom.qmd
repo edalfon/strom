@@ -211,13 +211,13 @@ fig.update_traces(
 fig.update_layout(autosize=True)  # remove height=800
 fig.update_traces(diagonal=dict(visible=False), selector=dict(type="splom"))
 fig.update_traces(showupperhalf=False, selector=dict(type="splom"))
-# Update layout for better visualization
-# fig.update_layout(
-#     height=800,
-#     width=800,
-# )
+```
 
-# Show the plot
+```{python}
+fig.update_layout(
+    height=800,
+    width=800,
+)
 fig.show()
 ```
 
