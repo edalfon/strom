@@ -1,5 +1,3 @@
-preview:
-	quarto preview 'quarto' --execute-dir '.'
 
 # render the quarto project with the defaults
 render:
@@ -19,3 +17,5 @@ render_all:
 
 
 
+preview:
+	quarto preview 'quarto' --execute-dir '.'
