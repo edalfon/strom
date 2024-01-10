@@ -448,6 +448,3 @@ https://www.rstudio.com/blog/6-productivity-hacks-for-quarto/#write-verbatim-cod
 
 https://quarto.org/docs/computations/execution-options.html
 
-ffmpeg -i ./heidi1.webm -crf 0 heidi1.mp4
-ffmpeg -i ./heidi2.webm -crf 0 heidi2.mp4
-

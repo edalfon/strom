@@ -114,12 +114,17 @@ climate_daily = epyfun.pandas.clean_names(climate_daily)
 
 ```{python}
 strom_climate = pd.merge(strom_per_day, climate_daily, on='date', how='left')
-strom_climate = strom_climate[strom_climate.notna().all(axis=1)]
+#strom_climate = strom_climate[strom_climate.notna().all(axis=1)]
 strom_climate
 ```
 
 ```{python}
+# strom_climate['date'] = pd.to_datetime(strom_climate['date'])  # Ensure the date column is in datetime format
+# just to prevent new observations to leak into the model building
+strom_climate = strom_climate[strom_climate['date'] <= '2023-12-31']
+
 strom_climate.to_parquet("interim/strom_climate.parquet")
+strom_climate = pd.read_parquet("interim/strom_climate.parquet")
 ```
 
 ```{python}
@@ -138,23 +143,56 @@ report.show_html("output.html", open_browser=True)
 
 
 ```{python}
+# RF_TU	relative Feuchte	%
+# TT_TU	Lufttemperatur	°C
+# ABSF_STD	berechnete Stundenwerte der absoluten Feuchte	g/m³
+# P_STD	Stundenwerte Luftdruck	hpa
+# RF_STD	Stundenwerte der Relativen Feuchte	%
+# TD_STD	Taupunkttemperatur in 2m Hoehe	°C
+# TF_STD	berechnete Stundenwerte der Feuchttemperatur	°C
+# TT_STD	Lufttemperatur in 2m Hoehe	°C
+# VP_STD	berechnete Stundenwerte des Dampfdruckes	hpa
+# TD	Taupunktstemperatur	°C
+# TT	Temperatur der Luft in 2m Hoehe	°C
+
+
+all_columns = [
+    "nd", "wd", "obs", 
+
+    "tt_tu_min", "tt_tu_mean", "tt_tu_max",
+
+    "rf_tu_min", "rf_tu_mean", "rf_tu_max",
+
+    'tt_min', 'tt_mean', 'tt_max',
+
+    'td_min', 'td_mean', 'td_max',
+
+    'vp_std_min', 'vp_std_mean', 'vp_std_max',
+
+    'tf_std_min', 'tf_std_mean', 'tf_std_max',
+
+    'p_std_min', 'p_std_mean', 'p_std_max',
+
+    #'tt_std_min', 'tt_std_mean', 'tt_std_max',
+
+    #'rf_std_min', 'rf_std_mean', 'rf_std_max',
+
+    'td_std_min', 'td_std_mean', 'td_std_max',
+
+    "r1_min", "r1_mean", "r1_max",
+    #'rs_ind_min', 'rs_ind_mean', 'rs_ind_max', 'wrtr_min', 'wrtr_mean', 'wrtr_max'
+]
+
+selected_columns = ["wd", "nd", "obs"] + [col for col in all_columns if col.endswith("_mean")]
+```
+
+```{python}
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Assuming df is your DataFrame with the selected columns
 # Replace these column names with the ones you want to include in the correlation matrix
-selected_columns = [
-    "nd",
-    "wd",
-    "obs",
-    "tt_tu_min",
-    "tt_tu_mean",
-    "tt_tu_max",
-    "rf_tu_min",
-    "rf_tu_mean",
-    "rf_tu_max",
-]
 
 # Create a DataFrame with the selected columns
 selected_df = strom_climate[selected_columns]
@@ -186,47 +224,36 @@ plt.show()
 
 ```
 
-
-
 ```{python}
-# https://plotly.com/python/splom/
-# https://plotly.com/python/reference/splom/
-# https://plotly.com/python-api-reference/generated/plotly.express.scatter_matrix
-# https://community.plotly.com/t/how-can-i-change-the-color-of-selected-points-in-scatterplots/32013/3
-
-import pandas as pd
-import plotly.express as px
-
-# Create a DataFrame with the selected columns
-selected_df = strom_climate[selected_columns]
-
-# Create a scatter plot matrix using Plotly
-fig = px.scatter_matrix(selected_df, dimensions=selected_columns, opacity=0.3)
-
-fig.update_traces(
-    selected_marker_color="red",
-    selected_marker_opacity=0.7,
-    selector=dict(type="splom"),
-)
-fig.update_layout(autosize=True)  # remove height=800
-fig.update_traces(diagonal=dict(visible=False), selector=dict(type="splom"))
-fig.update_traces(showupperhalf=False, selector=dict(type="splom"))
+selected_columns = ["wd", "nd", "obs"] + [
+    col for col in all_columns if col.endswith("_mean")
+]
+fig = epyfun.splom(strom_climate, selected_columns, height=700)
+fig
 ```
 
 ```{python}
-fig.update_layout(
-    height=800,
-    width=800,
-)
-fig.show()
+selected_columns = ["wd", "nd", "obs"] + [
+    col for col in all_columns if col.endswith("_min")
+]
+fig = epyfun.splom(strom_climate, selected_columns, height=700)
+fig
 ```
+
+```{python}
+selected_columns = ["wd", "nd", "obs"] + [
+    col for col in all_columns if col.endswith("_max")
+]
+fig = epyfun.splom(strom_climate, selected_columns, height=700)
+fig
+```
+
 
 ```{python}
 #| eval: false
-fig.update_layout(autosize=True) # remove height=800
+fig.update_layout(autosize=True) 
 fig.show(renderer="browser")  # remove display(fig)
 ```
-
 
 
 some first-look insights
@@ -236,4 +263,5 @@ some first-look insights
 - there is a nice and strong negative correlation between temperature and wärmestrom consumption. It is not strictly linear though. Rather polinomial (inverse) relatioship.
 - there seems to be some sort of weak positive correlation between wärmestrom and relative humidity. Not at all consistent though. It is positive with min and mean humidity, but negative or non-existent with max humidity. It may well be just an artifact or spurious correlation, explained by temperature, because there is indeed a correlation (not that strong, though) between temperature and humidity.
 - the number of observations are somewhat related to the temperature, which kinda makes sense, because the measurements are not random. I am much more likely to measure the thing when it's cold!, and that seems to be reflected in the data.
+
 

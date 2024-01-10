@@ -431,7 +431,7 @@ fig.update_layout(
 fig.show()
 ```
 
-TODO: fix the range
+TODO: fix the range, which range?
 
 Let's see the rate hoch tarif vs. niedrig
 
@@ -447,8 +447,6 @@ FROM waermestrom_minute
 GROUP BY date
 ORDER BY date
 ;
-
-
 
 import plotly.express as px
 fig = px.bar(niedrig_fraction, x='day', y='niedrig_fraction2')

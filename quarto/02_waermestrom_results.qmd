@@ -35,7 +35,7 @@ SELECT
 
   24.0 * 60.0 * cmtot / mintot AS avgcm,
   365.0 * avgcm as avgcy,
-  0.3894 * avgcy AS avgyearexpend
+  0.2479 * avgcy AS avgyearexpend
 FROM waermestrom
 ;
 ```
@@ -83,6 +83,10 @@ ORDER BY tarif
 waermestrom_per_day << SELECT 
   minute::DATE AS date,
   24.0 * 60.0 * AVG(cm) AS cd,
+  24.0 * 60.0 * AVG(cm_hoch) AS cd_hoch,
+  24.0 * 60.0 * AVG(cm_niedrig) AS cd_niedrig,
+  cd_hoch / (cd_niedrig + cd_hoch) AS hoch_frac2,
+  cd_hoch / cd AS hoch_frac
 FROM waermestrom_minute
 GROUP BY minute::DATE
 ;
@@ -115,5 +119,54 @@ Der Verbrauch in der Heizperiode liegt zwischen 12 und bis zu 50 kWh. Vermutlich
 
 Overlay temperature
 Was ist am 25-26 Juli passiert?, warum im sommer solcher hoher verbreauch?
+
+# Hoch und Niedrig tarif
+
+Preis unterschied zwischen Hoch- und Niedrigtarif ist nicht so groß. 1 o 2 cent. 
+Zub Beispiel, für 2024, es wird 27,63 fürs Hochtarif und 26,29 fürs Niedrigtarif.
+
+at durchschnitliche Verbrauch von 12 Kwh pro Tag, das Kostet 3.31 Euro in der Hochtarif und
+3.15 Euro in der Niedrigtarif. Die Jährliche durschschnit Verbrauch von 4,400 Kwh heist 1,215 Euro vs. 1157 Euro pro jahr. ALso, wenig al 60 Euro Unterschied im Jahr, wenn alle Verbrauch in einen Tarif wäre.
+
+Also, es ist nich viel relevant. 
+
+Trotzdem, schau ma moi wir war der verlauf von denen. But let's aggregate at weekly level; the daily plot just basically shows that the weekends its only niedrig.
+
+```{python}
+#| include: false
+%%sql
+
+waermestrom_per_week << SELECT 
+  DATE_TRUNC('week', minute) AS week_start,
+  24.0 * 60.0 * AVG(cm) AS cd,
+  24.0 * 60.0 * AVG(cm_hoch) AS cd_hoch,
+  24.0 * 60.0 * AVG(cm_niedrig) AS cd_niedrig,
+  cd_hoch / (cd_niedrig + cd_hoch) AS hoch_frac2,
+  cd_hoch / cd AS hoch_frac
+FROM waermestrom_minute
+GROUP BY DATE_TRUNC('week', minute)
+;
+```
+
+```{python}
+import plotly.express as px
+fig = px.bar(waermestrom_per_week, y='hoch_frac', x='week_start')
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeselector=dict(
+        buttons=list([
+            dict(count=15, label="15d", step="day", stepmode="backward"),
+            dict(count=1, label="1m", step="month", stepmode="backward"),
+            dict(count=6, label="6m", step="month", stepmode="backward"),
+            dict(count=1, label="YTD", step="year", stepmode="todate"),
+            dict(count=1, label="1y", step="year", stepmode="backward"),
+            dict(step="all")
+        ])
+    )
+)
+fig.update_xaxes(rangeslider_thickness = 0.1)
+fig.show()
+```
+
 
 

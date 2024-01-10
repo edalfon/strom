@@ -1,0 +1,684 @@
+---
+title: "playground"
+execute:
+  echo: false
+---
+
+# base model
+
+So let's start from the pipeline with the best model cross-validated before
+```{python}
+import strom
+import epyfun
+import pandas as pd
+
+strom_climate = pd.read_parquet("interim/strom_climate.parquet")
+X, y = strom.get_model_data()
+
+import numpy as np
+
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_percentage_error
+from sklearn.metrics import median_absolute_error
+from sklearn.metrics import r2_score
+
+from sklego.preprocessing import ColumnSelector
+
+import matplotlib.pyplot as plt
+
+
+def lag_predictor(X, predictor, lag=1):
+    lagged = pd.Series(
+        X[predictor].shift(lag).bfill(), name=predictor + "_lag" + str(lag)
+    )
+    X = pd.concat([X, lagged], axis=1)
+    return X
+
+
+def average_ndays(X, predictor, n=3):
+    lagged = pd.Series(
+        X[predictor].shift(1).rolling(n).mean().bfill(), name=predictor + "_ma" + str(n)
+    )
+    X = pd.concat([X, lagged], axis=1)
+    return X
+
+
+# {'columns__columns': ('tt_tu_mean', 'tt_tu_min', 'rf_tu_min'), 'preprocessor__degree': 3}
+wd_pipeline = Pipeline(
+    [
+        ("columns", ColumnSelector(columns=["tt_tu_mean", "rf_tu_mean"])),
+        # (
+        #     "lag1",
+        #     FunctionTransformer(average_ndays, kw_args={"predictor": "tt_tu_mean", "n": 5}),
+        # ),
+        (
+            "preprocessor",
+            ColumnTransformer(
+                transformers=[
+                    (
+                        "polynomials",
+                        PolynomialFeatures(degree=4, include_bias=False),
+                        ["tt_tu_mean", "rf_tu_mean"],
+                    ),
+                ],
+                remainder="passthrough",
+            ),
+        ),
+        # ("preprocessor", PolynomialFeatures(degree=4)),
+        ("model", LinearRegression()),
+    ]
+)
+
+# X["tt_tu_mean"].shift(1).fillna(method="bfill")
+
+# Train the model on the training data
+wd_pipeline.fit(X, y)
+strom.log_vetiver(wd_pipeline, "waermestrom")
+
+# Make predictions on the test data
+y_pred = wd_pipeline.predict(X)
+```
+
+
+```{python}
+dimensions = [
+    "tt_tu_mean",
+    "tt_tu_min",
+    "tt_tu_max",
+    "rf_tu_mean",
+    "rf_tu_min",
+    "rf_tu_max",
+]
+x = strom.assess_regression(wd_pipeline, X, y, dimensions)
+```
+
+well ok, now?, commpleteness, proof of concept, just need to get the new lines
+
+```{python}
+#| output: asis
+
+# from IPython.display import display, Markdown
+# for key, value in yyy.items():
+#     print(key)
+#     display(Markdown(key))
+#     display(value)
+```
+
+ok
+
+## coefficients
+
+```{python}
+#feature_names = wd_pipeline[:-1].get_feature_names_out()
+
+feature_names = wd_pipeline.named_steps['preprocessor'].get_feature_names_out()
+print(feature_names)
+
+coefs = pd.DataFrame(
+    wd_pipeline[-1].coef_,
+    columns=["Coefficients"],
+    index=feature_names,
+)
+
+print(coefs)
+```
+
+```{python}
+X_train_preprocessed = pd.DataFrame(
+    wd_pipeline[:-1].transform(X), columns=feature_names
+)
+
+coefs = pd.DataFrame(
+    wd_pipeline[-1].coef_ * X_train_preprocessed.std(axis=0),
+    columns=["Coefficient importance"],
+    index=feature_names,
+)
+coefs.plot(kind="barh", figsize=(9, 7))
+plt.xlabel("Coefficient values corrected by the feature's std. dev.")
+plt.title("Ridge model, small regularization")
+plt.axvline(x=0, color=".5")
+plt.subplots_adjust(left=0.3)
+```
+
+
+
+check coeficient variability / stability using cross validation
+
+
+```{python}
+from sklearn.model_selection import RepeatedKFold, cross_validate
+
+cv = RepeatedKFold(n_splits=10, n_repeats=100, random_state=0)
+cv_model = cross_validate(
+    wd_pipeline,
+    X,
+    y,
+    cv=cv,
+    return_estimator=True,
+    n_jobs=-1,
+)
+
+```
+
+```{python}
+import seaborn as sns
+coefs = pd.DataFrame(
+    [
+        est[-1].coef_ * est[:-1].transform(X.iloc[train_idx]).std(axis=0)
+        for est, (train_idx, _) in zip(cv_model["estimator"], cv.split(X, y))
+    ],
+    columns=feature_names,
+)
+plt.figure(figsize=(9, 7))
+sns.stripplot(data=coefs, orient="h", palette="dark:k", alpha=0.5)
+sns.boxplot(data=coefs, orient="h", color="cyan", saturation=0.5, whis=10)
+plt.axvline(x=0, color=".5")
+plt.xlabel("Coefficient importance")
+plt.title("Coefficient importance and its variability")
+plt.suptitle("Ridge model, small regularization")
+plt.subplots_adjust(left=0.3)
+```
+
+
+
+
+
+# with mins
+
+```{python}
+import pandas as pd
+import numpy as np
+import epyfun
+import strom
+
+strom_climate = pd.read_parquet("interim/strom_climate.parquet")
+X = strom_climate.drop(columns="wd")
+y = strom_climate["wd"]
+
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_percentage_error
+from sklearn.metrics import median_absolute_error
+from sklearn.metrics import r2_score
+
+from sklego.preprocessing import ColumnSelector
+#{'columns__columns': ('tt_tu_mean', 'tt_tu_min', 'rf_tu_min'), 'preprocessor__degree': 3}
+wd_pipeline = Pipeline([
+    ("columns", ColumnSelector(columns=['tt_tu_mean', 'tt_tu_min', 'rf_tu_min'])),
+    ('preprocessor', PolynomialFeatures(degree=3)),
+    ('model', LinearRegression())
+])
+
+wd_pipeline.fit(X, y)
+y_pred = wd_pipeline.predict(X)
+```
+
+```{python}
+x = strom.assess_regression(wd_pipeline, X, y, dimensions)
+```
+
+## coefficients
+
+```{python}
+#feature_names = wd_pipeline[:-1].get_feature_names_out()
+
+feature_names = wd_pipeline.named_steps['preprocessor'].get_feature_names_out()
+print(feature_names)
+
+coefs = pd.DataFrame(
+    wd_pipeline[-1].coef_,
+    columns=["Coefficients"],
+    index=feature_names,
+)
+
+print(coefs)
+```
+
+```{python}
+X_train_preprocessed = pd.DataFrame(
+    wd_pipeline[:-1].transform(X), columns=feature_names
+)
+
+coefs = pd.DataFrame(
+    wd_pipeline[-1].coef_ * X_train_preprocessed.std(axis=0),
+    columns=["Coefficient importance"],
+    index=feature_names,
+)
+coefs.plot(kind="barh", figsize=(9, 7))
+plt.xlabel("Coefficient values corrected by the feature's std. dev.")
+plt.title("Ridge model, small regularization")
+plt.axvline(x=0, color=".5")
+plt.subplots_adjust(left=0.3)
+```
+
+
+check coeficient variability / stability using cross validation
+
+```{python}
+from sklearn.model_selection import RepeatedKFold, cross_validate
+
+cv = RepeatedKFold(n_splits=10, n_repeats=100, random_state=0)
+cv_model = cross_validate(
+    wd_pipeline,
+    X,
+    y,
+    cv=cv,
+    return_estimator=True,
+    n_jobs=-1,
+)
+
+```
+
+```{python}
+import seaborn as sns
+coefs = pd.DataFrame(
+    [
+        est[-1].coef_ * est[:-1].transform(X.iloc[train_idx]).std(axis=0)
+        for est, (train_idx, _) in zip(cv_model["estimator"], cv.split(X, y))
+    ],
+    columns=feature_names,
+)
+plt.figure(figsize=(9, 7))
+sns.stripplot(data=coefs, orient="h", palette="dark:k", alpha=0.5)
+sns.boxplot(data=coefs, orient="h", color="cyan", saturation=0.5, whis=10)
+plt.axvline(x=0, color=".5")
+plt.xlabel("Coefficient importance")
+plt.title("Coefficient importance and its variability")
+plt.suptitle("Ridge model, small regularization")
+plt.subplots_adjust(left=0.3)
+```
+
+
+
+
+
+# statmodels
+
+```{python}
+xstatsmodels = strom.get_design_matrix(wd_pipeline, X)
+
+from statsmodels.compat import lzip
+
+import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+import statsmodels.stats.api as sms
+import matplotlib.pyplot as plt
+
+import statsmodels.api as sm
+import pandas as pd
+results = sm.OLS(y, xstatsmodels).fit()
+print(results.summary())
+```
+
+
+```{python}
+name = ["Jarque-Bera", "Chi^2 two-tail prob.", "Skew", "Kurtosis"]
+test = sms.jarque_bera(results.resid)
+lzip(name, test)
+```
+
+
+```{python}
+name = ["Chi^2", "Two-tail probability"]
+test = sms.omni_normtest(results.resid)
+lzip(name, test)
+```
+
+```{python}
+from statsmodels.stats.outliers_influence import OLSInfluence
+
+test_class = OLSInfluence(results)
+test_class.dfbetas[:5, :]
+```
+
+```{python}
+from statsmodels.graphics.regressionplots import plot_leverage_resid2
+
+fig, ax = plt.subplots(figsize=(8, 6))
+fig = plot_leverage_resid2(results, ax=ax)
+```
+
+```{python}
+from statsmodels.graphics.regressionplots import influence_plot
+influence_plot(results)
+```
+
+```{python}
+from statsmodels.graphics.regressionplots import plot_leverage_resid2
+plot_leverage_resid2(results)
+```
+
+
+
+```{python}
+from sklearn.preprocessing import PolynomialFeatures
+import matplotlib.pyplot as plt
+
+import pandas as pd
+from sklego.preprocessing import FormulaicTransformer
+
+wd_pipeline = Pipeline(
+    [
+        ("columns", ColumnSelector(columns=["tt_tu_mean", "rf_tu_mean", "rf_tu_min", "rf_tu_max"])),
+        ("parsy", FormulaicTransformer("""
+        tt_tu_mean + I(tt_tu_mean ** 2) + I(tt_tu_mean ** 3) + 
+           I(tt_tu_mean ** 4) + I(tt_tu_mean ** 5) +
+           rf_tu_mean + rf_tu_min + rf_tu_max +
+           tt_tu_mean.shift(1, fill_value=-1.3)
+        """)),
+        ("model", LinearRegression()),
+    ]
+)
+
+#xxx = X["tt_tu_mean"]
+#xxx.shift(1, fill_value=1)
+
+# Train the model on the training data
+wd_pipeline.fit(X, y)
+
+# Make predictions on the test data
+y_pred = wd_pipeline.predict(X)
+```
+
+import statsmodels.formula.api as smf
+model = smf.ols(formula="""
+      wd ~ tt_tu_mean + I(tt_tu_mean ** 2) + I(tt_tu_mean ** 3) + 
+           I(tt_tu_mean ** 4) + I(tt_tu_mean ** 5) +
+           rf_tu_mean + rf_tu_min + rf_tu_max +
+           tt_tu_mean.shift(1) + tt_tu_mean.shift(2) + tt_tu_mean.shift(3)
+  """, data=strom_climate).fit()
+
+
+```{python}
+dimensions = [
+    "tt_tu_mean",
+    "tt_tu_min",
+    "tt_tu_max",
+    "rf_tu_mean",
+    "rf_tu_min",
+    "rf_tu_max",
+]
+x = strom.assess_regression(wd_pipeline, X, y, dimensions)
+```
+
+
+
+
+```{python}
+#| eval: false
+from sklearn.metrics import get_scorer_names
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+import itertools
+
+from sklearn.model_selection import cross_val_score
+
+from sklearn.model_selection import TimeSeriesSplit
+tscv = TimeSeriesSplit(n_splits=5)
+
+from sklearn.model_selection import RepeatedKFold
+rkf = RepeatedKFold(n_splits=10, n_repeats=100, random_state=7)
+
+from sklearn.model_selection import KFold
+kf = KFold(n_splits=10, shuffle=True)
+
+
+column_candidates = ["tt_tu_mean", "tt_tu_min", "tt_tu_max", 
+                    "rf_tu_mean", "rf_tu_min", "rf_tu_max"]
+all_columns_combinations = []
+# Generate combinations of all sizes from 1 to the length of the list
+for r in range(1, len(column_candidates) + 1):
+    combinations_of_size_r = list(itertools.combinations(column_candidates, r))
+    all_columns_combinations.extend(combinations_of_size_r)
+
+
+param_grid = [
+    {
+        "columns__columns": all_columns_combinations,
+        "preprocessor__degree": [3, 4, 5, 6, 7],
+    },
+    {
+        "columns__columns": all_columns_combinations,
+        "preprocessor": [
+            ColumnTransformer(
+                transformers=[
+                    (
+                        "transformer",
+                        PolynomialFeatures(degree=4, include_bias=False),
+                        ["tt_tu_mean"],
+                    ),
+                ],
+                remainder="passthrough",
+            )
+        ],
+    },
+    {
+        "columns__columns": all_columns_combinations,
+        "preprocessor": ["passthrough"],
+        "model": [HistGradientBoostingRegressor(), RandomForestRegressor(), SVR(kernel="poly")]
+    },
+]
+# reducer_labels = ["PCA", "NMF", "KBest(mutual_info_classif)"]
+
+scoring = [
+    "r2",
+    "explained_variance",
+    "neg_median_absolute_error",
+    "neg_root_mean_squared_error",
+    "neg_mean_absolute_error",
+]
+
+
+grid = GridSearchCV(
+    wd_pipeline,
+    param_grid=param_grid,
+    scoring=scoring,
+    n_jobs=-1,
+    cv=rkf,
+    refit="explained_variance",
+)
+grid.fit(X, y)
+pd.DataFrame(grid.cv_results_)
+
+grid.best_params_
+grid.best_score_
+```
+
+```{python}
+#{'columns__columns': ('tt_tu_mean', 'tt_tu_min', 'rf_tu_min'), 'preprocessor__degree': 3}
+```
+
+
+```{python}
+#| eval: false
+df = pd.DataFrame(grid.cv_results_)
+
+value_vars = [
+    col for col in df.columns if col.endswith("test_r2") and col.startswith("split")
+]
+
+# Melt the DataFrame to a long format
+df_long = pd.melt(
+    df,
+    id_vars=["params"],
+    value_vars=value_vars,
+    var_name="scoring",
+    value_name="score",
+)
+
+df_long["params"] = df_long["params"].astype(str)
+
+import plotly.graph_objects as go
+
+# Create a list of unique params
+params = df_long['params'].unique()
+
+# Create an empty list to store the traces
+traces = []
+
+# Loop through the params and create a histogram for each one
+for i, param in enumerate(params):
+    scores = df_long[df_long['params'] == param]['score']
+    if all(scores > 0.3):
+        traces.append(
+            go.Violin(x=[i]*len(scores), y=scores, name=str(i), box_visible=True, meanline_visible=True, hovertemplate=param)
+        )
+ 
+# Create the figure
+fig = go.Figure(data=traces)
+
+fig
+```
+
+```{python}
+#| eval: false
+fig.show(renderer="browser") 
+```
+
+
+
+
+
+sdf
+
+
+#import strom
+
+#model = strom.get_vetiver("waermestrom")
+
+#model.handler_predict(input_data=strom_climate, check_prototype=True)
+
+#strom.assess_vetiver_regression(model, strom_climate, strom_climate["wd"])
+
+
+
+
+from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import cross_val_score
+
+cv = RepeatedKFold(n_splits=10, n_repeats= 100, random_state=1)
+
+ getting misclassification rate
+scores = 1 - cross_val_score(SMWrapper(sm.OLS), independent_variables, dependent_variable, scoring='neg_median_absolute_error', cv=cv, n_jobs=-1)
+import seaborn as sns
+ax = sns.histplot(x=scores, kde=True)
+
+
+
+
+
+import statsmodels.formula.api as smf
+model = smf.ols(formula="""wd ~ tt_tu_mean + rf_tu_mean""", data=strom_climate).fit()
+
+print(model.summary())
+
+model = strom.log_vetiver(model, "waermestrom")
+
+
+
+
+
+
+import statsmodels.api as sm
+from sklearn.base import BaseEstimator, RegressorMixin
+
+
+class SMWrapper(BaseEstimator, RegressorMixin):
+    """A universal sklearn-style wrapper for statsmodels regressors"""
+
+    def __init__(self, model_class, fit_intercept=True):
+        self.model_class = model_class
+        self.fit_intercept = fit_intercept
+
+    def fit(self, X, y):
+        if self.fit_intercept:
+            X = sm.add_constant(X)
+        self.model_ = self.model_class(y, X)
+        self.results_ = self.model_.fit()
+        return self
+
+    def predict(self, X):
+        if self.fit_intercept:
+            X = sm.add_constant(X)
+        return self.results_.predict(X)
+
+
+
+
+from sklearn.model_selection import RepeatedKFold
+from sklearn.model_selection import cross_val_score
+
+cv = RepeatedKFold(n_splits=10, n_repeats= 100, random_state=1)
+model = LogisticRegression()
+
+getting misclassification rate
+scores = 1 - cross_val_score(model, X, y, scoring='r2_score', cv=cv, n_jobs=-1)
+import seaborn as sns
+ax = sns.histplot(x=scores, kde=True)
+
+
+
+
+
+import strom
+model = strom.get_vetiver("waermestrom")
+
+strom.assess_vetiver_regression(model, strom_climate, "wd")
+
+
+
+
+
+
+# Vetiver
+
+import strom
+model = strom.get_vetiver("waermestrom")
+model.handler_predict(X, False)
+
+
+from vetiver import mock, VetiverModel
+mm = VetiverModel.from_pin(strom.get_board(), "waermestrom")
+mm.handler_predict(strom_climate, False)
+
+import vetiver
+vetiver.compute_metrics()
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import epyfun
+
+strom_climate = pd.read_parquet("interim/strom_climate.parquet")
+
+import strom
+vetiver_model = strom.get_vetiver("waermestrom")
+y_pred = strom.assess_vetiver_regression(vetiver_model, strom_climate, strom_climate["wd"])
+y_pred
+
+
+from vetiver import mock, VetiverModel
+X, y = mock.get_mock_data()
+model = mock.get_mock_model().fit(X, y)
+v = VetiverModel(model = model, model_name = "my_model", prototype_data = X)
+
+import strom
+strom.assess_vetiver_regression(v, X, y)
+
+
+
+
+

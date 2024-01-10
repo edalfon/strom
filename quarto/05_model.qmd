@@ -6,28 +6,653 @@ execute:
 
 ```{python}
 import pandas as pd
+import numpy as np
+import seaborn as sns
+import epyfun
+
 strom_climate = pd.read_parquet("interim/strom_climate.parquet")
 ```
+
+
+# Naive model
 
 ```{python}
 import statsmodels.api as sm
 import pandas as pd
 
-dependent_variable = strom_climate['wd']
-independent_variables = strom_climate[['tt_tu_mean', 'rf_tu_mean']]
+y_var = "wd"
+X_vars = ['tt_tu_mean', 'rf_tu_mean']
 
-independent_variables = sm.add_constant(independent_variables)
+y = strom_climate[y_var]
+X = strom_climate[X_vars]
+rest = strom_climate.drop(columns = y_var)
+X = sm.add_constant(X)
 
-# Fit the multiple linear regression model
-model = sm.OLS(dependent_variable, independent_variables).fit()
+model = sm.OLS(y, X).fit()
 
-# Get the summary of the regression
 print(model.summary())
 
 # Extract R-squared value
 r_squared = model.rsquared
 print(f'R-squared: {r_squared}')
 
+#epyfun.reload_all()
+import strom
+
+strom.log_vetiver(model, "waermestrom")
 ```
 
+
+
+```{python}
+#| eval: false
+import pins
+board = pins.board_folder("vetiver", allow_pickle_read=True)
+board.pin_versions("waermestrom")
+```
+
+```{python}
+observed_matrix = pd.concat(
+    [
+        y,
+        rest,
+        pd.DataFrame({"type": ["observed"] * len(y)}),
+    ],
+    axis=1,
+)
+
+fitted_matrix = pd.concat(
+    [
+        pd.DataFrame({"wd": model.fittedvalues}),
+        rest,
+        pd.DataFrame({"type": ["fitted"] * len(y)}),
+    ],
+    axis=1,
+)
+
+matrix_plot = pd.concat([observed_matrix, fitted_matrix], axis=0, ignore_index=True)
+fig = epyfun.splom(
+    matrix_plot,
+    ["wd", "tt_tu_mean", "rf_tu_mean", "tt_tu_min", "tt_tu_max"],
+    color="type",
+)
+fig
+```
+
+
+```{python}
+fig.update_layout(
+    height=800,
+    width=800,
+)
+fig.show()
+```
+
+```{python}
+#| eval: false
+fig.update_layout(autosize=True) # remove height=800
+fig.show(renderer="browser")  # remove display(fig)
+```
+
+
+```{python}
+import pandas as pd
+import statsmodels.api as sm
+from yellowbrick.regressor import ResidualsPlot
+```
+
+After fitting a multiple linear regression model using `statsmodels`, you can perform model diagnosis and check the residuals to assess the goodness of fit. Here are some steps you can take:
+
+### 1. Residuals Analysis:
+
+```{python}
+# Get the residuals
+residuals = model.resid
+fitted_values = model.fittedvalues
+
+# Plot residuals against fitted values
+import matplotlib.pyplot as plt
+plt.scatter(fitted_values, residuals)
+plt.axhline(y=0, color='r', linestyle='--')
+plt.xlabel('Fitted Values')
+plt.ylabel('Residuals')
+plt.title('Residuals vs Fitted Values')
+plt.show()
+```
+
+This scatter plot helps you check for patterns in the residuals, such as heteroscedasticity or non-linearity. This plot helps you check for linearity and homoscedasticity.
+
+
+### 2. Normality of Residuals:
+
+```{python}
+# Plot a histogram of residuals
+plt.hist(residuals, bins=20)
+plt.xlabel('Residuals')
+plt.ylabel('Frequency')
+plt.title('Histogram of Residuals')
+plt.show()
+
+# QQ plot for normality
+sm.qqplot(residuals, line='s')
+plt.show()
+```
+
+These plots help assess whether the residuals are normally distributed.
+
+
+3. Scale-Location (Spread-Location) Plot:
+This plot helps in detecting heteroscedasticity.
+
+```{python}
+# Assuming 'model' is your fitted regression model
+sqrt_abs_standardized_residuals = np.sqrt(np.abs(model.get_influence().resid_studentized_internal))
+
+# Plotting
+sns.scatterplot(x=fitted_values, y=sqrt_abs_standardized_residuals)
+plt.title("Scale-Location Plot")
+plt.xlabel("Fitted Values")
+plt.ylabel("Sqrt(|Standardized Residuals|)")
+plt.show()
+
+```
+
+
+
+### 3. Homoscedasticity:
+
+```{python}
+# Plot residuals against each independent variable
+for var in X.columns:
+    plt.scatter(X[var], residuals)
+    plt.xlabel(var)
+    plt.ylabel('Residuals')
+    plt.title(f'Residuals vs {var}')
+    plt.show()
+```
+
+These plots help check for homoscedasticity (constant variance) of residuals across different levels of the independent variables.
+
+### 4. Influence and Outliers:
+
+```{python}
+# Influence plot
+sm.graphics.influence_plot(model)
+plt.show()
+```
+
+This plot helps identify influential points or outliers.
+
+### 5. Leverage-Residuals plot:
+
+```{python}
+# Leverage-Residuals plot
+sm.graphics.plot_leverage_resid2(model)
+plt.show()
+```
+
+```{python}
+from statsmodels.graphics.regressionplots import plot_leverage_resid2
+
+# Assuming 'model' is your fitted regression model
+plot_leverage_resid2(model)
+plt.title("Residuals vs. Leverage Plot")
+plt.show()
+```
+This plot helps identify points with high leverage.
+
+### 6. Cook's Distance:
+
+```{python}
+#| eval: false
+# Cook's Distance plot
+sm.graphics.plot_cooks_distance(model)
+plt.show()
+```
+
+This plot helps identify influential observations.
+
+
+```{python}
+import scipy as sp
+import numpy as np
+import pandas as pd 
+import matplotlib.pyplot as plt 
+
+# Note: statsmodels requires scipy 1.2
+import statsmodels.formula.api as sm
+
+from sklearn.datasets import make_regression
+from sklearn.linear_model import LinearRegression
+from statsmodels.stats.outliers_influence import OLSInfluence as influence
+
+```
+
+```{python}
+inf = influence(model)
+C, P = inf.cooks_distance
+def plot_cooks_distance(c):
+    _, ax = plt.subplots(figsize=(9,6))
+    ax.stem(c, markerfmt=",")
+    ax.set_xlabel("instance")
+    ax.set_ylabel("distance")
+    ax.set_title("Cook's Distance Outlier Detection")
+    return ax
+
+
+plot_cooks_distance(C)
+```
+
+### 6. Residuals Autocorrelation Plot:
+This plot helps assess if there is any autocorrelation in the residuals, which may be a concern in time series data.
+
+
+
+```{python}
+from statsmodels.graphics.tsaplots import plot_acf
+# Assuming 'model' is your fitted regression model
+residuals = model.resid
+plot_acf(residuals, lags=40)
+plt.title("Residuals Autocorrelation Plot")
+plt.show()
+```
+
+
+### 7. Partial Regression Plots:
+
+```{python}
+# Partial regression plots
+import statsmodels.api as sm
+sm.graphics.plot_partregress_grid(model)
+plt.show()
+```
+
+These plots help identify the influence of each independent variable on the dependent variable while holding other variables constant.
+
+These diagnostic plots can provide insights into the performance of your regression model and help you identify any violations of the assumptions of linear regression. Adjustments to the model or data transformation may be necessary based on the diagnostic results.
+
+
+
+### 7. Partial Regression (Added Variable) Plot:
+This plot helps visualize the relationship between an individual predictor and the response variable while accounting for the other predictors in the model.
+
+
+```{python}
+from statsmodels.graphics.regressionplots import plot_partregress
+# Assuming 'model' is your fitted regression model and 'x' is the predictor variable
+plot_partregress('wd', 'tt_tu_mean', ['rf_tu_mean'], data=strom_climate)
+plt.title("Partial Regression (Added Variable) Plot")
+plt.show()
+
+```
+
+
+8. Residuals vs. Time Plot (for Time Series Regression):
+If you are working with time series data, a plot of residuals against time can help identify patterns or trends.
+
+```{python}
+# Assuming 'model' is your fitted time series regression model
+residuals = model.resid
+plt.plot(residuals)
+plt.title("Residuals vs. Time Plot")
+plt.xlabel("Time")
+plt.ylabel("Residuals")
+plt.show()
+```
+
+
+clearly the naive model is not a good fit.
+
+- [ ] It needs a polinomial with the temperature (second order perhaps)
+- [ ] check if the association with relative humidity, if it is just an artifact of the correlation with temperature, or if there might something meaningful there going on
+- [ ] and bring other climatic data, rainfall and snowfall might be relevant
+
+
+# Naive model, but using scikit-learn
+
+```{python}
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import epyfun
+import strom
+
+strom_climate = pd.read_parquet("interim/strom_climate.parquet")
+
+y_var = "wd"
+X_vars = ['tt_tu_mean', 'rf_tu_mean']
+
+y = strom_climate[y_var]
+X = strom_climate[X_vars]
+rest = strom_climate.drop(columns = y_var)
+```
+
+
+
+
+```{python}
+#| eval: false
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.metrics import r2_score
+
+
+lr = LinearRegression()
+lr.fit(X, y)
+y_pred = lr.predict(X)
+print(r2_score(y, y_pred))
+
+strom.log_vetiver(lr, "waermestrom")
+```
+
+
+
+
+# Polinomial Model
+
+```{python}
+from sklearn.preprocessing import PolynomialFeatures
+import matplotlib.pyplot as plt
+polynomial_features = PolynomialFeatures(degree=3)
+xp = polynomial_features.fit_transform(X)
+xp.shape
+
+# model = sm.OLS(dependent_variable, xp).fit()
+# ypred = model.predict(xp) 
+# print(model.summary())
+
+import statsmodels.formula.api as smf
+model = smf.ols(formula="""
+      wd ~ tt_tu_mean + I(tt_tu_mean ** 2) + I(tt_tu_mean ** 3) + 
+           I(tt_tu_mean ** 4) + I(tt_tu_mean ** 5) +
+           rf_tu_mean + rf_tu_min + rf_tu_max +
+           tt_tu_mean.shift(1) + tt_tu_mean.shift(2) + tt_tu_mean.shift(3)
+  """, data=strom_climate).fit()
+# model = smf.ols(formula="""
+#       wd ~ tt_tu_mean + I(tt_tu_mean ** 2) + I(tt_tu_mean ** 3) + 
+#            rf_tu_mean + I(rf_tu_mean ** 2) + I(rf_tu_mean ** 3) + tt_tu_mean:rf_tu_mean + I(tt_tu_mean ** 2):I(rf_tu_mean ** 2) +
+#            I(tt_tu_mean ** 3):I(rf_tu_mean ** 3)
+#   """, data=strom_climate).fit()
+
+
+print(model.summary())
+
+strom.log_vetiver(model, "waermestrom")
+
+
+#plt.scatter(x,y)
+#plt.plot(x,ypred)
+```
+
+
+
+```{python}
+observed_matrix = pd.concat(
+    [
+        y,
+        rest,
+        pd.DataFrame({"type": ["observed"] * len(y)}),
+    ],
+    axis=1,
+)
+
+fitted_matrix = pd.concat(
+    [
+        pd.DataFrame({"wd": model.fittedvalues}),
+        rest,
+        pd.DataFrame({"type": ["fitted"] * len(y)}),
+    ],
+    axis=1,
+)
+
+matrix_plot = pd.concat([observed_matrix, fitted_matrix], axis=0, ignore_index=True)
+fig = epyfun.splom(
+    matrix_plot,
+    ["wd", "tt_tu_mean", "rf_tu_mean", "tt_tu_min", "tt_tu_max"],
+    color="type",
+)
+fig
+```
+
+
+```{python}
+#| eval: false
+fig.update_layout(autosize=True) 
+fig.show(renderer="browser")  # remove display(fig)
+```
+
+
+
+### 1. Residuals Analysis:
+
+```{python}
+# Get the residuals
+residuals = model.resid
+fitted_values = model.fittedvalues
+
+# Plot residuals against fitted values
+import matplotlib.pyplot as plt
+plt.scatter(fitted_values, residuals)
+plt.axhline(y=0, color='r', linestyle='--')
+plt.xlabel('Fitted Values')
+plt.ylabel('Residuals')
+plt.title('Residuals vs Fitted Values')
+plt.show()
+```
+
+This scatter plot helps you check for patterns in the residuals, such as heteroscedasticity or non-linearity. This plot helps you check for linearity and homoscedasticity.
+
+
+### 2. Normality of Residuals:
+
+```{python}
+# Plot a histogram of residuals
+plt.hist(residuals, bins=20)
+plt.xlabel('Residuals')
+plt.ylabel('Frequency')
+plt.title('Histogram of Residuals')
+plt.show()
+
+# QQ plot for normality
+sm.qqplot(residuals, line='s')
+plt.show()
+```
+
+These plots help assess whether the residuals are normally distributed.
+
+
+3. Scale-Location (Spread-Location) Plot:
+This plot helps in detecting heteroscedasticity.
+
+```{python}
+# Assuming 'model' is your fitted regression model
+sqrt_abs_standardized_residuals = np.sqrt(np.abs(model.get_influence().resid_studentized_internal))
+
+# Plotting
+sns.scatterplot(x=fitted_values, y=sqrt_abs_standardized_residuals)
+plt.axhline(y=0, color='r', linestyle='--')
+plt.title("Scale-Location Plot")
+plt.xlabel("Fitted Values")
+plt.ylabel("Sqrt(|Standardized Residuals|)")
+plt.show()
+
+```
+
+
+### 3. Homoscedasticity:
+
+```{python}
+#| eval: false
+# Plot residuals against each independent variable
+for var in X.columns:
+    plt.scatter(X[var], residuals)
+    plt.xlabel(var)
+    plt.ylabel('Residuals')
+    plt.title(f'Residuals vs {var}')
+    plt.show()
+```
+
+These plots help check for homoscedasticity (constant variance) of residuals across different levels of the independent variables.
+
+### 4. Influence and Outliers:
+
+```{python}
+# Influence plot
+sm.graphics.influence_plot(model)
+plt.show()
+```
+
+This plot helps identify influential points or outliers.
+
+### 5. Leverage-Residuals plot:
+
+```{python}
+# Leverage-Residuals plot
+sm.graphics.plot_leverage_resid2(model)
+plt.show()
+```
+
+```{python}
+from statsmodels.graphics.regressionplots import plot_leverage_resid2
+
+# Assuming 'model' is your fitted regression model
+plot_leverage_resid2(model)
+plt.title("Residuals vs. Leverage Plot")
+plt.show()
+```
+This plot helps identify points with high leverage.
+
+### 6. Cook's Distance:
+
+```{python}
+#| eval: false
+# Cook's Distance plot
+sm.graphics.plot_cooks_distance(model)
+plt.show()
+```
+
+This plot helps identify influential observations.
+
+
+```{python}
+import scipy as sp
+import numpy as np
+import pandas as pd 
+import matplotlib.pyplot as plt 
+
+# Note: statsmodels requires scipy 1.2
+import statsmodels.formula.api as sm
+
+from sklearn.datasets import make_regression
+from sklearn.linear_model import LinearRegression
+from statsmodels.stats.outliers_influence import OLSInfluence as influence
+
+```
+
+```{python}
+inf = influence(model)
+C, P = inf.cooks_distance
+def plot_cooks_distance(c):
+    _, ax = plt.subplots(figsize=(9,6))
+    ax.stem(c, markerfmt=",")
+    ax.set_xlabel("instance")
+    ax.set_ylabel("distance")
+    ax.set_title("Cook's Distance Outlier Detection")
+    return ax
+
+
+plot_cooks_distance(C)
+```
+
+### 6. Residuals Autocorrelation Plot:
+This plot helps assess if there is any autocorrelation in the residuals, which may be a concern in time series data.
+
+
+
+```{python}
+from statsmodels.graphics.tsaplots import plot_acf
+# Assuming 'model' is your fitted regression model
+residuals = model.resid
+plot_acf(residuals, lags=40)
+plt.title("Residuals Autocorrelation Plot")
+plt.show()
+```
+
+
+### 7. Partial Regression Plots:
+
+```{python}
+# Partial regression plots
+import statsmodels.api as sm
+sm.graphics.plot_partregress_grid(model)
+plt.show()
+```
+
+These plots help identify the influence of each independent variable on the dependent variable while holding other variables constant.
+
+These diagnostic plots can provide insights into the performance of your regression model and help you identify any violations of the assumptions of linear regression. Adjustments to the model or data transformation may be necessary based on the diagnostic results.
+
+
+
+### 7. Partial Regression (Added Variable) Plot:
+This plot helps visualize the relationship between an individual predictor and the response variable while accounting for the other predictors in the model.
+
+
+```{python}
+from statsmodels.graphics.regressionplots import plot_partregress
+# Assuming 'model' is your fitted regression model and 'x' is the predictor variable
+plot_partregress('wd', 'tt_tu_mean', ['rf_tu_mean'], data=strom_climate)
+plt.title("Partial Regression (Added Variable) Plot")
+plt.show()
+
+```
+
+
+8. Residuals vs. Time Plot (for Time Series Regression):
+If you are working with time series data, a plot of residuals against time can help identify patterns or trends.
+
+```{python}
+# Assuming 'model' is your fitted time series regression model
+residuals = model.resid
+plt.plot(residuals)
+plt.title("Residuals vs. Time Plot")
+plt.xlabel("Time")
+plt.ylabel("Residuals")
+plt.show()
+```
+
+here's also the polinomial model, but using scikit-learn
+
+```{python}
+from sklearn.preprocessing import PolynomialFeatures
+
+from sklearn.metrics import r2_score
+
+polynomial_features = PolynomialFeatures(degree=3)
+X = polynomial_features.fit_transform(X)
+
+lr = LinearRegression()
+lr.fit(X, y)
+y_pred = lr.predict(X)
+print(r2_score(y, y_pred))
+```
+
+
+substantial improvement Here, we still have some items in the to-do list 
+and given this results, I would add a coulpe more
+
+- [x] It needs a polinomial with the temperature (second order perhaps)
+- [ ] check if the association with relative humidity, if it is just an artifact of the correlation with temperature, or if there might something meaningful there going on
+- [ ] and bring other climatic data, rainfall and snowfall might be relevant
+- [ ] depite the much better fit, there are still some -although minor- heteroscedaticity, mostly associated to the lowest temperatures where the variance of strom use is higher
+- [ ] there might be also a seasonal pattern, because we are not accounting for, for example, weekends and so on
+- [ ] finally, there is still some evidence of autocorrelation. Which kinda makes sense: it is not the same to have one day with a very low temperature compared to a whole week with very low temperatures: while the former could be wintered with the heat already produced, as long as there is not much energy lose, the latter would certainly need much more work from the wärmepumpe to keep fighting the cold. In that sense, it seems unrealistic to just assume that the increase energy consumption of several days of extreme cold is just the sum of the daily increases. So if the one-day-increase due to extreme cold is 10, five consecutve days would probably result in an increase greater than 10*5=50, probably much greater. But let's explore such hipothesis in the data and try to accomodate that in the model using lags, or moving average of the last few days.
+- [ ] influence plot and leverage plots should be interactive with tooltips with all the data associated to the points. Cook's distance perhaps as well.
+- [ ] run some PCA, with min, max mean and so on and think about a Cumulative Explained Variance plot https://archive.is/X1wrZ#selection-1059.8-1059.37
+- [ ] and use cross validation
+- [ ] perhaps experiment with feature selection
+- [ ] and consider log-transforming the target, after all, the distribution of it is right-skewed with relatively long right tail
 

@@ -10,7 +10,7 @@ execute:
 https://www.dwd.de/DE/leistungen/cdc/cdc_ueberblick-klimadaten.html
 
 
-## Lufttemperatur - stündliche Auflösung
+# stundliche Auflösung Wetter Stationen
 
 laden wir die Stationslisten herunter mit allen Klimastationen, die Lufttemperatur - stündliche Auflösung haben.
 
@@ -74,6 +74,8 @@ Also, wir sollten entweder Kiefersfelden-Gach (3679) oder Rosenheim (4261) verwe
 
 Dann schreiben wir eine kleine Funktion, die nach Dateien für solche Stationen sucht und sie herunterlädt. (Eine Funktion, da wir dies mindestens zweimal machen müssen, weil es Dateien mit historischen Daten und Dateien mit aktuellen Daten gibt.)
 
+# fns to support download data
+
 ```{python}
 import requests
 from bs4 import BeautifulSoup
@@ -87,12 +89,12 @@ def download_climate_data(listing_url):
     # Parse HTML content
     soup = BeautifulSoup(html_content, "html.parser")
 
-    # Extract links that start with 'stundenwerte_TU_XXXX', where XXXXX are codes
+    # Extract links that contains the stations ids, with the codes
     # for the stations of kiefersfelden or rosenheim
     target_links = [
         a["href"]
         for a in soup.find_all("a", href=True)
-        if a["href"].startswith(("stundenwerte_TU_03679", "stundenwerte_TU_04261"))
+        if "_03679_" in a["href"] or "_04261_" in a["href"]
     ]
 
     downloaded_files = []
@@ -105,14 +107,6 @@ def download_climate_data(listing_url):
 
     return downloaded_files
 ```
-
-
-```{python}
-historical_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/")
-
-recent_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/")
-```
-
 
 
 ```{python}
@@ -145,31 +139,26 @@ def read_csv_from_zip(zip_file_path):
 
 
 ```{python}
-all_files = historical_files + recent_files
-#read_csv_from_zip("interim/climate/latest/stundenwerte_TU_04261_akt.zip")
-all_dfs = [read_csv_from_zip(file) for file in all_files]
-result_df = pd.concat(all_dfs, ignore_index=True)
-result_df['MESS_DATUM'] = pd.to_datetime(result_df['MESS_DATUM'], format='%Y%m%d%H')
+def bind_rows_files(all_files):
+    # all_files = ["interim/climate/latest/stundenwerte_TU_04261_akt.zip",
+    # "./interim/climate/latest/stundenwerte_TU_04261_20060301_20221231_hist.zip"]
+    #read_csv_from_zip("interim/climate/latest/stundenwerte_TU_04261_akt.zip")
+    all_dfs = [read_csv_from_zip(file) for file in all_files]
+    result_df = pd.concat(all_dfs, ignore_index=True)
+    result_df['MESS_DATUM'] = pd.to_datetime(result_df['MESS_DATUM'], format='%Y%m%d%H')
+
+    return result_df
 ```
 
+# Lufttemperatur - stündliche Auflösung
 
 ```{python}
-import plotly.express as px
+historical_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/")
 
-# Filter rows where the date is greater than 2020
-filtered_df = result_df[result_df['MESS_DATUM'] > '2020-01-01']
+recent_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/")
 
-fig = px.line(
-    filtered_df,
-    x="MESS_DATUM",
-    y=["TT_TU", "RF_TU"],
-    labels={"value": "Values"},
-    line_shape="linear",
-    color_discrete_map={"TT_TU": "blue", "RF_TU": "orange"},
-)
-
-# Display the plot
-fig.show()
+air = bind_rows_files(historical_files + recent_files)
+aircols = ["TT_TU", "RF_TU"]
 ```
 
 Es gibt komische Werte hier. Es scheint, dass -999 als Missing Value-Indikator 
@@ -177,41 +166,170 @@ verwendet wird (für RF_TU, relative Feuchte).
 
 ```{python}
 import numpy as np
-result_df.replace(-999, np.nan, inplace=True)
+air.replace(-999, np.nan, inplace=True)
+```
+
+
+```{python}
+import plotly.express as px
+
+# Filter rows where the date is greater than 2020
+filtered_df = air[air['MESS_DATUM'] > '2020-01-01']
+
+fig = px.line(
+    filtered_df,
+    x="MESS_DATUM",
+    y=aircols,
+    labels={"value": "Values"},
+    line_shape="linear"
+)
+fig.show()
+
+epyfun.splom(filtered_df, aircols + ["MESS_DATUM"]).show()
+```
+
+
+# Taupunkttemperatur - stündliche Auflösung
+
+```{python}
+historical_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/dew_point/historical/")
+
+recent_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/dew_point/recent/")
+
+dew = bind_rows_files(historical_files + recent_files)
+dewcols = ["  TT", "  TD"]
+```
+
+Es gibt komische Werte hier. Es scheint, dass -999 als Missing Value-Indikator 
+verwendet wird (für RF_TU, relative Feuchte).
+
+```{python}
+import numpy as np
+dew.replace(-999, np.nan, inplace=True)
+```
+
+
+```{python}
+import plotly.express as px
+
+# Filter rows where the date is greater than 2020
+filtered_df = dew[dew['MESS_DATUM'] > '2020-01-01']
+
+fig = px.line(
+    filtered_df,
+    x="MESS_DATUM",
+    y=dewcols,
+    labels={"value": "Values"},
+    line_shape="linear"
+)
+fig.show()
+
+epyfun.splom(filtered_df, dewcols + ["MESS_DATUM"]).show()
+```
+
+
+# Moisture - stündliche Auflösung
+
+```{python}
+historical_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/moisture/historical/")
+
+recent_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/moisture/recent/")
+
+moist = bind_rows_files(historical_files + recent_files)
+moistcols = ['VP_STD', 'TF_STD', 'P_STD', 'TT_STD', 'RF_STD', 'TD_STD']
 ```
 
 ```{python}
 import plotly.express as px
 
 # Filter rows where the date is greater than 2020
-filtered_df = result_df[result_df['MESS_DATUM'] > '2020-01-01']
+filtered_df = moist[moist['MESS_DATUM'] > '2020-01-01']
 
 fig = px.line(
     filtered_df,
     x="MESS_DATUM",
-    y=["TT_TU", "RF_TU"],
+    y=moistcols,
     labels={"value": "Values"},
-    line_shape="linear",
-    color_discrete_map={"TT_TU": "blue", "RF_TU": "orange"},
+    line_shape="linear"
 )
-
-# Display the plot
 fig.show()
+
+epyfun.splom(filtered_df, moistcols + ["MESS_DATUM"]).show()
 ```
 
 
-Jetzt macht es auf tägliche Auslösung
+
+# Precipitaci - stündliche Auflösung
 
 ```{python}
-result_df["date"] = result_df["MESS_DATUM"].dt.normalize()
+historical_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/historical/")
+
+recent_files = download_climate_data("https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/recent/")
+
+precip = bind_rows_files(historical_files + recent_files)
+precipcols = ['  R1', 'RS_IND', 'WRTR']
+```
+
+Es gibt komische Werte hier. Es scheint, dass -999 als Missing Value-Indikator 
+verwendet wird.
+
+```{python}
+import numpy as np
+precip.replace(-999, np.nan, inplace=True)
+```
+
+
+```{python}
+import plotly.express as px
+
+# Filter rows where the date is greater than 2020
+filtered_df = precip[precip['MESS_DATUM'] > '2020-01-01']
+
+fig = px.line(
+    filtered_df,
+    x="MESS_DATUM",
+    y=precipcols,
+    labels={"value": "Values"},
+    line_shape="linear"
+)
+fig.show()
+
+epyfun.splom(filtered_df, precipcols + ["MESS_DATUM"]).show()
+```
+
+
+# join in a single table and mach es auf täglicheauslösung
+
+```{python}
+oncols = ["MESS_DATUM", "STATIONS_ID"]
+agg_df = air.merge(dew[oncols + dewcols], on=oncols)
+agg_df = agg_df.merge(moist[oncols + moistcols], on=oncols)
+agg_df = agg_df.merge(precip[oncols + precipcols], on=oncols)
+```
+
+
+```{python}
+datacols = aircols + dewcols + moistcols + precipcols
+agg_df["date"] = agg_df["MESS_DATUM"].dt.normalize()
 agg_df = (
-    result_df.groupby("date")
-    .agg({"TT_TU": ["min", "mean", "max"], "RF_TU": ["min", "mean", "max"]})
+    agg_df.groupby("date")
+    .agg({key: ["min", "mean", "max"] for key in datacols})
     .reset_index()
 )
 agg_df = epyfun.pandas.clean_names(agg_df)
 ```
 
+
+```{python}
+#epyfun.splom(agg_df).show("browser")
+```
+
+
+
+
+# merge everything and save the file
+
 ```{python}
 agg_df.to_parquet('./interim/climate/climate_daily.parquet', index=False)
 ```
+
