@@ -34,6 +34,95 @@ from IPython.display import display, Markdown
 
 # follow-up on this issue https://github.com/rstudio/vetiver-python/issues/188
 
+from prefect import flow, task
+from prefect.tasks import task_input_hash
+
+import duckdb
+
+
+@flow(log_prints=True)
+def playme():
+    print("Hello Prefect")
+
+    latest_file = epyfun.get_latest_file("./data/")
+
+    x = strom.ingest_normalstrom(latest_file)
+
+    print(x)
+
+
+@task(cache_key_fn=task_input_hash)
+def ingest_normalstrom(sqlite_file):
+    with duckdb.connect("./duckdb/strom.duckdb") as con:
+        # con.sql("INSTALL sqlite;")
+        # con.sql("LOAD sqlite;")
+        con.install_extension("sqlite")
+        con.load_extension("sqlite")
+        con.sql(
+            f"""
+            CREATE OR REPLACE TABLE normalstrom AS 
+            WITH strom_sqlite AS (
+            SELECT 
+                meterid, 
+                -- Blob Functions, because most columns get read as blob
+                -- https://duckdb.org/docs/sql/functions/blob
+                decode(date)::DATETIME AS date, 
+                decode(value)::INT AS value
+            FROM sqlite_scan('{sqlite_file}', 'reading') 
+            WHERE meterid = 1
+            )
+            SELECT *,
+            -- add default values to lag(), to prevent null in the first row
+            date_sub('minute', lag(date, 1, '2020-11-30 00:00:00') over(order by date), date) AS minutes, 
+            -- add default values to lag(), to prevent null in the first row
+            value - lag(value, 1, 12160) over(order by date) AS consumption,
+            1.0 * consumption / minutes AS cm,
+            24.0 * 60.0 * consumption / minutes AS consumption_day_equivalent
+            FROM strom_sqlite
+            ORDER BY date
+            ;
+            """
+        )
+    return datetime.now()
+
+
+@task(cache_key_fn=task_input_hash)
+def ingest_waermestrom(sqlite_file):
+    with duckdb.connect("./duckdb/strom.duckdb") as con:
+        # con.sql("INSTALL sqlite;")
+        # con.sql("LOAD sqlite;")
+        con.install_extension("sqlite")
+        con.load_extension("sqlite")
+        con.sql(
+            f"""
+            CREATE OR REPLACE TABLE normalstrom AS 
+            WITH strom_sqlite AS (
+            SELECT 
+                meterid, 
+                -- Blob Functions, because most columns get read as blob
+                -- https://duckdb.org/docs/sql/functions/blob
+                decode(date)::DATETIME AS date, 
+                decode(value)::INT AS value
+            FROM sqlite_scan('{sqlite_file}', 'reading') 
+            WHERE meterid = 1
+            )
+            SELECT *,
+            -- add default values to lag(), to prevent null in the first row
+            date_sub('minute', lag(date, 1, '2020-11-30 00:00:00') over(order by date), date) AS minutes, 
+            -- add default values to lag(), to prevent null in the first row
+            value - lag(value, 1, 12160) over(order by date) AS consumption,
+            1.0 * consumption / minutes AS cm,
+            24.0 * 60.0 * consumption / minutes AS consumption_day_equivalent
+            FROM strom_sqlite
+            ORDER BY date
+            ;
+            """
+        )
+    return datetime.now()
+
+
+from datetime import datetime, timedelta
+
 
 def get_board(board_path="vetiver"):
     return pins.board_folder(path=board_path, versioned=True, allow_pickle_read=True)
@@ -139,20 +228,13 @@ def residuals_fitted(y_true, y_pred, data=None, dimensions=None):
     # )
 
     fig = go.Figure(
-        data=go.Scattergl(
+        data=go.Scatter(
             x=y_pred,
             y=y_true - y_pred,
             mode="markers",
             marker=dict(size=10),
             opacity=0.7,
-            hovertemplate="<b>Predicted value</b>: %{x}"
-            + "<br><b>Residual</b>: %{y}<br>"
-            + "".join(
-                [
-                    "<br>%s: %%{customdata[%d]}" % (col, i)
-                    for i, col in enumerate(data.columns)
-                ]
-            ),
+            hovertemplate=epyfun.make_hover_template(data),
             customdata=data.values,
             showlegend=False,
         )
@@ -271,15 +353,8 @@ def leverage(y_true, y_pred, pipeline, data, dimensions=None):
             opacity=0.7,
             hovertext=vector,
             hoverinfo="text",
-            # hovertemplate="<b>Residual</b>: %{y}"
-            # + "<br><b>Leverage</b>: %{x}<br>"
-            # + "".join(
-            #     [
-            #         "<br>%s: %%{customdata[%d]}" % (col, i)
-            #         for i, col in enumerate(data.columns)
-            #     ]
-            # ),
-            # customdata=data,
+            hovertemplate=epyfun.make_hover_template(data),
+            customdata=data,
             showlegend=False,
         )
     )
@@ -313,6 +388,28 @@ def leverage(y_true, y_pred, pipeline, data, dimensions=None):
         # plot_bgcolor="rgba(0,0,0,0)",
         # paper_bgcolor="rgba(0,0,0,0)",
     )
+    fig.update_xaxes(showspikes=True)
+    fig.update_yaxes(showspikes=True)
+    # fig.update_layout(hoverlabel=dict(bgcolor="white", font_size=2))
+
+    # import plotly.express as px
+
+    # df_2007 = px.data.gapminder().query("year==2007")
+    # df_2007 = df_2007.assign(**{f"{col}_dup1": df_2007[col] for col in df_2007.columns})
+    # df_2007 = df_2007.assign(**{f"{col}_dup2": df_2007[col] for col in df_2007.columns})
+    # df_2007 = df_2007.assign(**{f'{col}_dup3': df_2007[col] for col in df_2007.columns})
+
+    # fig = px.scatter(
+    #     df_2007,
+    #     x="gdpPercap",
+    #     y="lifeExp",
+    #     log_x=True,
+    #     hover_name="country",
+    #     hover_data=df_2007.columns,
+    # )
+    # fig.update_layout(hoverlabel=dict(font_size=8))
+
+    # fig.show()
 
     # fig.update_xaxes(domain=(1, 1))
     # fig.update_yaxes(domain=(1, 1))
@@ -382,20 +479,13 @@ def scatter_fitted_observed(y_true, y_pred, data=None, dimensions=None):
     # )
 
     fig = go.Figure(
-        data=go.Scattergl(
+        data=go.Scatter(
             x=y_pred,
             y=y_true,
             mode="markers",
             marker=dict(size=10),
             opacity=0.7,
-            hovertemplate="<b>Observed value</b>: %{y}"
-            + "<br><b>Predicted value</b>: %{x}<br>"
-            + "".join(
-                [
-                    "<br>%s: %%{customdata[%d]}" % (col, i)
-                    for i, col in enumerate(data.columns)
-                ]
-            ),
+            hovertemplate=epyfun.make_hover_template(data),
             customdata=data.values,
             showlegend=False,
         )

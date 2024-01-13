@@ -48,7 +48,7 @@ predictors = [
 
     "rf_tu_min", "rf_tu_mean", "rf_tu_max",
 
-    #'tt_min', 'tt_mean', 'tt_max',
+    'tt_min', 'tt_mean', 'tt_max',
 
     'td_min', 'td_mean', 'td_max',
 
@@ -58,9 +58,9 @@ predictors = [
 
     'p_std_min', 'p_std_mean', 'p_std_max',
 
-    #'tt_std_min', 'tt_std_mean', 'tt_std_max',
+    'tt_std_min', 'tt_std_mean', 'tt_std_max',
 
-    #'rf_std_min', 'rf_std_mean', 'rf_std_max',
+    'rf_std_min', 'rf_std_mean', 'rf_std_max',
 
     'td_std_min', 'td_std_mean', 'td_std_max',
 
@@ -69,12 +69,13 @@ predictors = [
 ]
 
 # Run AutoML
-aml = H2OAutoML(seed=1, max_runtime_secs=28800)
+aml = H2OAutoML(seed=1, max_runtime_secs=3600) # 28800
 aml.train(x=predictors, y=target, training_frame=hf)
 
 # View the AutoML Leaderboard
 lb = aml.leaderboard
-print(lb.head(rows=lb.nrows))
+#print(lb.head(rows=lb.nrows))
+print(lb.head(rows=10))
 ```
 
 
@@ -111,7 +112,7 @@ strom.splom_fitted_observed(
         "vp_std_mean",
         "r1_mean"
     ],
-).show(renderer="browser")
+).show()
 ```
 
 ```{python}

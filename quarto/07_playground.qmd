@@ -85,6 +85,7 @@ strom.log_vetiver(wd_pipeline, "waermestrom")
 y_pred = wd_pipeline.predict(X)
 ```
 
+I am new!
 
 ```{python}
 dimensions = [
@@ -98,7 +99,8 @@ dimensions = [
 x = strom.assess_regression(wd_pipeline, X, y, dimensions)
 ```
 
-well ok, now?, commpleteness, proof of concept, just need to get the new lines
+
+
 
 ```{python}
 #| output: asis
@@ -110,7 +112,7 @@ well ok, now?, commpleteness, proof of concept, just need to get the new lines
 #     display(value)
 ```
 
-ok
+
 
 ## coefficients
 
