@@ -34,13 +34,10 @@ from IPython.display import display, Markdown
 
 # follow-up on this issue https://github.com/rstudio/vetiver-python/issues/188
 
-from prefect import flow, task
-from prefect.tasks import task_input_hash
 
 import duckdb
 
 
-@flow(log_prints=True)
 def playme():
     print("Hello Prefect")
 
@@ -51,7 +48,6 @@ def playme():
     print(x)
 
 
-@task(cache_key_fn=task_input_hash)
 def ingest_normalstrom(sqlite_file):
     with duckdb.connect("./duckdb/strom.duckdb") as con:
         # con.sql("INSTALL sqlite;")
@@ -86,7 +82,6 @@ def ingest_normalstrom(sqlite_file):
     return datetime.now()
 
 
-@task(cache_key_fn=task_input_hash)
 def ingest_waermestrom(sqlite_file):
     with duckdb.connect("./duckdb/strom.duckdb") as con:
         # con.sql("INSTALL sqlite;")
