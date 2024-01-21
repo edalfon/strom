@@ -21,6 +21,9 @@ execute:
 
 # Strom
 
+poetry add toml duckdb-engine plotly matplotlib folium beautifulsoup4 pyarrow seaborn statsmodels sweetviz scikit-learn yellowbrick vetiver scikit-lego joypy h2o formulaic prefect duckdb pandas jupysql metaflow
+
+
 ```{python}
 %%sql
 
@@ -61,7 +64,7 @@ WHERE date >= (SELECT MAX(date) - (INTERVAL 1 YEAR) FROM strom_minute)
 ```
 
 
-Wärmestrom
+# Wärmestrom
 
 ```{python}
 %%sql

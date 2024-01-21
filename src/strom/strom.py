@@ -58,14 +58,14 @@ def ingest_normalstrom(sqlite_file):
             f"""
             CREATE OR REPLACE TABLE normalstrom AS 
             WITH strom_sqlite AS (
-            SELECT 
-                meterid, 
-                -- Blob Functions, because most columns get read as blob
-                -- https://duckdb.org/docs/sql/functions/blob
-                decode(date)::DATETIME AS date, 
-                decode(value)::INT AS value
-            FROM sqlite_scan('{sqlite_file}', 'reading') 
-            WHERE meterid = 1
+                SELECT 
+                    meterid, 
+                    -- Blob Functions, because most columns get read as blob
+                    -- https://duckdb.org/docs/sql/functions/blob
+                    decode(date)::DATETIME AS date, 
+                    decode(value)::INT AS value
+                FROM sqlite_scan('{sqlite_file}', 'reading') 
+                WHERE meterid = 1
             )
             SELECT *,
             -- add default values to lag(), to prevent null in the first row
@@ -99,7 +99,7 @@ def ingest_waermestrom(sqlite_file):
                 decode(date)::DATETIME AS date, 
                 decode(value)::INT AS value
             FROM sqlite_scan('{sqlite_file}', 'reading') 
-            WHERE meterid = 1
+            WHERE meterid = 2 OR meterid = 3
             )
             SELECT *,
             -- add default values to lag(), to prevent null in the first row
