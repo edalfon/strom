@@ -11,7 +11,7 @@ project:
     # https://github.com/quarto-dev/quarto-cli/discussions/6944
     - Process/01_strom_process.qmd
     - Process/02_waermestrom_process.qmd
-    - Process/03_load_data.qmd
+    - Process/03_dwd_data.qmd
     - "*.qmd"
 
 website:
