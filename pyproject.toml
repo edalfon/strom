@@ -26,6 +26,8 @@ dependencies = [
     "joypy>=0.2.6",
     "h2o>=3.44.0.3",
     "formulaic>=1.0.1",
+    "metaflow>=2.11.0",
+    "duckcli>=0.2.1",
 ]
 requires-python = ">=3.10"
 readme = "README.md"
@@ -51,5 +53,6 @@ docs = [
 ]
 dev = [
     "jupyter>=1.0.0",
+    "-e file:///mnt/c/OneDrive/All/Python/epyfun#egg=epyfun",
 ]
 

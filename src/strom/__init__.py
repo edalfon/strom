@@ -1,4 +1,5 @@
 from .strom import *
+from .dwd import *
 
 # read version from installed package
 from importlib.metadata import version

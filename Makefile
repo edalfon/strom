@@ -1,4 +1,13 @@
 
+flow_run:
+	python src/strom/flow.py run
+
+flow_resume:
+	python src/strom/flow.py resume
+
+flow_show:
+	python src/strom/flow.py show
+
 # render the quarto project with the defaults
 render:
 	quarto render 'quarto' --execute-dir '.' ; \
@@ -13,7 +22,8 @@ render_all:
 	start ./results/index.html
 
 # PHONY target is a special target that is not associated with an actual file. It is used to declare certain targets as "phony" or "fake," indicating that they don't represent real files or directories. Instead, they are used to specify actions that should be performed regardless of whether a file with that name exists.
-.PHONY: preview render render_all
+.PHONY: preview render render_all flow_run flow_resume flow_show
+
 
 
 
