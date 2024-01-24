@@ -28,6 +28,7 @@ dependencies = [
     "formulaic>=1.0.1",
     "metaflow>=2.11.0",
     "duckcli>=0.2.1",
+    "epyfun @ file:///OneDrive/All/Python/epyfun",
 ]
 requires-python = ">=3.10"
 readme = "README.md"
@@ -53,6 +54,5 @@ docs = [
 ]
 dev = [
     "jupyter>=1.0.0",
-    "-e file:///OneDrive/All/Python/epyfun#egg=epyfun",
 ]
 
