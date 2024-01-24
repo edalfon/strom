@@ -1,7 +1,10 @@
 from metaflow import FlowSpec, step
 
 import duckdb
-import epyfun  # pdm add -e file:///mnt/c/OneDrive/All/Python/epyfun --dev
+import epyfun
+
+# pdm add -e file:///OneDrive/All/Python/epyfun --dev
+# pdm add file:///OneDrive/All/Python/epyfun
 import pandas as pd
 
 

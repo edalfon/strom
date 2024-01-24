@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "test"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:d4ae636a5b888dafc6821d5534ab93be3364b2869efffac5514abd9c9f29bf86"
+content_hash = "sha256:73a9c7d0405b162b8c3528b551760c33b14d1588d3a86b3a7a44f7eaeb8acc13"
 
 [[package]]
 name = "alabaster"
@@ -789,7 +789,7 @@ name = "epyfun"
 version = "0.1.0"
 requires_python = ">=3.9,<4.0"
 editable = true
-path = "/mnt/c/OneDrive/All/Python/epyfun"
+path = "/OneDrive/All/Python/epyfun"
 summary = "A package for doing great things!"
 groups = ["dev"]
 dependencies = [

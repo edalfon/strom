@@ -53,6 +53,6 @@ docs = [
 ]
 dev = [
     "jupyter>=1.0.0",
-    "-e file:///mnt/c/OneDrive/All/Python/epyfun#egg=epyfun",
+    "-e file:///OneDrive/All/Python/epyfun#egg=epyfun",
 ]
 
