@@ -1,11 +1,15 @@
 
-flow_run:
+prefect_run:
+	python -c "from strom import prefect_flow; prefect_flow.strom_flow()"
+
+
+metaflow_run:
 	python src/strom/flow.py run
 
-flow_resume:
+metaflow_resume:
 	python src/strom/flow.py resume
 
-flow_show:
+metaflow_show:
 	python src/strom/flow.py show
 
 # render the quarto project with the defaults
