@@ -22,6 +22,8 @@ def strom_flow():
     duckdb_file="./duckdb/strom.duckdb"
     sqlite_file = epyfun.get_latest_file("./data/")
 
+    print(sqlite_file)
+
     normalstrom = ingest_normalstrom(sqlite_file, duckdb_file)
     normalstrom_minute = expand_normalstrom_minute(normalstrom, duckdb_file) 
 
@@ -32,7 +34,7 @@ def strom_flow():
     climate_daily = get_climate_data(date.today())
     strom_climate = merge_strom_climate_data(strom_per_day, climate_daily)
 
-    print(strom_climate)
+    #print(strom_climate)
 
 @task(cache_key_fn=task_input_hash)
 def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
@@ -66,7 +68,7 @@ def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
             ;
             """
         )
-    return True # TODO: see what to return, after checking god practices for DB+Prefect
+        return con.sql("SELECT * FROM normalstrom;").df() # TODO: see what to return, after checking god practices for DB+Prefect
 
 @task(cache_key_fn=task_input_hash)
 def expand_normalstrom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
@@ -101,7 +103,7 @@ def expand_normalstrom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
             ;
             """
         )
-    return True
+        return con.sql("SELECT * FROM normalstrom_minute;").df()
 
 @task(cache_key_fn=task_input_hash)
 def ingest_waermestrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
@@ -190,7 +192,7 @@ def ingest_waermestrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
 
             """
         )
-    return True
+        return con.sql("SELECT * FROM waermestrom;").df()
 
 @task(cache_key_fn=task_input_hash)
 def expand_waermestrom_minute(waermestrom, duckdb_file="./duckdb/strom.duckdb"):
@@ -233,7 +235,7 @@ ORDER BY t1.minute
 ;
             """
         )
-    return True
+        return con.sql("SELECT * FROM waermestrom_minute;").df()
 
 @task(cache_key_fn=task_input_hash)
 def get_climate_data(current_date):
