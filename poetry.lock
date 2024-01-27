@@ -4329,6 +4329,21 @@ packaging = "*"
 test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
 
 [[package]]
+name = "quarto-cli"
+version = "1.4.549"
+description = "Open-source scientific and technical publishing system built on Pandoc."
+optional = false
+python-versions = "*"
+files = [
+    {file = "quarto-cli-1.4.549.tar.gz", hash = "sha256:76fcb8a334c08f0b68d47f3af13fd6f5ee481480261304be260451b53bc2f142"},
+]
+
+[package.dependencies]
+jupyter = "*"
+nbclient = "*"
+wheel = "*"
+
+[[package]]
 name = "readchar"
 version = "4.0.5"
 description = "Library to easily read single chars and key strokes"
@@ -6219,4 +6234,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "393e3de7a389e061ec8e86d98ce04b6b50f31886aaedd2d04445cdfa08e7fd4c"
+content-hash = "e246006ae715d1a01274af7204235e6fe6feac2924f0cb63513e5761296e7cfc"

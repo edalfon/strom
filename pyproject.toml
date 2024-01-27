@@ -30,6 +30,7 @@ joypy = "^0.2.6"
 h2o = "^3.44.0.3"
 formulaic = "^1.0.1"
 prefect = "^2.14.13"
+quarto-cli = "^1.4.549"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
