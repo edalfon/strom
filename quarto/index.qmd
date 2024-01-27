@@ -1,146 +1,51 @@
 ---
-title: "Strom und Wärmestrom Verbrauch"
-execute:
-  echo: false
+title: "Customer Churn"
+format: dashboard
 ---
 
 ```{python}
-#| include: false
-%load_ext sql
-%sql duckdb:///./duckdb/strom.duckdb
-```
+#| tags: [parameters]
 
-```{python}
-#| include: false
-%sql SELECT * FROM strom;
-```
-```{python}
-#| include: false
-%sql SELECT * FROM strom_minute;
-```
+# to render w/ a different product type:
+# quarto render dashboard.qmd -P product_type:Premium
 
-# Strom
-
-poetry add toml duckdb-engine plotly matplotlib folium beautifulsoup4 pyarrow seaborn statsmodels sweetviz scikit-learn yellowbrick vetiver scikit-lego joypy h2o formulaic prefect duckdb pandas jupysql metaflow
-
-
-```{python}
-%%sql
-
-SELECT 
-  MIN(value) AS Min,
-  MAX(value) AS Max,
-  MAX(value) - MIN(value) AS Use,
-
-  MIN(date) AS First,
-  MAX(date) AS Last,
-  date_sub('minute', MIN(date), MAX(date)) AS Mins, 
-
-  24.0 * 60.0 * Use / Mins AS "Use/Day",
-  365.0 * "Use/Day" AS "Use/Year",
-  0.3894 * "Use/Year" AS "Yearly Exp"
-FROM strom_minute
-;
-```
-
-```{python}
-%%sql
-
-SELECT 
-  MIN(value) AS Min,
-  MAX(value) AS Max,
-  MAX(value) - MIN(value) AS Use,
-
-  MIN(date) AS First,
-  MAX(date) AS Last,
-  date_sub('minute', MIN(date), MAX(date)) AS Mins, 
-
-  24.0 * 60.0 * Use / Mins AS "Use/Day",
-  365.0 * "Use/Day" AS "Use/Year",
-  0.3894 * "Use/Year" AS "Yearly Exp"
-FROM strom_minute
-WHERE date >= (SELECT MAX(date) - (INTERVAL 1 YEAR) FROM strom_minute)
-;
+product_type = "Standard"
 ```
 
 
-# Wärmestrom
+# Churn (`{python} product_type`)
 
-```{python}
-%%sql
-
-SELECT 
-  MIN(value) AS Min,
-  MAX(value) AS Max,
-  MAX(value) - MIN(value) AS Use,
-
-  MIN(date) AS First,
-  MAX(date) AS Last,
-  date_sub('minute', MIN(date), MAX(date)) AS Mins, 
-
-  24.0 * 60.0 * Use / Mins AS "Use/Day",
-  365.0 * "Use/Day" AS "Use/Year",
-  0.3894 * "Use/Year" AS "Yearly Exp"
-FROM waermestrom_minute
-;
-```
-
-```{python}
-%%sql
-
-SELECT 
-  MIN(value) AS Min,
-  MAX(value) AS Max,
-  MAX(value) - MIN(value) AS Use,
-
-  MIN(date) AS First,
-  MAX(date) AS Last,
-  date_sub('minute', MIN(date), MAX(date)) AS Mins, 
-
-  24.0 * 60.0 * Use / Mins AS "Use/Day",
-  365.0 * "Use/Day" AS "Use/Year",
-  0.3894 * "Use/Year" AS "Yearly Exp"
-FROM waermestrom_minute
-WHERE date >= (SELECT MAX(date) - (INTERVAL 1 YEAR) FROM waermestrom_minute)
-;
-```
-
-
-Ok, entonces paso 1 es que podemos traer todos los datos del mismo peridoso para anos anteriores, adicionando unos peridoso adicionales como para ver qué pasa
-
-Después de eso, podemos ahí sßi scara l epromedio, y también mostrar todos los datos con líneas en donde cada color es una líneas
-
+## Row
 
 
 
 ```{python}
-%%sql
-
-WITH dates AS (
-  SELECT
-    MAX(date) AS begin, 
-    MAX(date) - (INTERVAL 15 DAY) AS fin 
-  FROM waermestrom_minute
+#| content: valuebox
+#| title: "Churn rate 2022"
+dict(
+  icon = "archive",
+  color = "light",
+  value = "17%"
 )
-SELECT * 
-FROM waermestrom_minute
-WHERE
-  (
-    MONTH(minute) == (SELECT MONTH(begin) FROM dates) AND 
-    DAY(minute) >= (SELECT DAY(begin) FROM dates) 
-  ) 
-  OR
-  (
-    MONTH(minute) == (SELECT MONTH(fin) FROM dates) AND 
-    DAY(minute) <= (SELECT DAY(fin) FROM dates) 
-  ) 
-;
 ```
 
-How can I filter dates in sql that lie in a range, irrespective of the year?, so, for example, dates between 1 january and 10 january, for every year in the data?
+```{python}
+#| content: valuebox
+#| title: "Current churn rate"
+dict(
+  icon = "graph-down",
+  color = "light",
+  value = "14%"
+)
+```
 
+```{python}
+#| content: valuebox
+#| title: "Churn rate goal"
+dict(
+  icon = "bullseye",
+  color = "warning",
+  value = "10%"
+)
+```
 
-SELECT *
-FROM your_table
-WHERE MONTH(date_column) = 1  -- January
-  AND DAY(date_column) BETWEEN 1 AND 10;
