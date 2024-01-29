@@ -21,13 +21,9 @@ task_ops = dict(
     cache_key_fn=task_input_hash,
     result_storage_key="{task_run.task_name}",
     result_storage=LocalFileSystem(basepath=".prefect/"),
-    refresh_cache=False,
+    refresh_cache=None,
+    persist_result=True,
 )
-
-# x = LocalFileSystem(basepath=".prefect/")
-# x._resolve_path("toy")
-# x.
-# y = x.read_path("toy")
 
 
 def read_result(

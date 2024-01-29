@@ -66,7 +66,7 @@ dict(
 #| title: "Normalstrom Kosten pro Tag"
 dict(
   icon = "currency-exchange",
-  color = "light",
+  color = "#e0a931",
   value = "{:.1f} €".format(normalstrom_consumption["Daily Exp"].values[0])
 )
 ```
@@ -76,7 +76,7 @@ dict(
 #| title: "Normalstrom Kosten im Jahr"
 dict(
   icon = "credit-card",
-  color = "warning",
+  color = "#e0a931",
   value = "{:.0f} €".format(normalstrom_consumption["Yearly Exp"].values[0])
 )
 ```
@@ -87,7 +87,7 @@ dict(
 #| title: "Wärmestrom Kosten pro Tag"
 dict(
   icon = "currency-exchange",
-  color = "light",
+  color = "#e3b32d",
   value = "{:.1f} €".format(waermestrom_consumption["Daily Exp"].values[0])
 )
 ```
@@ -99,7 +99,7 @@ dict(
 #| title: "Wärmestrom Kosten im Jahr"
 dict(
   icon = "credit-card",
-  color = "warning",
+  color = "#e3b32d",
   value = "{:.0f} €".format(waermestrom_consumption["Yearly Exp"].values[0])
 )
 ```
@@ -111,7 +111,12 @@ Placeholder
 # New card
 
 ```{python}
-#| eval: true
+import plotly.express as px
+fig = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
+```
+
+```{python}
+#| eval: false
 #| title: Reason for churn by quarter
 import plotly.express as px
 import plotly.graph_objects as go
