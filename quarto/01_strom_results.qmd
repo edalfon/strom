@@ -7,8 +7,10 @@ execute:
 ```{python}
 #| include: false
 %load_ext sql
-%sql duckdb:///./duckdb/strom.duckdb
+%sql --section duck
+#%sql duckdb:///./duckdb/strom.duckdb
 ```
+
 
 ```{python}
 #| include: false
@@ -40,6 +42,7 @@ strom_avg << SELECT
 FROM strom
 ;
 ```
+
 
 ```{python}
 #| echo: false
