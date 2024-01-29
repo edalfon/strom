@@ -24,11 +24,16 @@ task_ops = dict(
     refresh_cache=False,
 )
 
+# x = LocalFileSystem(basepath=".prefect/")
+# x._resolve_path("toy")
+# x.
+# y = x.read_path("toy")
+
 
 def read_result(
     filename: str, storage=task_ops["result_storage"], serialier: str = "pickle"
 ):
-    path = storage + "/" + filename
+    path = storage._resolve_path(filename)
     with open(path, "rb") as buffered_reader:
         dict_obj = json.load(buffered_reader)
         blob = PersistedResultBlob.parse_obj(dict_obj)
@@ -418,6 +423,18 @@ def waermestrom_consumption(*args, **kwargs):
     return calculate_avg_consumption(**kwargs)
 
 
+def quarto_report(*args, **kwargs):
+    import subprocess
+    import os
+    import webbrowser
+
+    # subprocess.run("quarto render .\dashboard\customer-churn-dashboard\dashboard.qmd")
+    subprocess.run("quarto render quarto --execute-dir .")
+    os.startfile(".\\results\\index.html", "open")
+
+    # webbrowser.open(".\\results\\index.html")
+
+
 @flow(log_prints=True)
 def strom_flow():
     """
@@ -454,16 +471,7 @@ def strom_flow():
         duckdb_file=duckdb_file,
     )
 
-    import subprocess
-
-    # subprocess.run("quarto render .\dashboard\customer-churn-dashboard\dashboard.qmd")
-    # subprocess.run("quarto render quarto --execute-dir .")
-    import os
-
-    # os.startfile(".\\results\\index.html", "open")
-    import webbrowser
-
-    # webbrowser.open(".\\results\\index.html")
+    quarto_report(strom_climate)
 
 
 @task(**task_ops)
