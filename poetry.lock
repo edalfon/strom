@@ -1827,6 +1827,25 @@ files = [
 arrow = ">=0.15.0"
 
 [[package]]
+name = "itables"
+version = "1.6.3"
+description = "Interactive Tables in Jupyter"
+optional = false
+python-versions = "*"
+files = [
+    {file = "itables-1.6.3-py3-none-any.whl", hash = "sha256:95cc6c9cdeaa418d7e5f08f7d716a04e57a71dbc7316cf6cdcc8bb2774c0f1d4"},
+    {file = "itables-1.6.3.tar.gz", hash = "sha256:ce1c4a856ed2c40f17da870aaf57808f87bdc8b1c411ddbc154fa0f59be361f4"},
+]
+
+[package.dependencies]
+IPython = "*"
+numpy = "*"
+pandas = "*"
+
+[package.extras]
+polars = ["polars", "pyarrow"]
+
+[[package]]
 name = "jedi"
 version = "0.19.1"
 description = "An autocompletion tool for Python that can be used for text editors."
@@ -6234,4 +6253,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "e246006ae715d1a01274af7204235e6fe6feac2924f0cb63513e5761296e7cfc"
+content-hash = "66a13ee230ea7bb0fa9970d7246c2fd8ac2a5e451b511fb6b3cf88c8c2923d9b"

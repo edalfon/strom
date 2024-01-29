@@ -1,51 +1,167 @@
 ---
-title: "Customer Churn"
+title: "Strom Dashboard"
 format: dashboard
 ---
 
 ```{python}
-#| tags: [parameters]
-
-# to render w/ a different product type:
-# quarto render dashboard.qmd -P product_type:Premium
-
-product_type = "Standard"
+#| include: false
+import strom
+normalstrom_consumption = strom.read_result("normalstrom_consumption")
+waermestrom_consumption = strom.read_result("waermestrom_consumption")
+# lightbulb
+# thermometer-sun
+strom_per_day = strom.read_result("strom_per_day")
 ```
 
-
-# Churn (`{python} product_type`)
+# Durchschnitt
 
 ## Row
 
-
-
 ```{python}
 #| content: valuebox
-#| title: "Churn rate 2022"
+#| title: "Normalstromverbrauch pro Tag"
 dict(
-  icon = "archive",
+  icon = "lightning-charge",
   color = "light",
-  value = "17%"
+  value = "{:.1f} kWh".format(normalstrom_consumption["Use/Day"].values[0])
 )
 ```
 
 ```{python}
 #| content: valuebox
-#| title: "Current churn rate"
+#| title: "Normalstromverbrauch im Jahr"
 dict(
-  icon = "graph-down",
+  icon = "activity",
   color = "light",
-  value = "14%"
+  value = "{:.0f} kWh".format(normalstrom_consumption["Use/Year"].values[0])
+)
+```
+
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestromverbrauch pro Tag"
+dict(
+  icon = "lightning-charge",
+  color = "light",
+  value = "{:.1f} kWh".format(waermestrom_consumption["Use/Day"].values[0])
 )
 ```
 
 ```{python}
 #| content: valuebox
-#| title: "Churn rate goal"
+#| title: "Wärmestromverbrauch im Jahr"
 dict(
-  icon = "bullseye",
+  icon = "activity",
+  color = "light",
+  value = "{:.0f} kWh".format(waermestrom_consumption["Use/Year"].values[0])
+)
+```
+
+
+## Row
+
+```{python}
+#| content: valuebox
+#| title: "Normalstrom Kosten pro Tag"
+dict(
+  icon = "currency-exchange",
+  color = "light",
+  value = "{:.1f} €".format(normalstrom_consumption["Daily Exp"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Normalstrom Kosten im Jahr"
+dict(
+  icon = "credit-card",
   color = "warning",
-  value = "10%"
+  value = "{:.0f} €".format(normalstrom_consumption["Yearly Exp"].values[0])
 )
 ```
 
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestrom Kosten pro Tag"
+dict(
+  icon = "currency-exchange",
+  color = "light",
+  value = "{:.1f} €".format(waermestrom_consumption["Daily Exp"].values[0])
+)
+```
+
+
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestrom Kosten im Jahr"
+dict(
+  icon = "credit-card",
+  color = "warning",
+  value = "{:.0f} €".format(waermestrom_consumption["Yearly Exp"].values[0])
+)
+```
+
+## Row
+
+ok
+
+# New card
+
+```{python}
+#| eval: false
+#| title: Reason for churn by quarter
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.bar(strom_per_day, y="nd", x="date")
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeselector=dict(
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+    range=[strom_per_day["date"].max() - timedelta(days=365), strom_per_day["date"].max()],
+)
+fig.update_xaxes(rangeslider_thickness=0.1)
+fig
+```
+
+
+```{python}
+#| eval: false
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.bar(strom_per_day, y="wd", x="date")
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeselector=dict(
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+    range=[strom_per_day["date"].max() - timedelta(days=365), strom_per_day["date"].max()],
+)
+fig.update_xaxes(rangeslider_thickness=0.1)
+fig
+```

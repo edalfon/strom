@@ -58,7 +58,21 @@ GROUP BY p.name, p.begin, p.fin
 ;
 ```
 
+```{python}
+from strom import prefect_flow
 
+prefect_flow.calculate_avg_consumption(
+    {"name": ["Test"], "begin": ["2023-12-01"], "fin": "2023-12-31"}
+)
+prefect_flow.calculate_avg_consumption(
+    {
+        "name": ["Test", "new test", "final"],
+        "begin": ["2023-12-01", "2023-10-24 22:49:00", "2023-10-27 22:49:00"],
+        "fin": ["2023-12-31", "2023-10-27 22:49:00", "2023-10-30 22:49:00"],
+    }
+)
+prefect_flow.calculate_avg_consumption(minute_table="normalstrom_minute", price=0.25)
+```
 
 ```{python}
 import plotly.express as px
