@@ -1,6 +1,7 @@
 from prefect import flow, task
 
 from prefect.tasks import task_input_hash
+from prefect.filesystems import LocalFileSystem
 
 from strom import dwd
 
@@ -16,11 +17,18 @@ import json
 from prefect.results import PersistedResultBlob
 from prefect.serializers import PickleSerializer, JSONSerializer
 
+task_ops = dict(
+    cache_key_fn=task_input_hash,
+    result_storage_key="{task_run.task_name}",
+    result_storage=LocalFileSystem(basepath=".prefect/"),
+    refresh_cache=False,
+)
+
 
 def read_result(
-    filename: str, storage="/Users/E/.prefect/storage/", serialier: str = "pickle"
+    filename: str, storage=task_ops["result_storage"], serialier: str = "pickle"
 ):
-    path = storage + filename
+    path = storage + "/" + filename
     with open(path, "rb") as buffered_reader:
         dict_obj = json.load(buffered_reader)
         blob = PersistedResultBlob.parse_obj(dict_obj)
@@ -77,7 +85,7 @@ def calculate_avg_consumption(
     return strom_avg
 
 
-@task(cache_key_fn=task_input_hash, result_storage_key="{task_run.task_name}")
+@task(**task_ops)
 def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         # con.sql("INSTALL sqlite;")
@@ -116,7 +124,7 @@ def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
     # TODO: see what to return, after checking god practices for DB+Prefect
 
 
-@task(cache_key_fn=task_input_hash, result_storage_key="{task_run.task_name}")
+@task(**task_ops)
 def expand_normalstrom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         con.sql(
@@ -155,7 +163,7 @@ def expand_normalstrom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
         # return con.sql("SELECT * FROM normalstrom_minute;").df()
 
 
-@task(cache_key_fn=task_input_hash, result_storage_key="{task_run.task_name}")
+@task(**task_ops)
 def ingest_waermestrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         con.sql(
@@ -248,7 +256,7 @@ def ingest_waermestrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
         # return con.sql("SELECT * FROM waermestrom;").df()
 
 
-@task(cache_key_fn=task_input_hash, result_storage_key="{task_run.task_name}")
+@task(**task_ops)
 def expand_waermestrom_minute(waermestrom, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         con.sql(
@@ -295,7 +303,7 @@ ORDER BY t1.minute
         # return con.sql("SELECT * FROM waermestrom_minute;").df()
 
 
-@task(cache_key_fn=task_input_hash, result_storage_key="{task_run.task_name}")
+@task(**task_ops)
 def get_climate_data(current_date):
     historical_files = dwd.download_climate_data(
         "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/"
@@ -352,7 +360,7 @@ def get_climate_data(current_date):
     return climate_daily
 
 
-@task(cache_key_fn=task_input_hash, result_storage_key="{task_run.task_name}")
+@task(**task_ops)
 def make_strom_per_day(
     normalstrom_minute, waermestrom_minute, duckdb_file="./duckdb/strom.duckdb"
 ):
@@ -394,18 +402,20 @@ def make_strom_per_day(
         return strom_per_day
 
 
-@task(cache_key_fn=task_input_hash, result_storage_key="{task_run.task_name}")
+@task(**task_ops)
 def merge_strom_climate_data(strom_per_day, climate_daily):
     strom_climate = pd.merge(strom_per_day, climate_daily, on="date", how="left")
     return strom_climate
 
 
-@task(
-    cache_key_fn=task_input_hash,
-    result_storage_key="toy_{flow_run.flow_name}_{flow_run.name}_{task_run.name}_{task_run.task_name}",
-)
-def toy():
-    return "sdddddddddddddddddddddddddddddddddddddd"
+@task(**task_ops)
+def normalstrom_consumption(*args, **kwargs):
+    return calculate_avg_consumption(**kwargs)
+
+
+@task(**task_ops)
+def waermestrom_consumption(*args, **kwargs):
+    return calculate_avg_consumption(**kwargs)
 
 
 @flow(log_prints=True)
@@ -414,8 +424,6 @@ def strom_flow():
     Given a GitHub repository, logs the number of stargazers
     and contributors for that repo.
     """
-
-    toy()
 
     duckdb_file = "./duckdb/strom.duckdb"
     sqlite_file = epyfun.get_latest_file("./data/")
@@ -432,38 +440,36 @@ def strom_flow():
     climate_daily = get_climate_data(date.today())
     strom_climate = merge_strom_climate_data(strom_per_day, climate_daily)
 
-    normalstrom_consumption = task(
-        calculate_avg_consumption,
-        name="normalstrom_consumption",
-        cache_key_fn=task_input_hash,
-        result_storage_key="{task_run.task_name}",
-    )(minute_table="normalstrom_minute", price=0.3713)
+    normalstrom_consumption(
+        normalstrom_minute,
+        minute_table="normalstrom_minute",
+        price=0.3713,
+        duckdb_file=duckdb_file,
+    )
 
-    waermestrom_consumption = task(
-        calculate_avg_consumption,
-        name="waermestrom_consumption",
-        cache_key_fn=task_input_hash,
-        result_storage_key="{task_run.task_name}",
-    )(minute_table="waermestrom_minute", price=0.2763)
+    waermestrom_consumption(
+        waermestrom_minute,
+        minute_table="waermestrom_minute",
+        price=0.2763,
+        duckdb_file=duckdb_file,
+    )
 
     import subprocess
 
     # subprocess.run("quarto render .\dashboard\customer-churn-dashboard\dashboard.qmd")
-    subprocess.run("quarto render quarto --execute-dir .")
+    # subprocess.run("quarto render quarto --execute-dir .")
     import os
 
     # os.startfile(".\\results\\index.html", "open")
     import webbrowser
 
-    webbrowser.open(".\\results\\index.html")
+    # webbrowser.open(".\\results\\index.html")
 
 
+@task(**task_ops)
 def foo():
     return "foo"
 
 
 if __name__ == "__main__":
-    from prefect.settings import Settings
-
-    Settings.PREFECT_TASKS_REFRESH_CACHE = True
     strom_flow()
