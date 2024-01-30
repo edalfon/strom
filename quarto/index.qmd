@@ -106,24 +106,19 @@ dict(
 
 ## Row
 
-Placeholder
-
-# New card
-
 ```{python}
 import plotly.express as px
 fig = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
 ```
 
 ```{python}
-#| eval: false
-#| title: Reason for churn by quarter
+#| eval: true
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
 fig = px.bar(strom_per_day, y="nd", x="date")
-fig.update_xaxes(
+fig = fig.update_xaxes(
     rangeslider_visible=True,
     rangeselector=dict(
         buttons=list(
@@ -139,19 +134,19 @@ fig.update_xaxes(
     ),
     range=[strom_per_day["date"].max() - timedelta(days=365), strom_per_day["date"].max()],
 )
-fig.update_xaxes(rangeslider_thickness=0.1)
+fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig
 ```
 
 
 ```{python}
-#| eval: false
+#| eval: true
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
 fig = px.bar(strom_per_day, y="wd", x="date")
-fig.update_xaxes(
+fig = fig.update_xaxes(
     rangeslider_visible=True,
     rangeselector=dict(
         buttons=list(
@@ -167,6 +162,6 @@ fig.update_xaxes(
     ),
     range=[strom_per_day["date"].max() - timedelta(days=365), strom_per_day["date"].max()],
 )
-fig.update_xaxes(rangeslider_thickness=0.1)
+fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig
 ```

@@ -439,6 +439,7 @@ def strom_flow():
     """
 
     duckdb_file = "./duckdb/strom.duckdb"
+    epyfun.create_dir(duckdb_file)
     sqlite_file = epyfun.get_latest_file("./data/")
 
     normalstrom = ingest_normalstrom(sqlite_file, duckdb_file)
