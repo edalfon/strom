@@ -440,7 +440,7 @@ def scatter_fitted_observed(y_true, y_pred, data=None, dimensions=None):
 
 
 def get_model_data():
-    strom_climate = pd.read_parquet("interim/strom_climate.parquet")
+    strom_climate = strom.read_result("merge_strom_climate_data")
     X = strom_climate.drop(columns="wd")
     y = strom_climate["wd"]
 

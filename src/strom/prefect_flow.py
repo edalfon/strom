@@ -21,7 +21,7 @@ task_ops = dict(
     cache_key_fn=task_input_hash,
     result_storage_key="{task_run.task_name}",
     result_storage=LocalFileSystem(basepath=".prefect/"),
-    refresh_cache=None,
+    refresh_cache=True,
     persist_result=True,
 )
 
@@ -425,7 +425,7 @@ def quarto_report(*args, **kwargs):
     import webbrowser
 
     # subprocess.run("quarto render .\dashboard\customer-churn-dashboard\dashboard.qmd")
-    subprocess.run("quarto render quarto --execute-dir .")
+    subprocess.run(["quarto", "render", "quarto", "--execute-dir", "."])
     # os.startfile(".\\results\\index.html", "open")
 
     webbrowser.open(".\\results\\index.html")
