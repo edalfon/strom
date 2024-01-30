@@ -426,9 +426,9 @@ def quarto_report(*args, **kwargs):
 
     # subprocess.run("quarto render .\dashboard\customer-churn-dashboard\dashboard.qmd")
     subprocess.run("quarto render quarto --execute-dir .")
-    os.startfile(".\\results\\index.html", "open")
+    # os.startfile(".\\results\\index.html", "open")
 
-    # webbrowser.open(".\\results\\index.html")
+    webbrowser.open(".\\results\\index.html")
 
 
 @flow(log_prints=True)
