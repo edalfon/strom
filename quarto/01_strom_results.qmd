@@ -14,11 +14,11 @@ execute:
 
 ```{python}
 #| include: false
-%sql SELECT * FROM strom;
+%sql SELECT * FROM normalstrom;
 ```
 ```{python}
 #| include: false
-%sql SELECT * FROM strom_minute;
+%sql SELECT * FROM normalstrom_minute;
 ```
 
 # Stromverbrauch im Durchschnitt
@@ -81,14 +81,14 @@ strom_per_day << SELECT
   minute::DATE AS date,
   24.0 * 60.0 * AVG(cm) AS cd,
   24.0 * 60.0 * AVG(consumption/minutes) AS obs,
-FROM strom_minute
+FROM normalstrom_minute
 GROUP BY minute::DATE
 ;
 ```
 
 
 ```{python}
-%sql strom_per_measurement << SELECT * FROM strom;
+%sql strom_per_measurement << SELECT * FROM normalstrom;
 ```
 
 
@@ -153,7 +153,7 @@ So, an normalen Tagen beträgt der Stromverbrauch etwa 10-11 kWh. An Urlaubstage
 %%sql
 
 SELECT *
-FROM strom
+FROM normalstrom
 ORDER BY date DESC
 LIMIT 10
 ;
@@ -169,7 +169,7 @@ LIMIT 10
 normalstrom_per_week << SELECT 
   DATE_TRUNC('week', minute) AS week_start,
   24.0 * 60.0 * AVG(cm) AS cd
-FROM strom_minute
+FROM normalstrom_minute
 GROUP BY DATE_TRUNC('week', minute)
 ;
 ```

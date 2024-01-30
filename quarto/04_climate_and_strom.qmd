@@ -46,7 +46,7 @@ normalstrom_per_day << SELECT
   minute::DATE AS date,
   24.0 * 60.0 * AVG(cm) AS nd,
   SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS nobs,
-FROM strom_minute
+FROM normalstrom_minute
 WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
 GROUP BY minute::DATE
 ;
@@ -89,7 +89,7 @@ AND value IS NOT NULL
 ```{python}
 %%sql
 
-SELECT * FROM strom_minute 
+SELECT * FROM normalstrom_minute 
 WHERE minute::DATE IN ('{{discrepancies_dates}}')
 AND value IS NOT NULL
 ;
@@ -107,9 +107,15 @@ strom_per_day
 
 
 ```{python}
+#| eval: false
 import pandas as pd
 climate_daily = pd.read_parquet("./interim/climate/climate_daily.parquet")
 climate_daily = epyfun.pandas.clean_names(climate_daily)
+```
+
+```{python}
+import strom
+climate_daily = strom.read_result("get_climate_data")
 ```
 
 ```{python}
@@ -123,8 +129,8 @@ strom_climate
 # just to prevent new observations to leak into the model building
 strom_climate = strom_climate[strom_climate['date'] <= '2023-12-31']
 
-strom_climate.to_parquet("interim/strom_climate.parquet")
-strom_climate = pd.read_parquet("interim/strom_climate.parquet")
+#strom_climate.to_parquet("interim/strom_climate.parquet")
+#strom_climate = pd.read_parquet("interim/strom_climate.parquet")
 ```
 
 ```{python}

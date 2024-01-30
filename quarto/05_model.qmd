@@ -10,7 +10,10 @@ import numpy as np
 import seaborn as sns
 import epyfun
 
-strom_climate = pd.read_parquet("interim/strom_climate.parquet")
+import strom
+strom_climate = strom.read_result("merge_strom_climate_data")
+#strom_climate = pd.read_parquet("interim/strom_climate.parquet")
+
 ```
 
 
@@ -317,7 +320,9 @@ import seaborn as sns
 import epyfun
 import strom
 
-strom_climate = pd.read_parquet("interim/strom_climate.parquet")
+import strom
+strom_climate = strom.read_result("merge_strom_climate_data")
+#strom_climate = pd.read_parquet("interim/strom_climate.parquet")
 
 y_var = "wd"
 X_vars = ['tt_tu_mean', 'rf_tu_mean']
