@@ -18,6 +18,11 @@ strom_per_day = strom.read_result("make_strom_per_day")
 ## Row
 
 ```{python}
+#| title: "Normal Strom"
+```
+
+
+```{python}
 #| content: valuebox
 #| title: "Normalstromverbrauch pro Tag"
 dict(
@@ -35,6 +40,11 @@ dict(
   color = "light",
   value = "{:.0f} kWh".format(normalstrom_consumption["Use/Year"].values[0])
 )
+```
+
+
+```{python}
+#| title: "Wärmestrom"
 ```
 
 

@@ -1,6 +1,66 @@
+from prefect import task
+from strom.prefect_ops import task_ops
 import requests
 from bs4 import BeautifulSoup
+import numpy as np
 import epyfun
+
+
+@task(**task_ops)
+def get_climate_data(current_date):
+    historical_files = download_climate_data(
+        "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/"
+    )
+    recent_files = download_climate_data(
+        "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/"
+    )
+    air = bind_rows_files(historical_files + recent_files)
+    aircols = ["TT_TU", "RF_TU"]
+    air.replace(-999, np.nan, inplace=True)
+
+    historical_files = download_climate_data(
+        "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/dew_point/historical/"
+    )
+    recent_files = download_climate_data(
+        "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/dew_point/recent/"
+    )
+    dew = bind_rows_files(historical_files + recent_files)
+    dewcols = ["  TT", "  TD"]
+    dew.replace(-999, np.nan, inplace=True)
+
+    historical_files = download_climate_data(
+        "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/moisture/historical/"
+    )
+    recent_files = download_climate_data(
+        "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/moisture/recent/"
+    )
+    moist = bind_rows_files(historical_files + recent_files)
+    moistcols = ["VP_STD", "TF_STD", "P_STD", "TT_STD", "RF_STD", "TD_STD"]
+
+    historical_files = download_climate_data(
+        "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/historical/"
+    )
+    recent_files = download_climate_data(
+        "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/recent/"
+    )
+    precip = bind_rows_files(historical_files + recent_files)
+    precipcols = ["  R1", "RS_IND", "WRTR"]
+    precip.replace(-999, np.nan, inplace=True)
+
+    oncols = ["MESS_DATUM", "STATIONS_ID"]
+    agg_df = air.merge(dew[oncols + dewcols], on=oncols)
+    agg_df = agg_df.merge(moist[oncols + moistcols], on=oncols)
+    agg_df = agg_df.merge(precip[oncols + precipcols], on=oncols)
+    datacols = aircols + dewcols + moistcols + precipcols
+    agg_df["date"] = agg_df["MESS_DATUM"].dt.normalize()
+    agg_df = (
+        agg_df.groupby("date")
+        .agg({key: ["min", "mean", "max"] for key in datacols})
+        .reset_index()
+    )
+    climate_daily = epyfun.pandas.clean_names(agg_df)
+
+    return climate_daily
 
 
 def download_climate_data(listing_url):
