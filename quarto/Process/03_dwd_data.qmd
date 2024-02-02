@@ -330,6 +330,6 @@ agg_df = epyfun.pandas.clean_names(agg_df)
 # merge everything and save the file
 
 ```{python}
-agg_df.to_parquet('./interim/climate/climate_daily.parquet', index=False)
+# agg_df.to_parquet('./interim/climate/climate_daily.parquet', index=False)
 ```
 
