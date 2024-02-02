@@ -39,7 +39,7 @@ strom_avg << SELECT
   24.0 * 60.0 * Use / Mins AS "Use/Day",
   365.0 * "Use/Day" AS "Use/Year",
   0.3894 * "Use/Year" AS "Yearly Exp"
-FROM strom
+FROM normalstrom
 ;
 ```
 
@@ -67,7 +67,7 @@ SELECT
 
   365.0 * "Use/Day" AS "Use/Year",
   0.3894 * "Use/Year" AS "Yearly Exp"
-FROM strom_minute
+FROM normalstrom_minute
 ;
 ```
 

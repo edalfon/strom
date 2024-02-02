@@ -50,6 +50,8 @@ def strom_flow(refresh_cache=False):
     and contributors for that repo.
     """
 
+    print("PREFECT RUNNING ...")
+
     duckdb_file = "./duckdb/strom.duckdb"
     epyfun.create_dir(duckdb_file)
     sqlite_file = epyfun.get_latest_file("./data/")
