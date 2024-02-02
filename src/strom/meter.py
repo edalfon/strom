@@ -39,7 +39,7 @@ def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
             """
         )
         return con.sql(
-            "SELECT md5(string_agg(normalstrom::text, '')) FROM normalstrom;"
+            "SELECT md5(string_agg(normalstrom::text, '')) AS md5 FROM normalstrom;"
         ).df()
         # return con.sql("SELECT * FROM normalstrom;").df()
     # TODO: see what to return, after checking god practices for DB+Prefect

@@ -25,11 +25,16 @@ render_all:
 	quarto render 'quarto' --execute-dir '.' --metadata freeze:false; \
 	start ./results/index.html
 
-# PHONY target is a special target that is not associated with an actual file. It is used to declare certain targets as "phony" or "fake," indicating that they don't represent real files or directories. Instead, they are used to specify actions that should be performed regardless of whether a file with that name exists.
-.PHONY: preview render render_all flow_run flow_resume flow_show
-
-
-
-
 preview:
 	quarto preview 'quarto' --execute-dir '.'
+
+test:
+	pytest -s tests/ --cov=strom
+
+
+# PHONY target is a special target that is not associated with an actual file. It is used to declare certain targets as "phony" or "fake," indicating that they don't represent real files or directories. Instead, they are used to specify actions that should be performed regardless of whether a file with that name exists.
+.PHONY: preview render render_all flow_run flow_resume flow_show test
+
+
+
+
