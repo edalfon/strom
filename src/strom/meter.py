@@ -231,26 +231,43 @@ def make_strom_per_day(
     with duckdb.connect(duckdb_file) as con:
         waermestrom_per_day = con.sql(
             f"""
+            CREATE OR REPLACE TABLE waermestrom_per_day AS
             SELECT 
                 minute::DATE AS date,
                 24.0 * 60.0 * AVG(cm) AS wd,
                 SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS wobs,
             FROM waermestrom_minute
-            WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
             GROUP BY minute::DATE
             ;
+            SELECT * FROM waermestrom_per_day;
             """
         ).df()
         normalstrom_per_day = con.sql(
             f"""
+            CREATE OR REPLACE TABLE normalstrom_per_day AS
             SELECT 
                 minute::DATE AS date,
                 24.0 * 60.0 * AVG(cm) AS nd,
                 SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS nobs,
             FROM normalstrom_minute
-            WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
             GROUP BY minute::DATE
             ;
+            SELECT * FROM normalstrom_per_day;
+            """
+        ).df()
+        strom_per_day = con.sql(
+            f"""
+            CREATE OR REPLACE TABLE strom_per_day AS
+            SELECT 
+                normalstrom_per_day.date AS date,
+                normalstrom_per_day.nobs AS obs,
+                normalstrom_per_day.nd AS nd,
+                waermestrom_per_day.wd AS wd
+            FROM normalstrom_per_day
+            INNER JOIN waermestrom_per_day 
+            ON normalstrom_per_day.date = waermestrom_per_day.date
+            ;
+            SELECT * FROM strom_per_day;
             """
         ).df()
         strom_per_day = pd.merge(
