@@ -3,24 +3,24 @@ title: "Strom Dashboard"
 format: dashboard
 ---
 
+# Die gesamte Periode
+
 ```{python}
 #| include: false
 import strom
 normalstrom_consumption = strom.read_result("normalstrom_consumption")
 waermestrom_consumption = strom.read_result("waermestrom_consumption")
-# lightbulb
-# thermometer-sun
-strom_per_day = strom.read_result("make_strom_per_day")
-```
 
-# Durchschnitt
+strom_per_day = strom.read_result("make_strom_per_day")
+
+# other icons: lightbulb, thermometer-sun
+```
 
 ## Row
 
 ```{python}
 #| title: "Normal Strom"
 ```
-
 
 ```{python}
 #| content: valuebox
@@ -42,11 +42,9 @@ dict(
 )
 ```
 
-
 ```{python}
 #| title: "Wärmestrom"
 ```
-
 
 ```{python}
 #| content: valuebox
@@ -67,7 +65,6 @@ dict(
   value = "{:.0f} kWh".format(waermestrom_consumption["Use/Year"].values[0])
 )
 ```
-
 
 ## Row
 
@@ -91,7 +88,6 @@ dict(
 )
 ```
 
-
 ```{python}
 #| content: valuebox
 #| title: "Wärmestrom Kosten pro Tag"
@@ -101,8 +97,6 @@ dict(
   value = "{:.1f} €".format(waermestrom_consumption["Daily Exp"].values[0])
 )
 ```
-
-
 
 ```{python}
 #| content: valuebox
@@ -115,11 +109,6 @@ dict(
 ```
 
 ## Row
-
-```{python}
-import plotly.express as px
-fig = px.scatter(x=[0, 1, 2, 3, 4], y=[0, 1, 4, 9, 16])
-```
 
 ```{python}
 #| eval: true
@@ -148,7 +137,6 @@ fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig
 ```
 
-
 ```{python}
 #| eval: true
 import plotly.express as px
@@ -175,3 +163,53 @@ fig = fig.update_xaxes(
 fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig
 ```
+
+# Die letzten 5 Tage
+
+```{python}
+daily, average = strom.read_result("last_5_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}
+
+# Die letzten 15 Tage
+
+```{python}
+daily, average = strom.read_result("last_15_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}
+
+# Die letzten 30 Tage
+
+```{python}
+daily, average = strom.read_result("last_30_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}
+
+# Die letzten 60 Tage
+
+```{python}
+daily, average = strom.read_result("last_60_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}
+
+# Die letzten 90 Tage
+
+```{python}
+daily, average = strom.read_result("last_90_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}
+
+# Die letzten 360 Tage
+
+```{python}
+daily, average = strom.read_result("last_360_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}
+
+

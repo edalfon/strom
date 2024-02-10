@@ -69,22 +69,23 @@ def strom_flow(refresh_cache=False):
 
     strom_climate = merge_strom_climate_data(strom_per_day, climate_daily)
 
+    # strom_prices = consumption.ingest_prices()
+
     consumption.normalstrom_consumption(duckdb_file, normalstrom_minute)
     consumption.waermestrom_consumption(duckdb_file, waermestrom_minute)
 
-    from datetime import datetime, timedelta
-
-    consumption.calculate_avg_consumption(
-        periods={
-            "name": ["last 30 days"],
-            "begin": [str(datetime.now().date() - timedelta(days=30))],
-            "fin": [str(datetime.now().date())],
-        },
-        minute_table="waermestrom_minute",
-        price=0.2763,
-    )
+    consumption.compare_last_days()
+    consumption.compare_last_days.with_options(result_storage_key="last_5_days")(5)
+    consumption.compare_last_days.with_options(result_storage_key="last_15_days")(15)
+    consumption.compare_last_days.with_options(result_storage_key="last_30_days")(30)
+    consumption.compare_last_days.with_options(result_storage_key="last_60_days")(60)
+    consumption.compare_last_days.with_options(result_storage_key="last_90_days")(90)
+    consumption.compare_last_days.with_options(result_storage_key="last_360_days")(360)
 
     quarto.render_report(strom_climate)
+
+    # WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+    # WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
 
 
 if __name__ == "__main__":

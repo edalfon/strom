@@ -1,0 +1,154 @@
+```{python}
+#| include: false
+#| eval: false
+import strom
+daily, average = strom.read_result("compare_last_days")
+daily, average = strom.read_result("last_60_days")
+```
+
+
+## Row
+
+```{python}
+#| content: valuebox
+#| title: "Normalstromverbrauch pro Tag"
+dict(
+  icon = "lightning-charge",
+  color = "light",
+  value = "{:.1f} kWh".format(average["normalstrom"]["Use/Day"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Normalstromverbrauch im Jahr"
+dict(
+  icon = "activity",
+  color = "light",
+  value = "{:.0f} kWh".format(average["normalstrom"]["Use/Year"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestromverbrauch pro Tag"
+dict(
+  icon = "lightning-charge",
+  color = "light",
+  value = "{:.1f} kWh".format(average["waermestrom"]["Use/Day"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestromverbrauch im Jahr"
+dict(
+  icon = "activity",
+  color = "light",
+  value = "{:.0f} kWh".format(average["waermestrom"]["Use/Year"].values[0])
+)
+```
+
+
+## Row
+
+```{python}
+#| content: valuebox
+#| title: "Normalstrom Kosten pro Tag"
+dict(
+  icon = "currency-exchange",
+  color = "#e0a931",
+  value = "{:.1f} €".format(average["normalstrom"]["Daily Exp"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Normalstrom Kosten im Jahr"
+dict(
+  icon = "credit-card",
+  color = "#e0a931",
+  value = "{:.0f} €".format(average["normalstrom"]["Yearly Exp"].values[0])
+)
+```
+
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestrom Kosten pro Tag"
+dict(
+  icon = "currency-exchange",
+  color = "#e3b32d",
+  value = "{:.1f} €".format(average["waermestrom"]["Daily Exp"].values[0])
+)
+```
+
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestrom Kosten im Jahr"
+dict(
+  icon = "credit-card",
+  color = "#e3b32d",
+  value = "{:.0f} €".format(average["waermestrom"]["Yearly Exp"].values[0])
+)
+```
+
+## Row
+
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+last_year = int(daily["year"].max())
+unique_years = daily["year"].unique()
+prev_years = unique_years[unique_years != last_year]
+
+daily["date_day"] = daily["date"]
+for y in prev_years:
+    daily.loc[daily["year"] == y, "date_day"] += timedelta(365 * (last_year - int(y)))
+
+fig = px.line(daily[daily["year"] != last_year], x="date_day", y="nd_cum", color="year")
+
+fig = fig.add_trace(
+    go.Bar(
+        x=daily[daily["year"] == last_year]["date"],
+        y=daily[daily["year"] == last_year]["nd_cum"],
+        name=f"{last_year}",
+    )
+)
+
+fig
+```
+
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+last_year = int(daily["year"].max())
+unique_years = daily["year"].unique()
+prev_years = unique_years[unique_years != last_year]
+
+daily["date_day"] = daily["date"]
+for y in prev_years:
+    daily.loc[daily["year"] == y, "date_day"] += timedelta(365 * (last_year - int(y)))
+
+fig = px.line(daily[daily["year"] != last_year], x="date_day", y="wd_cum", color="year")
+
+fig = fig.add_trace(
+    go.Bar(
+        x=daily[daily["year"] == last_year]["date"],
+        y=daily[daily["year"] == last_year]["wd_cum"],
+        name=f"{last_year}",
+    )
+)
+
+fig
+```
+
