@@ -151,9 +151,6 @@ def compare_last_days(
 
     begin = fin - timedelta(days=days)
 
-    print("Requested period")
-    print("begin ", begin, " fin ", fin)
-
     # we only want to return the average details for the requested period
     # and not for the other periods to compare to
     average = {
@@ -167,18 +164,13 @@ def compare_last_days(
 
     daily = dict()
     daily[fin.year] = get_period_cummulative(begin, fin, duckdb_file)
-    print(daily[fin.year]["date"].min())
-    print(daily[fin.year]["date"].max())
 
     for i in range(1, years_back):
 
         fin = fin - timedelta(days=365)
         begin = begin - timedelta(days=365)
-        print("begin ", begin, " fin ", fin)
 
         daily[fin.year] = get_period_cummulative(begin, fin, duckdb_file)
-        print(daily[fin.year]["date"].min())
-        print(daily[fin.year]["date"].max())
 
     daily = pd.concat(
         [df.assign(year=key) for key, df in daily.items()], ignore_index=True

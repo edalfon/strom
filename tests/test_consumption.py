@@ -39,7 +39,6 @@ def test_get_period():
 
 def test_compare_last_days():
     daily, average = consumption.compare_last_days.fn()
-    print("WHATTTT")
     daily, average = consumption.compare_last_days.fn(days=360)
     print(daily)
     print(average)

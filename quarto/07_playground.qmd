@@ -2,6 +2,7 @@
 title: "playground"
 execute:
   echo: false
+  eval: false
 ---
 
 # base model

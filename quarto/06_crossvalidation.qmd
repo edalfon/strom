@@ -2,6 +2,7 @@
 title: "Cross-validation"
 execute:
   echo: false
+  eval: false
 ---
 
 ```{python}
