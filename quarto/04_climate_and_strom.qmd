@@ -115,6 +115,7 @@ climate_daily = epyfun.pandas.clean_names(climate_daily)
 
 ```{python}
 import strom
+
 climate_daily = strom.read_result("get_climate_data")
 ```
 

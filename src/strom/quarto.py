@@ -25,5 +25,9 @@ def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
 
 @task(**task_ops)
 def render_report(*args, c=detect_changes(), **kwargs):
-    subprocess.run(["quarto", "render", "quarto", "--execute-dir", "."])
-    webbrowser.open("./results/index.html")
+    cmd = ["quarto", "render", "quarto", "--execute-dir", "."]
+    cmd = cmd if c else cmd.append("--metadata").append("freeze:false")
+
+    subprocess.run(cmd)
+    # webbrowser.open("./results/index.html")
+    os.startfile(".\\results\\index.html")

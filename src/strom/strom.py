@@ -29,6 +29,8 @@ from sklearn.model_selection import RepeatedKFold
 
 from IPython.display import display, Markdown
 
+import strom.prefect_ops
+
 # https://rstudio.github.io/vetiver-python/stable/reference/
 # https://rstudio.github.io/pins-python/reference/
 
@@ -167,7 +169,7 @@ def residuals_fitted(y_true, y_pred, data=None, dimensions=None):
         autosize=True,
         xaxis_title="Predicted Values",
         yaxis_title="Residuals",
-        margin=dict(l=0, r=0, t=0, b=0)
+        margin=dict(l=0, r=0, t=0, b=0),
         # plot_bgcolor="rgba(0,0,0,0)",
         # paper_bgcolor="rgba(0,0,0,0)",
     )
@@ -295,7 +297,7 @@ def leverage(y_true, y_pred, pipeline, data, dimensions=None):
         # height=700,
         xaxis_title="Leverage",
         yaxis_title="Residuals",
-        margin=dict(l=0, r=0, t=0, b=0)
+        margin=dict(l=0, r=0, t=0, b=0),
         # plot_bgcolor="rgba(0,0,0,0)",
         # paper_bgcolor="rgba(0,0,0,0)",
     )
@@ -428,7 +430,7 @@ def scatter_fitted_observed(y_true, y_pred, data=None, dimensions=None):
         # height=700,
         xaxis_title="Predicted Values",
         yaxis_title="Observed Values",
-        margin=dict(l=0, r=0, t=0, b=0)
+        margin=dict(l=0, r=0, t=0, b=0),
         # plot_bgcolor="rgba(0,0,0,0)",
         # paper_bgcolor="rgba(0,0,0,0)",
     )
@@ -440,7 +442,7 @@ def scatter_fitted_observed(y_true, y_pred, data=None, dimensions=None):
 
 
 def get_model_data():
-    strom_climate = strom.read_result("merge_strom_climate_data")
+    strom_climate = strom.prefect_ops.read_result("merge_strom_climate_data")
     X = strom_climate.drop(columns="wd")
     y = strom_climate["wd"]
 

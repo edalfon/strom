@@ -1,40 +1,14 @@
-from prefect import flow, task
-
-from prefect.tasks import task_input_hash
-from prefect.filesystems import LocalFileSystem
+from prefect import flow, task, get_run_logger
 
 from strom.prefect_ops import task_ops
 
-from strom import meter
-from strom import dwd
-from strom import consumption
-from strom import quarto
+from strom import meter, dwd, consumption, quarto
 
 import pandas as pd
-import numpy as np
 
-from datetime import date, time
+from datetime import date
 
 import epyfun
-import duckdb
-
-import json
-from prefect.results import PersistedResultBlob
-from prefect.serializers import PickleSerializer, JSONSerializer
-
-
-def read_result(
-    filename: str, storage=task_ops["result_storage"], serialier: str = "pickle"
-):
-    path = storage._resolve_path(filename)
-    with open(path, "rb") as buffered_reader:
-        dict_obj = json.load(buffered_reader)
-        blob = PersistedResultBlob.parse_obj(dict_obj)
-    if serialier == "json":
-        result = JSONSerializer().loads(blob.data)
-    else:
-        result = PickleSerializer().loads(blob.data)
-    return result
 
 
 @task(**task_ops)
@@ -44,17 +18,17 @@ def merge_strom_climate_data(strom_per_day, climate_daily):
 
 
 @flow(log_prints=True)
-def strom_flow(refresh_cache=False):
+def strom_flow():
     """
     Given a GitHub repository, logs the number of stargazers
     and contributors for that repo.
     """
 
-    print("PREFECT RUNNING ...")
-
     duckdb_file = "./duckdb/strom.duckdb"
     epyfun.create_dir(duckdb_file)
     sqlite_file = epyfun.get_latest_file("./data/")
+    logger = get_run_logger()
+    logger.info(f"Current latest data file: {sqlite_file}")
 
     normalstrom = meter.ingest_normalstrom(sqlite_file, duckdb_file)
     normalstrom_minute = meter.expand_normalstrom_minute(normalstrom, duckdb_file)
