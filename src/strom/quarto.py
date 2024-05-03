@@ -10,7 +10,6 @@ import hashlib
 import glob
 
 
-# @task(**{**task_ops, "refresh_cache": True})
 def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
 
     file_paths = [
@@ -27,7 +26,6 @@ def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
 def render_report(*args, c=detect_changes(), **kwargs):
     cmd = ["quarto", "render", "quarto", "--execute-dir", "."]
     cmd = cmd if c else cmd.append("--metadata").append("freeze:false")
-
     subprocess.run(cmd)
-    # webbrowser.open("./results/index.html")
-    os.startfile(".\\results\\index.html")
+
+    webbrowser.open("./results/index.html")
