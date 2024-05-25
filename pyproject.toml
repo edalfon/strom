@@ -8,7 +8,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-epyfun = {path = "/OneDrive/All/Python/epyfun", develop = true}
 duckdb = "^0.9.2"
 pandas = "^2.1.4"
 jupysql = "^0.10.4"
@@ -32,6 +31,7 @@ formulaic = "^1.0.1"
 prefect = "^2.14.13"
 quarto-cli = "^1.4.549"
 itables = "^1.6.3"
+epyfun = {git = "https://github.com/edalfon/epyfun"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
