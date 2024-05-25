@@ -1,5 +1,8 @@
 name: prefect
 on: [push]
+  branches: [main]
+permissions:
+  contents: write
 
 jobs:
   prefect:
@@ -23,3 +26,9 @@ jobs:
         run: poetry install
       - name: Run prefect's workflow
         run: poetry run python -c "from strom import prefect_flow; prefect_flow.strom_flow()"
+      - name: Deploy to Github Pages 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          clean: false
+          branch: gh-pages          
+          folder: results
