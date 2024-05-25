@@ -9,7 +9,7 @@ task_ops = dict(
     cache_key_fn=task_input_hash,
     result_storage_key="{task_run.task_name}",
     result_storage=LocalFileSystem(basepath=".prefect/"),
-    refresh_cache=False,
+    refresh_cache=True,
     persist_result=True,
 )
 
