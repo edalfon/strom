@@ -1,6 +1,8 @@
 name: prefect
-on: [push]
-  branches: [main]
+on:
+  push:
+    branches:
+      - main
 permissions:
   contents: write
 
