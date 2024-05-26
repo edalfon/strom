@@ -8,11 +8,14 @@ import pandas as pd
 
 @task(**task_ops)
 def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
+    """Ingest data into `normalstrom` table.
+
+    Returns:
+        pandas.DataFrame: A DataFrame containing the MD5 checksum of the 'normalstrom' table.
+    """
     with duckdb.connect(duckdb_file) as con:
-        # con.sql("INSTALL sqlite;")
-        # con.sql("LOAD sqlite;")
-        con.install_extension("sqlite")
-        con.load_extension("sqlite")
+        con.install_extension("sqlite")  # con.sql("INSTALL sqlite;")
+        con.load_extension("sqlite")  # con.sql("LOAD sqlite;")
         con.sql(
             f"""
             CREATE OR REPLACE TABLE normalstrom AS 
@@ -27,25 +30,31 @@ def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
                 FROM sqlite_scan('{sqlite_file}', 'reading') 
                 WHERE meterid = 1
             )
-            SELECT *,
-            -- add default values to lag(), to prevent null in the first row
-            date_sub('minute', lag(date, 1, '2020-11-30 00:00:00') 
-                OVER(ORDER BY date), date) AS minutes, 
-            -- use (1/(1-first)) to induce NA when it is first measurement
-            value * (1/(1-first)) - lag(value, 1, 12160) 
-                OVER(ORDER BY date) AS consumption,
-            1.0 * consumption / minutes AS cm,
-            24.0 * 60.0 * consumption / minutes AS consumption_day_equivalent
+            SELECT 
+                *,
+                -- add default values to lag(), to prevent null in the first row
+                date_sub(
+                    'minute', 
+                    lag(date, 1) OVER(ORDER BY date),
+                    date
+                ) AS minutes, 
+                -- use (1/(1-first)) to induce NA when it is first measurement
+                value * (1/(1-first)) - lag(value, 1) 
+                    OVER(ORDER BY date) AS consumption,
+                1.0 * consumption / minutes AS cm,
+                24.0 * 60.0 * consumption / minutes AS consumption_day_equivalent
             FROM strom_sqlite
             ORDER BY date
             ;
             """
         )
-        return con.sql(
-            "SELECT md5(string_agg(normalstrom::text, '')) AS md5 FROM normalstrom;"
+        normalstrom_md5 = con.sql(
+            """
+            SELECT md5(string_agg(normalstrom::text, '')) AS md5 
+            FROM normalstrom;
+            """
         ).df()
-        # return con.sql("SELECT * FROM normalstrom;").df()
-    # TODO: see what to return, after checking god practices for DB+Prefect
+        return normalstrom_md5
 
 
 @task(**task_ops)
@@ -55,7 +64,7 @@ def expand_normalstrom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
             f"""
             CREATE OR REPLACE TABLE normalstrom_minute_nulls AS
             WITH minutes_table AS (
-                SELECT UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) as minute
+                SELECT UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) AS minute
                 FROM (VALUES (
                 [(SELECT MIN(date) FROM normalstrom), (SELECT MAX(DATE) FROM normalstrom)]
                 )) t(ts)
@@ -84,7 +93,6 @@ def expand_normalstrom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
         return con.sql(
             "SELECT md5(string_agg(normalstrom_minute::text, '')) FROM normalstrom_minute;"
         ).df()
-        # return con.sql("SELECT * FROM normalstrom_minute;").df()
 
 
 @task(**task_ops)
@@ -172,12 +180,12 @@ def ingest_waermestrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
                 -- and would be equivalent to the minutes in the first row, 
                 -- that we set with the default
                 -- of one day in the previous query 
-                value * (1/(1-first)) - lag(value, 1, value-11) over(order by date) AS consumption,
+                value * (1/(1-first)) - lag(value, 1) over(order by date) AS consumption,
                 1.0 * consumption / minutes_lag AS cm,
                 24.0 * 60.0 * consumption / minutes_lag AS consumption_day_equivalent,
                 -- now calculate consumption per tariff
-                value_hoch_fix - lag(value_hoch_fix, 1, value_hoch_fix-11) over(order by date) AS consumption_hoch,
-                value_niedrig_fix - lag(value_niedrig_fix, 1, value_niedrig_fix-11) over(order by date) AS consumption_niedrig,
+                value_hoch_fix - lag(value_hoch_fix, 1) over(order by date) AS consumption_hoch,
+                value_niedrig_fix - lag(value_niedrig_fix, 1) over(order by date) AS consumption_niedrig,
                 1.0 * consumption_hoch / minutes_lag AS cm_hoch,
                 1.0 * consumption_niedrig / minutes_lag AS cm_niedrig
             FROM waermestrom_nonulls 

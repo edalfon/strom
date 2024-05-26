@@ -111,7 +111,7 @@ dict(
 ## Row
 
 ```{python}
-#| eval: true
+# | eval: true
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
@@ -131,14 +131,18 @@ fig = fig.update_xaxes(
             ]
         )
     ),
-    range=[strom_per_day["date"].max() - timedelta(days=365), strom_per_day["date"].max()],
+    range=[
+        strom_per_day["date"].max() - timedelta(days=365),
+        strom_per_day["date"].max(),
+    ],
 )
 fig = fig.update_xaxes(rangeslider_thickness=0.1)
+fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
 fig
 ```
 
 ```{python}
-#| eval: true
+# | eval: true
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
@@ -158,9 +162,13 @@ fig = fig.update_xaxes(
             ]
         )
     ),
-    range=[strom_per_day["date"].max() - timedelta(days=365), strom_per_day["date"].max()],
+    range=[
+        strom_per_day["date"].max() - timedelta(days=365),
+        strom_per_day["date"].max(),
+    ],
 )
 fig = fig.update_xaxes(rangeslider_thickness=0.1)
+fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
 fig
 ```
 
@@ -204,10 +212,10 @@ daily, average = strom.read_result("last_90_days")
 
 {{< include Dashboard/_periods.qmd >}}
 
-# Die letzten 360 Tage
+# Die letzten 365 Tage
 
 ```{python}
-daily, average = strom.read_result("last_360_days")
+daily, average = strom.read_result("last_365_days")
 ```
 
 {{< include Dashboard/_periods.qmd >}}

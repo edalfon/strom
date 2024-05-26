@@ -101,7 +101,11 @@ def calculate_avg_consumption(
     return strom_avg
 
 
-def get_period_cummulative(begin=None, fin=None, duckdb_file="./duckdb/strom.duckdb"):
+def get_period_cummulative(
+    begin=None,
+    fin=None,
+    duckdb_file="./duckdb/strom.duckdb",
+):
     if begin is None:
         with duckdb.connect(duckdb_file) as con:
             begin = con.sql(f"SELECT MIN(date) FROM strom_per_day").fetchone()[0]
@@ -119,9 +123,11 @@ def get_period_cummulative(begin=None, fin=None, duckdb_file="./duckdb/strom.duc
                 SUM(wd) OVER (ORDER BY date) AS wd_cum
             FROM strom_per_day
             WHERE date >= '{begin}' AND date <= '{fin}'
+            ORDER BY date
             ;
             """
         ).df()
+
     return period
 
 
@@ -166,10 +172,8 @@ def compare_last_days(
     daily[fin.year] = get_period_cummulative(begin, fin, duckdb_file)
 
     for i in range(1, years_back):
-
-        fin = fin - timedelta(days=365)
-        begin = begin - timedelta(days=365)
-
+        fin = fin - timedelta(days=365.25)
+        begin = begin - timedelta(days=365.25)
         daily[fin.year] = get_period_cummulative(begin, fin, duckdb_file)
 
     daily = pd.concat(

@@ -146,3 +146,53 @@ UPDATE reading
 SET meterid = 2
 WHERE meterid = 18;
 ```
+
+
+
+
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE normalstrom_minute_nulls AS
+WITH minutes_table AS (
+    SELECT UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) AS minute
+    FROM (VALUES (
+    [(SELECT MIN(date) FROM normalstrom), (SELECT MAX(DATE) FROM normalstrom)]
+    )) t(ts)
+)
+SELECT * 
+FROM minutes_table
+LEFT JOIN normalstrom
+ON minutes_table.minute = normalstrom.date
+;
+
+SELECT * FROM normalstrom_minute_nulls ORDER BY minute;
+```
+
+
+```{python}
+%%sql
+
+CREATE OR REPLACE TABLE normalstrom_minute AS
+SELECT
+    minute,
+    date,
+    value,
+    minutes,
+    consumption,
+    FIRST_VALUE(cm IGNORE NULLS) OVER(
+    ORDER BY minute ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
+    ) AS cm
+FROM normalstrom_minute_nulls t1
+ORDER BY t1.minute
+;
+```
+
+
+```{python}
+%%sql
+
+SELECT * FROM strom_per_day WHERE date >= '2021-01-01' AND date <= '2021-12-31';
+
+SELECT MAX(date) FROM strom_per_day;
+```

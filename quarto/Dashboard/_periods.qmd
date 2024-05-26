@@ -120,7 +120,14 @@ fig = fig.add_trace(
         name=f"{last_year}",
     )
 )
-
+fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh - Kumulierter Verbrauch")
+fig = fig.update_layout(legend=dict(
+    orientation="h",
+    yanchor="bottom",
+    y=1,
+    xanchor="right",
+    x=0.75
+))
 fig
 ```
 
@@ -147,6 +154,10 @@ fig = fig.add_trace(
         y=daily[daily["year"] == last_year]["wd_cum"],
         name=f"{last_year}",
     )
+)
+fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh - Kumulierter Verbrauch")
+fig = fig.update_layout(
+    legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
 )
 
 fig

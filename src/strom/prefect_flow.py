@@ -54,7 +54,9 @@ def strom_flow():
     consumption.compare_last_days.with_options(result_storage_key="last_30_days")(30)
     consumption.compare_last_days.with_options(result_storage_key="last_60_days")(60)
     consumption.compare_last_days.with_options(result_storage_key="last_90_days")(90)
-    consumption.compare_last_days.with_options(result_storage_key="last_360_days")(360)
+    consumption.compare_last_days.with_options(result_storage_key="last_365_days")(
+        365.25
+    )
 
     quarto.render_report(strom_climate)
 
