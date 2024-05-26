@@ -1,0 +1,148 @@
+---
+title: "Strom Data Source"
+execute:
+  echo: true
+  eval: false
+---
+
+{{< include /includes/_load_data.qmd >}}
+
+
+```{python}
+#| context: setup
+#| label: setup
+#| include: false
+
+from epyfun.fs import get_latest_file
+latest_file = get_latest_file('./data/')
+
+%load_ext sql
+%sql --section duck
+#%sql duckdb:///:memory:
+%sql INSTALL sqlite;
+%sql LOAD sqlite;
+```
+
+# Meters table
+
+```{python}
+%%sql
+SELECT 
+    _id,
+    decode(name)::STRING,
+    decode(units)::STRING,
+    decode(comment)::STRING,
+    decode(vsf)::STRING,
+    decode(tsf)::STRING,
+    decode(cost)::STRING,
+    decode(fcost)::STRING,
+    decode(invert)::STRING,
+    decode(vmsetup)::STRING,
+    decode(type)::STRING,
+    decode(currency)::STRING,
+    decode(scaling)::STRING,
+    decode(phyunits)::STRING,
+    decode(bidir)::STRING,
+    decode(prod)::STRING
+FROM sqlite_scan('{{latest_file}}', 'meter')
+;
+```
+
+
+# Strom data
+
+
+```{python}
+%%sql 
+
+SELECT 
+  meterid, 
+  -- Blob Functions, because most columns get read as blob
+  -- https://duckdb.org/docs/sql/functions/blob
+  decode(date)::DATETIME AS date, 
+  decode(value)::INT AS value,
+  decode(comment)::STRING AS comment,
+  decode(color)::STRING AS color,
+  decode(cost)::STRING AS cost,
+  decode(vcor)::STRING AS vcor,
+  decode(ccor)::STRING AS ccor,
+  decode(first)::STRING AS first
+FROM sqlite_scan('{{latest_file}}', 'reading') 
+WHERE meterid = 1
+;
+```
+
+
+```{python}
+%%sql 
+
+toy << 
+WITH strom_sqlite AS (
+  SELECT 
+    meterid, 
+    -- Blob Functions, because most columns get read as blob
+    -- https://duckdb.org/docs/sql/functions/blob
+    decode(date)::DATETIME AS date, 
+    decode(value)::INT AS value,
+    decode(first)::INT AS first
+  FROM sqlite_scan('{{latest_file}}', 'reading') 
+  WHERE meterid = 1
+)
+SELECT *,
+date_sub('minute', lag(date, 1, '2020-11-30 00:00:00') over(order by date), date) AS minutes, 
+value * (1/(1-first)) - lag(value, 1, 12160) over(order by date) AS consumption,
+1.0 * consumption / minutes AS cm,
+24.0 * 60.0 * consumption / minutes AS consumption_day_equivalent
+FROM strom_sqlite
+ORDER BY date
+;
+```
+
+
+
+
+# Strom data
+
+
+```{python}
+%%sql 
+
+ATTACH '{{latest_file}}' AS ecas (TYPE SQLITE);
+USE ecas;
+```
+
+
+```{python}
+%%sql 
+
+SELECT * FROM reading;
+
+```
+
+
+```{python}
+%%sql 
+
+
+UPDATE reading
+SET meterid = 1
+WHERE meterid = 16;
+```
+
+```{python}
+%%sql 
+
+
+UPDATE reading
+SET meterid = 3
+WHERE meterid = 17;
+```
+
+```{python}
+%%sql 
+
+
+UPDATE reading
+SET meterid = 2
+WHERE meterid = 18;
+```
