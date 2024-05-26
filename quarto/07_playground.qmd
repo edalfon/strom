@@ -5,6 +5,33 @@ execute:
   eval: false
 ---
 
+
+```{python}
+#| include: false
+%load_ext sql
+%sql --section duck
+```
+
+```{python}
+#| include: false
+import epyfun
+sqlite_file = epyfun.get_latest_file("./data/")
+```
+
+```{python}
+%%sql
+SELECT
+  meterid, 
+  decode(date)::DATETIME AS date, 
+  decode(value)::INT AS value,
+  decode(first)::INT AS first
+FROM sqlite_scan('{{sqlite_file}}', 'reading') 
+WHERE meterid = 1
+;
+```
+
+
+
 # base model
 
 So let's start from the pipeline with the best model cross-validated before

@@ -22,15 +22,18 @@ def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
                     -- Blob Functions, because most columns get read as blob
                     -- https://duckdb.org/docs/sql/functions/blob
                     decode(date)::DATETIME AS date, 
-                    decode(value)::INT AS value
+                    decode(value)::INT AS value,
+                    decode(first)::INT AS first
                 FROM sqlite_scan('{sqlite_file}', 'reading') 
                 WHERE meterid = 1
             )
             SELECT *,
             -- add default values to lag(), to prevent null in the first row
-            date_sub('minute', lag(date, 1, '2020-11-30 00:00:00') over(order by date), date) AS minutes, 
-            -- add default values to lag(), to prevent null in the first row
-            value - lag(value, 1, 12160) over(order by date) AS consumption,
+            date_sub('minute', lag(date, 1, '2020-11-30 00:00:00') 
+                OVER(ORDER BY date), date) AS minutes, 
+            -- use (1/(1-first)) to induce NA when it is first measurement
+            value * (1/(1-first)) - lag(value, 1, 12160) 
+                OVER(ORDER BY date) AS consumption,
             1.0 * consumption / minutes AS cm,
             24.0 * 60.0 * consumption / minutes AS consumption_day_equivalent
             FROM strom_sqlite
@@ -92,25 +95,29 @@ def ingest_waermestrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
             CREATE OR REPLACE TABLE waermestrom_nulls AS
             WITH
             ws181 AS (
-            SELECT 
-                'Hoch' AS tariff,
-                decode(date)::DATETIME AS date, 
-                decode(value)::INT AS value
-            FROM sqlite_scan('{sqlite_file}', 'reading') 
-            WHERE meterid = 3 
+                SELECT 
+                    'Hoch' AS tariff,
+                    decode(date)::DATETIME AS date, 
+                    decode(value)::INT AS value,
+                    decode(first)::INT AS first
+                FROM sqlite_scan('{sqlite_file}', 'reading') 
+                WHERE meterid = 3 
             ),
             ws182 AS (
-            SELECT 
-                'Niedrig' AS tariff, 
-                decode(date)::DATETIME AS date, 
-                decode(value)::INT AS value
-            FROM sqlite_scan('{sqlite_file}', 'reading') 
-            WHERE meterid = 2
+                SELECT 
+                    'Niedrig' AS tariff, 
+                    decode(date)::DATETIME AS date, 
+                    decode(value)::INT AS value,
+                    decode(first)::INT AS first
+                FROM sqlite_scan('{sqlite_file}', 'reading') 
+                WHERE meterid = 2
             )
             SELECT
-            COALESCE(ws181.date, ws182.date) AS date,
-            ws181.value AS value_hoch,
-            ws182.value AS value_niedrig
+                COALESCE(ws181.date, ws182.date) AS date,
+                ws181.value AS value_hoch,
+                ws182.value AS value_niedrig,
+                ws181.first AS first_hoch,
+                ws182.first AS first_niedrig
             FROM ws181 
             FULL JOIN ws182 
             ON ws181.date = ws182.date
@@ -119,52 +126,60 @@ def ingest_waermestrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
 
             CREATE OR REPLACE TABLE waermestrom_nonulls AS
             SELECT
-            date,
-            value_hoch, value_niedrig, 
-            -- calculate minutes diff with previous and next date, to see which is closer
-            -- note the use of a default value for lag/lead, substracting and adding one day
-            -- for lag and lead respectively, to avoid NULLs in the first and las rows
-            date_sub('minute', lag(date, 1, date - INTERVAL 1 DAY) over(order by date), date) AS minutes_lag,
-            date_sub('minute', date, lead(date, 1, date + INTERVAL 1 DAY) over(order by date)) AS minutes_lead,
-            -- and we want to replace null values column, with the value from closest date
-            CASE
-                WHEN value_hoch IS NULL AND minutes_lag <= minutes_lead 
-                THEN lag(value_hoch) over(order by date)
-                WHEN value_hoch IS NULL AND minutes_lag > minutes_lead 
-                THEN lead(value_hoch) over(order by date)
-                ELSE value_hoch
-            END AS value_hoch_fix,
-            CASE
-                WHEN value_niedrig IS NULL AND minutes_lag <= minutes_lead 
-                THEN lag(value_niedrig) over(order by date)
-                WHEN value_niedrig IS NULL AND minutes_lag > minutes_lead 
-                THEN lead(value_niedrig) over(order by date)
-                ELSE value_niedrig
-            END AS value_niedrig_fix,
-            value_hoch_fix + value_niedrig_fix AS value
+                date,
+                value_hoch, value_niedrig, first_hoch, first_niedrig,
+                -- calculate minutes diff with previous and next date, 
+                -- to see which is closer.                 
+                -- note the use of a default value for lag/lead, substracting 
+                -- and adding one day for lag and lead respectively, to avoid 
+                -- NULLs in the first and last rows
+                date_sub('minute', lag(date, 1, date - INTERVAL 1 DAY)
+                    OVER(ORDER BY date), date) AS minutes_lag,
+                date_sub('minute', date, lead(date, 1, date + INTERVAL 1 DAY) 
+                    OVER(ORDER BY date)) AS minutes_lead,
+                -- and we want to replace null values column, with the value 
+                -- from closest date
+                CASE
+                    WHEN value_hoch IS NULL AND minutes_lag <= minutes_lead 
+                    THEN lag(value_hoch) over(order by date)
+                    WHEN value_hoch IS NULL AND minutes_lag > minutes_lead 
+                    THEN lead(value_hoch) over(order by date)
+                    ELSE value_hoch
+                END AS value_hoch_fix,
+                CASE
+                    WHEN value_niedrig IS NULL AND minutes_lag <= minutes_lead 
+                    THEN lag(value_niedrig) over(order by date)
+                    WHEN value_niedrig IS NULL AND minutes_lag > minutes_lead 
+                    THEN lead(value_niedrig) over(order by date)
+                    ELSE value_niedrig
+                END AS value_niedrig_fix,
+                value_hoch_fix + value_niedrig_fix AS value,
+                GREATEST(first_hoch, first_niedrig) AS first
             FROM waermestrom_nulls 
             ORDER BY date
             ;
 
             CREATE OR REPLACE TABLE waermestrom AS
             SELECT 
-            date,
-            value,
-            value_hoch_fix AS value_hoch,
-            value_niedrig_fix AS value_niedrig,
-            minutes_lag AS minutes,
-            -- add default values to lag(), to prevent null in the first row
-            -- use 11kwh less than the first value which is approximately the avg consumption per day
-            -- and would be equivalent to the minutes in the first row, that we set with the default
-            -- of one day in the previous query 
-            value - lag(value, 1, value-11) over(order by date) AS consumption,
-            1.0 * consumption / minutes_lag AS cm,
-            24.0 * 60.0 * consumption / minutes_lag AS consumption_day_equivalent,
-            -- now calculate consumption per tariff
-            value_hoch_fix - lag(value_hoch_fix, 1, value_hoch_fix-11) over(order by date) AS consumption_hoch,
-            value_niedrig_fix - lag(value_niedrig_fix, 1, value_niedrig_fix-11) over(order by date) AS consumption_niedrig,
-            1.0 * consumption_hoch / minutes_lag AS cm_hoch,
-            1.0 * consumption_niedrig / minutes_lag AS cm_niedrig
+                date,
+                value,
+                value_hoch_fix AS value_hoch,
+                value_niedrig_fix AS value_niedrig,
+                minutes_lag AS minutes,
+                -- add default values to lag(), to prevent null in the first row
+                -- use 11kwh less than the first value which is approximately 
+                -- the avg consumption per day
+                -- and would be equivalent to the minutes in the first row, 
+                -- that we set with the default
+                -- of one day in the previous query 
+                value * (1/(1-first)) - lag(value, 1, value-11) over(order by date) AS consumption,
+                1.0 * consumption / minutes_lag AS cm,
+                24.0 * 60.0 * consumption / minutes_lag AS consumption_day_equivalent,
+                -- now calculate consumption per tariff
+                value_hoch_fix - lag(value_hoch_fix, 1, value_hoch_fix-11) over(order by date) AS consumption_hoch,
+                value_niedrig_fix - lag(value_niedrig_fix, 1, value_niedrig_fix-11) over(order by date) AS consumption_niedrig,
+                1.0 * consumption_hoch / minutes_lag AS cm_hoch,
+                1.0 * consumption_niedrig / minutes_lag AS cm_niedrig
             FROM waermestrom_nonulls 
             WHERE minutes > 1 --get rid of the artificially short periods
             ;
