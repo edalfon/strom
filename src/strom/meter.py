@@ -32,17 +32,14 @@ def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
             )
             SELECT 
                 *,
-                -- add default values to lag(), to prevent null in the first row
                 date_sub(
                     'minute', 
                     lag(date, 1) OVER(ORDER BY date),
                     date
                 ) AS minutes, 
                 -- use (1/(1-first)) to induce NA when it is first measurement
-                value * (1/(1-first)) - lag(value, 1) 
-                    OVER(ORDER BY date) AS consumption,
-                1.0 * consumption / minutes AS cm,
-                24.0 * 60.0 * consumption / minutes AS consumption_day_equivalent
+                value * (1/(1-first)) - lag(value, 1) OVER(ORDER BY date) AS consumption,
+                1.0 * consumption / minutes AS cm
             FROM strom_sqlite
             ORDER BY date
             ;
@@ -182,10 +179,9 @@ def ingest_waermestrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
                 -- of one day in the previous query 
                 value * (1/(1-first)) - lag(value, 1) over(order by date) AS consumption,
                 1.0 * consumption / minutes_lag AS cm,
-                24.0 * 60.0 * consumption / minutes_lag AS consumption_day_equivalent,
                 -- now calculate consumption per tariff
-                value_hoch_fix - lag(value_hoch_fix, 1) over(order by date) AS consumption_hoch,
-                value_niedrig_fix - lag(value_niedrig_fix, 1) over(order by date) AS consumption_niedrig,
+                value_hoch_fix * (1/(1-first)) - lag(value_hoch_fix, 1) over(order by date) AS consumption_hoch,
+                value_niedrig_fix * (1/(1-first)) - lag(value_niedrig_fix, 1) over(order by date) AS consumption_niedrig,
                 1.0 * consumption_hoch / minutes_lag AS cm_hoch,
                 1.0 * consumption_niedrig / minutes_lag AS cm_niedrig
             FROM waermestrom_nonulls 
