@@ -19,10 +19,6 @@ strom_per_day = strom.read_result("make_strom_per_day")
 ## Row
 
 ```{python}
-#| title: "Normal Strom"
-```
-
-```{python}
 #| content: valuebox
 #| title: "Normalstromverbrauch pro Tag"
 dict(
@@ -40,10 +36,6 @@ dict(
   color = "light",
   value = "{:.0f} kWh".format(normalstrom_consumption["Use/Year"].values[0])
 )
-```
-
-```{python}
-#| title: "Wärmestrom"
 ```
 
 ```{python}
@@ -172,47 +164,11 @@ fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
 fig
 ```
 
-# Die letzten 5 Tage
+# Zeiträumen Vergleich {orientation="columns"}
 
-```{python}
-daily, average = strom.read_result("last_5_days")
-```
+## Unique-Tabset-Container {.tabset}
 
-{{< include Dashboard/_periods.qmd >}}
-
-# Die letzten 15 Tage
-
-```{python}
-daily, average = strom.read_result("last_15_days")
-```
-
-{{< include Dashboard/_periods.qmd >}}
-
-# Die letzten 30 Tage
-
-```{python}
-daily, average = strom.read_result("last_30_days")
-```
-
-{{< include Dashboard/_periods.qmd >}}
-
-# Die letzten 60 Tage
-
-```{python}
-daily, average = strom.read_result("last_60_days")
-```
-
-{{< include Dashboard/_periods.qmd >}}
-
-# Die letzten 90 Tage
-
-```{python}
-daily, average = strom.read_result("last_90_days")
-```
-
-{{< include Dashboard/_periods.qmd >}}
-
-# Die letzten 365 Tage
+### Die letzten 365 Tage
 
 ```{python}
 daily, average = strom.read_result("last_365_days")
@@ -220,4 +176,45 @@ daily, average = strom.read_result("last_365_days")
 
 {{< include Dashboard/_periods.qmd >}}
 
+### Die letzten 90 Tage
 
+```{python}
+daily, average = strom.read_result("last_90_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}
+
+
+### Die letzten 60 Tage
+
+```{python}
+daily, average = strom.read_result("last_60_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}
+
+
+### Die letzten 30 Tage
+
+```{python}
+daily, average = strom.read_result("last_30_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}
+
+### Die letzten 15 Tage
+
+```{python}
+daily, average = strom.read_result("last_15_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}
+
+
+### Die letzten 5 Tage
+
+```{python}
+daily, average = strom.read_result("last_5_days")
+```
+
+{{< include Dashboard/_periods.qmd >}}

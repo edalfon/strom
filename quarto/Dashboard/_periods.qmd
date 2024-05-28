@@ -7,7 +7,8 @@ daily, average = strom.read_result("last_60_days")
 ```
 
 
-## Row
+
+#### Row
 
 ```{python}
 #| content: valuebox
@@ -50,7 +51,7 @@ dict(
 ```
 
 
-## Row
+#### Row
 
 ```{python}
 #| content: valuebox
@@ -94,8 +95,7 @@ dict(
 )
 ```
 
-## Row
-
+#### Row
 
 ```{python}
 import pandas as pd
