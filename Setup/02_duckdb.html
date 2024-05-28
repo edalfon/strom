@@ -335,7 +335,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1>Set-up <code>jupysql</code> to be able to write sql queries directly</h1>
 <p>To do it with DuckDB, basically following <a href="https://duckdb.org/docs/guides/python/jupyter">this guide</a>, just need to make sure <code>jupysql</code>, <code>SQLAlchemy</code> and <code>duckdb-engine</code> are installed, besides the core libraries (<code>notebook</code>, <code>pandas</code>, <code>duckdb</code>). If any of them mssing, simply pip install them.</p>
 <p>Step 1 is then to import extension. It enables SQL cells in Jupyter. It supports inline SQL using <code>%sql</code> and a whole SQL cell starting it with <code>%%sql</code>.</p>
-<div id="5a7001de" class="cell" data-execution_count="1">
+<div id="0b81acd9" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlalchemy <span class="co"># No need to import duckdb_engine, </span></span>
@@ -390,12 +390,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>But you have to use a standard python chunk and use the <code>%sql</code> or <code>%%sql</code> to be able to write SQL direcly.</p>
 <p>Step 2 is to fire-up DuckDB, either in memory or pointing to a file.</p>
-<div id="2f96592f" class="cell" data-execution_count="2">
+<div id="5a00f993" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql duckdb:<span class="op">///</span>:memory:</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># %sql duckdb:///path/to/file.db</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Test it’s working</p>
-<div id="6b5b0ad0" class="cell" data-execution_count="3">
+<div id="326ebc85" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql SELECT <span class="st">'Off and flying!'</span> <span class="im">as</span> a_duckdb_column</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <div>
@@ -421,7 +421,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="ac7b48d8" class="cell" data-execution_count="4">
+<div id="2ccb2326" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql SELECT <span class="op">*</span> FROM duckdb_settings()<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <div>
