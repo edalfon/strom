@@ -8,7 +8,7 @@ execute:
 ```{python}
 #| include: false
 %load_ext sql
-%sql --section duck
+%sql --section ducktest
 #%sql duckdb:///./duckdb/strom.duckdb
 ```
 
