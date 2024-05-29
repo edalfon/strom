@@ -1,7 +1,8 @@
 ---
 title: "Wärmestrom"
 execute:
-  echo: false
+  echo: true
+  eval: false
 ---
 
 ```{python}

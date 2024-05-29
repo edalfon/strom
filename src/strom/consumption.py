@@ -186,7 +186,7 @@ def compare_last_days(
 
 
 @task(**task_ops)
-def normalstrom_consumption(duckdb_file, normalstrom_minute, *args, **kwargs):
+def normalstrom_consumption(duckdb_file, *args, **kwargs):
     return calculate_avg_consumption(
         minute_table="normalstrom_minute",
         duckdb_file=duckdb_file,
@@ -194,7 +194,7 @@ def normalstrom_consumption(duckdb_file, normalstrom_minute, *args, **kwargs):
 
 
 @task(**task_ops)
-def waermestrom_consumption(duckdb_file, waermestrom_minute, *args, **kwargs):
+def waermestrom_consumption(duckdb_file, *args, **kwargs):
     return calculate_avg_consumption(
         minute_table="waermestrom_minute",
         duckdb_file=duckdb_file,
