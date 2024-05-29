@@ -92,68 +92,10 @@ def expand_strom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
             ;
             """
         )
+
         return con.sql(
             "SELECT md5(string_agg(strom_minute::text, '')) FROM strom_minute;"
         ).df()
-
-
-@task(**task_ops)
-def make_strom_per_day(
-    normalstrom_minute, waermestrom_minute, duckdb_file="./duckdb/strom.duckdb"
-):
-    with duckdb.connect(duckdb_file) as con:
-        waermestrom_per_day = con.sql(
-            f"""
-            CREATE OR REPLACE TABLE waermestrom_per_day AS
-            SELECT 
-                minute::DATE AS date,
-                24.0 * 60.0 * AVG(cm) AS wd,
-                SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS wobs,
-            FROM waermestrom_minute
-            GROUP BY minute::DATE
-            ;
-            SELECT * FROM waermestrom_per_day;
-            """
-        ).df()
-        normalstrom_per_day = con.sql(
-            f"""
-            CREATE OR REPLACE TABLE normalstrom_per_day AS
-            SELECT 
-                minute::DATE AS date,
-                24.0 * 60.0 * AVG(cm) AS nd,
-                SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS nobs,
-            FROM normalstrom_minute
-            GROUP BY minute::DATE
-            ;
-            SELECT * FROM normalstrom_per_day;
-            """
-        ).df()
-        strom_per_day = con.sql(
-            f"""
-            CREATE OR REPLACE TABLE strom_per_day AS
-            SELECT 
-                normalstrom_per_day.date AS date,
-                normalstrom_per_day.nobs AS obs,
-                normalstrom_per_day.nd AS nd,
-                waermestrom_per_day.wd AS wd
-            FROM normalstrom_per_day
-            INNER JOIN waermestrom_per_day 
-            ON normalstrom_per_day.date = waermestrom_per_day.date
-            ;
-            SELECT * FROM strom_per_day;
-            """
-        ).df()
-        strom_per_day = pd.merge(
-            normalstrom_per_day,
-            waermestrom_per_day,
-            on="date",
-            validate="one_to_one",
-        )
-        strom_per_day = strom_per_day.drop(columns="nobs").rename(
-            columns={"wobs": "obs"}
-        )
-
-        return strom_per_day
 
 
 @task(**task_ops)
@@ -162,26 +104,26 @@ def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
         strom_per_day = con.sql(
             f"""
             CREATE OR REPLACE TABLE strom_per_day AS
-SELECT 
-  date,
-  "1_cd" AS nd,
-  "2_cd" + "3_cd" AS wd,
-  "2_cd" AS nt,
-  "3_cd" AS ht,
-  GREATEST("1_obs", "2_obs", "3_obs") AS obs
-FROM (
-  WITH cte AS (
-    SELECT CAST(minute AS DATE) AS date, * FROM strom_minute
-  )
-  PIVOT_WIDER cte
-  ON meterid
-  USING 
-    SUM(cm) AS tot,
-    AVG(cm* 24.0 * 60.0)  AS cd, 
-    SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS obs
-  GROUP BY date
-)
-;
+            SELECT 
+                date,
+                "1_cd" AS nd,
+                "2_cd" + "3_cd" AS wd,
+                "2_cd" AS nt,
+                "3_cd" AS ht,
+                GREATEST("1_obs", "2_obs", "3_obs") AS obs
+            FROM (
+                WITH cte AS (
+                    SELECT CAST(minute AS DATE) AS date, * FROM strom_minute
+                )
+                PIVOT_WIDER cte
+                ON meterid
+                USING 
+                    SUM(cm) AS tot,
+                    AVG(cm* 24.0 * 60.0)  AS cd, 
+                    SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS obs
+                GROUP BY date
+            )
+            ;
             """
         )
 
