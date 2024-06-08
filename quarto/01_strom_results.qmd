@@ -1,13 +1,14 @@
 ---
 title: "Strom"
 execute:
-  echo: false
+  echo: true
+  eval: false
 ---
 
 ```{python}
 #| include: false
 %load_ext sql
-%sql --section duck
+%sql --section ducktest
 #%sql duckdb:///./duckdb/strom.duckdb
 ```
 

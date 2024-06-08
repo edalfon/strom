@@ -1,13 +1,14 @@
 ---
 title: "Correlations"
 execute:
-  echo: false
+  echo: true
+  eval: false
 ---
 
 ```{python}
 #| include: false
 %load_ext sql
-%sql duckdb:///./duckdb/strom.duckdb
+%sql --section ducktest
 
 import epyfun
 import pandas as pd

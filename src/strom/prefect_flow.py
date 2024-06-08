@@ -30,23 +30,20 @@ def strom_flow():
     logger = get_run_logger()
     logger.info(f"Current latest data file: {sqlite_file}")
 
-    normalstrom = meter.ingest_normalstrom(sqlite_file, duckdb_file)
-    normalstrom_minute = meter.expand_normalstrom_minute(normalstrom, duckdb_file)
+    strom = meter.ingest_strom(sqlite_file, duckdb_file)
+    strom_minute = meter.expand_strom_minute(strom, duckdb_file)
+    strom_per_day = meter.make_strom_per_day(strom_minute, duckdb_file)
+    strom_per_month = meter.make_strom_per_month(strom_minute, duckdb_file)
+    # month
 
-    waermestrom = meter.ingest_waermestrom(sqlite_file, duckdb_file)
-    waermestrom_minute = meter.expand_waermestrom_minute(waermestrom, duckdb_file)
-
-    strom_per_day = meter.make_strom_per_day(
-        normalstrom_minute, waermestrom_minute, duckdb_file
-    )
     climate_daily = dwd.get_climate_data(date.today())
 
     strom_climate = merge_strom_climate_data(strom_per_day, climate_daily)
 
     # strom_prices = consumption.ingest_prices()
 
-    consumption.normalstrom_consumption(duckdb_file, normalstrom_minute)
-    consumption.waermestrom_consumption(duckdb_file, waermestrom_minute)
+    consumption.normalstrom_consumption(duckdb_file)
+    consumption.waermestrom_consumption(duckdb_file)
 
     consumption.compare_last_days()
     consumption.compare_last_days.with_options(result_storage_key="last_5_days")(5)

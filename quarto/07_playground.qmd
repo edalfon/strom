@@ -1,7 +1,7 @@
 ---
 title: "playground"
 execute:
-  echo: false
+  echo: true
   eval: false
 ---
 
@@ -9,7 +9,7 @@ execute:
 ```{python}
 #| include: false
 %load_ext sql
-%sql --section duck
+%sql --section ducktest
 ```
 
 ```{python}

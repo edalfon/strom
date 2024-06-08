@@ -17,7 +17,7 @@ from epyfun.fs import get_latest_file
 latest_file = get_latest_file('./data/')
 
 %load_ext sql
-%sql duckdb:///./duckdb/strom.duckdb
+%sql --section ducktest
 #%sql duckdb:///:memory:
 %sql INSTALL sqlite;
 %sql LOAD sqlite;

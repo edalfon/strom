@@ -7,7 +7,7 @@ import pandas as pd
 
 
 @task(**task_ops)
-def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
+def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
     """Ingest data into `normalstrom` table.
 
     Returns:
@@ -18,285 +18,152 @@ def ingest_normalstrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
         con.load_extension("sqlite")  # con.sql("LOAD sqlite;")
         con.sql(
             f"""
-            CREATE OR REPLACE TABLE normalstrom AS 
+            CREATE OR REPLACE TABLE strom AS
             WITH strom_sqlite AS (
                 SELECT 
                     meterid, 
                     -- Blob Functions, because most columns get read as blob
                     -- https://duckdb.org/docs/sql/functions/blob
-                    decode(date)::DATETIME AS date, 
-                    decode(value)::INT AS value,
-                    decode(first)::INT AS first
+                    CAST(decode(date) AS DATETIME) AS date, 
+                    CAST(decode(value) AS INT) AS value,
+                    CAST(decode(first) AS INT) AS first
                 FROM sqlite_scan('{sqlite_file}', 'reading') 
-                WHERE meterid = 1
+                WHERE meterid = 1 OR meterid = 2 OR meterid = 3
             )
             SELECT 
                 *,
                 date_sub(
                     'minute', 
-                    lag(date, 1) OVER(ORDER BY date),
+                    lag(date, 1) OVER(PARTITION BY meterid ORDER BY date),
                     date
                 ) AS minutes, 
                 -- use (1/(1-first)) to induce NA when it is first measurement
-                value * (1/(1-first)) - lag(value, 1) OVER(ORDER BY date) AS consumption,
+                value * (1/(1-first)) - lag(value, 1) OVER(
+                    PARTITION BY meterid 
+                    ORDER BY date
+                ) AS consumption,
                 1.0 * consumption / minutes AS cm
             FROM strom_sqlite
             ORDER BY date
             ;
             """
         )
-        normalstrom_md5 = con.sql(
+        strom_md5 = con.sql(
             """
-            SELECT md5(string_agg(normalstrom::text, '')) AS md5 
-            FROM normalstrom;
+            SELECT md5(string_agg(strom::text, '')) AS md5 
+            FROM strom;
             """
         ).df()
-        return normalstrom_md5
+        return strom_md5
 
 
 @task(**task_ops)
-def expand_normalstrom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
+def expand_strom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         con.sql(
             f"""
-            CREATE OR REPLACE TABLE normalstrom_minute_nulls AS
+            CREATE OR REPLACE TABLE strom_minute AS
             WITH minutes_table AS (
-                SELECT UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) AS minute
-                FROM (VALUES (
-                [(SELECT MIN(date) FROM normalstrom), (SELECT MAX(DATE) FROM normalstrom)]
-                )) t(ts)
-            )
-            SELECT * 
-            FROM minutes_table
-            LEFT JOIN normalstrom
-            ON minutes_table.minute = normalstrom.date
-            ;
-
-            CREATE OR REPLACE TABLE normalstrom_minute AS
-            SELECT
-                minute,
-                date,
-                value,
-                minutes,
-                consumption,
-                FIRST_VALUE(cm IGNORE NULLS) OVER(
-                ORDER BY minute ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
-                ) AS cm
-            FROM normalstrom_minute_nulls t1
-            ORDER BY t1.minute
-            ;
-            """
-        )
-        return con.sql(
-            "SELECT md5(string_agg(normalstrom_minute::text, '')) FROM normalstrom_minute;"
-        ).df()
-
-
-@task(**task_ops)
-def ingest_waermestrom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
-    with duckdb.connect(duckdb_file) as con:
-        con.sql(
-            f"""
-            CREATE OR REPLACE TABLE waermestrom_nulls AS
-            WITH
-            ws181 AS (
-                SELECT 
-                    'Hoch' AS tariff,
-                    decode(date)::DATETIME AS date, 
-                    decode(value)::INT AS value,
-                    decode(first)::INT AS first
-                FROM sqlite_scan('{sqlite_file}', 'reading') 
-                WHERE meterid = 3 
-            ),
-            ws182 AS (
-                SELECT 
-                    'Niedrig' AS tariff, 
-                    decode(date)::DATETIME AS date, 
-                    decode(value)::INT AS value,
-                    decode(first)::INT AS first
-                FROM sqlite_scan('{sqlite_file}', 'reading') 
-                WHERE meterid = 2
-            )
-            SELECT
-                COALESCE(ws181.date, ws182.date) AS date,
-                ws181.value AS value_hoch,
-                ws182.value AS value_niedrig,
-                ws181.first AS first_hoch,
-                ws182.first AS first_niedrig
-            FROM ws181 
-            FULL JOIN ws182 
-            ON ws181.date = ws182.date
-            ORDER BY date
-            ;
-
-            CREATE OR REPLACE TABLE waermestrom_nonulls AS
-            SELECT
-                date,
-                value_hoch, value_niedrig, first_hoch, first_niedrig,
-                -- calculate minutes diff with previous and next date, 
-                -- to see which is closer.                 
-                -- note the use of a default value for lag/lead, substracting 
-                -- and adding one day for lag and lead respectively, to avoid 
-                -- NULLs in the first and last rows
-                date_sub('minute', lag(date, 1, date - INTERVAL 1 DAY)
-                    OVER(ORDER BY date), date) AS minutes_lag,
-                date_sub('minute', date, lead(date, 1, date + INTERVAL 1 DAY) 
-                    OVER(ORDER BY date)) AS minutes_lead,
-                -- and we want to replace null values column, with the value 
-                -- from closest date
-                CASE
-                    WHEN value_hoch IS NULL AND minutes_lag <= minutes_lead 
-                    THEN lag(value_hoch) over(order by date)
-                    WHEN value_hoch IS NULL AND minutes_lag > minutes_lead 
-                    THEN lead(value_hoch) over(order by date)
-                    ELSE value_hoch
-                END AS value_hoch_fix,
-                CASE
-                    WHEN value_niedrig IS NULL AND minutes_lag <= minutes_lead 
-                    THEN lag(value_niedrig) over(order by date)
-                    WHEN value_niedrig IS NULL AND minutes_lag > minutes_lead 
-                    THEN lead(value_niedrig) over(order by date)
-                    ELSE value_niedrig
-                END AS value_niedrig_fix,
-                value_hoch_fix + value_niedrig_fix AS value,
-                GREATEST(first_hoch, first_niedrig) AS first
-            FROM waermestrom_nulls 
-            ORDER BY date
-            ;
-
-            CREATE OR REPLACE TABLE waermestrom AS
             SELECT 
-                date,
-                value,
-                value_hoch_fix AS value_hoch,
-                value_niedrig_fix AS value_niedrig,
-                minutes_lag AS minutes,
-                -- add default values to lag(), to prevent null in the first row
-                -- use 11kwh less than the first value which is approximately 
-                -- the avg consumption per day
-                -- and would be equivalent to the minutes in the first row, 
-                -- that we set with the default
-                -- of one day in the previous query 
-                value * (1/(1-first)) - lag(value, 1) over(order by date) AS consumption,
-                1.0 * consumption / minutes_lag AS cm,
-                -- now calculate consumption per tariff
-                value_hoch_fix * (1/(1-first)) - lag(value_hoch_fix, 1) over(order by date) AS consumption_hoch,
-                value_niedrig_fix * (1/(1-first)) - lag(value_niedrig_fix, 1) over(order by date) AS consumption_niedrig,
-                1.0 * consumption_hoch / minutes_lag AS cm_hoch,
-                1.0 * consumption_niedrig / minutes_lag AS cm_niedrig
-            FROM waermestrom_nonulls 
-            WHERE minutes > 1 --get rid of the artificially short periods
-            ;
-
-            """
-        )
-        return con.sql(
-            "SELECT md5(string_agg(waermestrom::text, '')) FROM waermestrom;"
-        ).df()
-        # return con.sql("SELECT * FROM waermestrom;").df()
-
-
-@task(**task_ops)
-def expand_waermestrom_minute(waermestrom, duckdb_file="./duckdb/strom.duckdb"):
-    with duckdb.connect(duckdb_file) as con:
-        con.sql(
-            f"""
-            CREATE OR REPLACE TABLE waermestrom_minute_nulls AS
-            WITH minutes_table AS (
-            SELECT UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) as minute
+              UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) 
+                AS minute, 
+              generate_series AS meterid
             FROM (VALUES (
-            [(SELECT MIN(date) FROM waermestrom), (SELECT MAX(DATE) FROM waermestrom)]
-            )) t(ts)
+                [(SELECT MIN(date) FROM strom), (SELECT MAX(date) FROM strom)]
+            )) t(ts), generate_series(1, 3)
             )
-            SELECT * 
-            FROM minutes_table
-            LEFT JOIN waermestrom
-            ON minutes_table.minute = waermestrom.date
-            ;
-
-            CREATE OR REPLACE TABLE waermestrom_minute AS
-            SELECT
-            minute,
-            date,
-            value,
-            value_hoch,
-            value_niedrig,
-            minutes,
-            consumption,
-            FIRST_VALUE(cm IGNORE NULLS) OVER(
-            ORDER BY minute ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
+            SELECT 
+            minutes_table.meterid,
+            minutes_table.minute,
+            FIRST_VALUE(strom.cm IGNORE NULLS) OVER(
+                PARTITION BY minutes_table.meterid 
+                ORDER BY minutes_table.minute 
+                ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
             ) AS cm,
-            FIRST_VALUE(cm_hoch IGNORE NULLS) OVER(
-            ORDER BY minute ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
-            ) AS cm_hoch,
-            FIRST_VALUE(cm_niedrig IGNORE NULLS) OVER(
-            ORDER BY minute ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
-            ) AS cm_niedrig
-            FROM waermestrom_minute_nulls t1
-            ORDER BY t1.minute
+            strom.date,
+            strom.value,
+            strom.minutes,
+            strom.consumption 
+            FROM minutes_table
+            LEFT JOIN strom
+            ON minutes_table.minute = strom.date AND 
+               minutes_table.meterid = strom.meterid
+            ORDER BY minutes_table.minute
             ;
             """
         )
+
         return con.sql(
-            "SELECT md5(string_agg(waermestrom_minute::text, '')) FROM waermestrom_minute;"
+            "SELECT md5(string_agg(strom_minute::text, '')) FROM strom_minute;"
         ).df()
-        # return con.sql("SELECT * FROM waermestrom_minute;").df()
 
 
 @task(**task_ops)
-def make_strom_per_day(
-    normalstrom_minute, waermestrom_minute, duckdb_file="./duckdb/strom.duckdb"
-):
+def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
-        waermestrom_per_day = con.sql(
-            f"""
-            CREATE OR REPLACE TABLE waermestrom_per_day AS
-            SELECT 
-                minute::DATE AS date,
-                24.0 * 60.0 * AVG(cm) AS wd,
-                SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS wobs,
-            FROM waermestrom_minute
-            GROUP BY minute::DATE
-            ;
-            SELECT * FROM waermestrom_per_day;
-            """
-        ).df()
-        normalstrom_per_day = con.sql(
-            f"""
-            CREATE OR REPLACE TABLE normalstrom_per_day AS
-            SELECT 
-                minute::DATE AS date,
-                24.0 * 60.0 * AVG(cm) AS nd,
-                SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS nobs,
-            FROM normalstrom_minute
-            GROUP BY minute::DATE
-            ;
-            SELECT * FROM normalstrom_per_day;
-            """
-        ).df()
         strom_per_day = con.sql(
             f"""
             CREATE OR REPLACE TABLE strom_per_day AS
             SELECT 
-                normalstrom_per_day.date AS date,
-                normalstrom_per_day.nobs AS obs,
-                normalstrom_per_day.nd AS nd,
-                waermestrom_per_day.wd AS wd
-            FROM normalstrom_per_day
-            INNER JOIN waermestrom_per_day 
-            ON normalstrom_per_day.date = waermestrom_per_day.date
+                date,
+                "1_cd" AS nd,
+                "2_cd" + "3_cd" AS wd,
+                "2_cd" AS nt,
+                "3_cd" AS ht,
+                GREATEST("1_obs", "2_obs", "3_obs") AS obs
+            FROM (
+                WITH cte AS (
+                    SELECT CAST(minute AS DATE) AS date, * FROM strom_minute
+                )
+                PIVOT_WIDER cte
+                ON meterid
+                USING 
+                    SUM(cm) AS tot,
+                    AVG(cm* 24.0 * 60.0)  AS cd, 
+                    SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS obs
+                GROUP BY date
+            )
             ;
-            SELECT * FROM strom_per_day;
             """
-        ).df()
-        strom_per_day = pd.merge(
-            normalstrom_per_day,
-            waermestrom_per_day,
-            on="date",
-            validate="one_to_one",
-        )
-        strom_per_day = strom_per_day.drop(columns="nobs").rename(
-            columns={"wobs": "obs"}
         )
 
-        return strom_per_day
+        return con.sql("SELECT * FROM strom_per_day;").df()
+
+
+@task(**task_ops)
+def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
+    with duckdb.connect(duckdb_file) as con:
+        strom_per_day = con.sql(
+            f"""
+            CREATE OR REPLACE TABLE strom_per_month AS
+            SELECT 
+                year, month,
+                "1_cd" AS nd,
+                "2_cd" + "3_cd" AS wd,
+                "2_cd" AS nt,
+                "3_cd" AS ht,
+                GREATEST("1_obs", "2_obs", "3_obs") AS obs
+            FROM (
+                WITH cte AS (
+                    SELECT     
+                    EXTRACT(YEAR FROM minute) AS year,    
+                    EXTRACT(MONTH FROM minute) AS month,
+                    * 
+                    FROM strom_minute
+                    WHERE 
+                        (minute >= '2020-12-01' AND minute <= '2021-05-31') OR 
+                        (minute >= '2022-12-01')
+                )
+                PIVOT_WIDER cte
+                ON meterid
+                USING 
+                    SUM(cm) AS cd,
+                    --AVG(cm* 24.0 * 60.0)  AS cd, 
+                    SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS obs
+                GROUP BY year, month
+            )
+            ;
+            """
+        )
+
+        return con.sql("SELECT * FROM strom_per_month;").df()

@@ -8,6 +8,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 strom_prices = {"normalstrom_minute": 0.3713, "waermestrom_minute": 0.2763}
+meterid = {"normalstrom_minute": "(1)", "waermestrom_minute": "(2, 3)"}
 
 
 def calculate_avg_consumption_periods(
@@ -68,11 +69,11 @@ def calculate_avg_consumption(
 
     if begin is None:
         with duckdb.connect(duckdb_file) as con:
-            begin = con.sql(f"SELECT MIN(date) FROM {minute_table}").fetchone()[0]
+            begin = con.sql(f"SELECT MIN(minute) FROM strom_minute").fetchone()[0]
 
     if fin is None:
         with duckdb.connect(duckdb_file) as con:
-            fin = con.sql(f"SELECT MAX(date) FROM {minute_table}").fetchone()[0]
+            fin = con.sql(f"SELECT MAX(minute) FROM strom_minute").fetchone()[0]
 
     price = strom_prices.get(minute_table)
 
@@ -93,8 +94,9 @@ def calculate_avg_consumption(
                 365.25 * "Use/Day" AS "Use/Year",
                 {price} * "Use/Day" AS "Daily Exp",
                 {price} * "Use/Year" AS "Yearly Exp"
-            FROM {minute_table}
-            WHERE minute >= '{begin}' AND minute <= '{fin}'
+            FROM strom_minute
+            WHERE minute >= '{begin}' AND minute <= '{fin}' AND
+            meterid IN {meterid.get(minute_table)}
             ;
             """
         ).df()
@@ -184,7 +186,7 @@ def compare_last_days(
 
 
 @task(**task_ops)
-def normalstrom_consumption(duckdb_file, normalstrom_minute, *args, **kwargs):
+def normalstrom_consumption(duckdb_file, *args, **kwargs):
     return calculate_avg_consumption(
         minute_table="normalstrom_minute",
         duckdb_file=duckdb_file,
@@ -192,7 +194,7 @@ def normalstrom_consumption(duckdb_file, normalstrom_minute, *args, **kwargs):
 
 
 @task(**task_ops)
-def waermestrom_consumption(duckdb_file, waermestrom_minute, *args, **kwargs):
+def waermestrom_consumption(duckdb_file, *args, **kwargs):
     return calculate_avg_consumption(
         minute_table="waermestrom_minute",
         duckdb_file=duckdb_file,
