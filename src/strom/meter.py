@@ -128,3 +128,42 @@ def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
         )
 
         return con.sql("SELECT * FROM strom_per_day;").df()
+
+
+@task(**task_ops)
+def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
+    with duckdb.connect(duckdb_file) as con:
+        strom_per_day = con.sql(
+            f"""
+            CREATE OR REPLACE TABLE strom_per_month AS
+            SELECT 
+                year, month,
+                "1_cd" AS nd,
+                "2_cd" + "3_cd" AS wd,
+                "2_cd" AS nt,
+                "3_cd" AS ht,
+                GREATEST("1_obs", "2_obs", "3_obs") AS obs
+            FROM (
+                WITH cte AS (
+                    SELECT     
+                    EXTRACT(YEAR FROM minute) AS year,    
+                    EXTRACT(MONTH FROM minute) AS month,
+                    * 
+                    FROM strom_minute
+                    WHERE 
+                        (minute >= '2020-12-01' AND minute <= '2021-05-31') OR 
+                        (minute >= '2022-12-01')
+                )
+                PIVOT_WIDER cte
+                ON meterid
+                USING 
+                    SUM(cm) AS cd,
+                    --AVG(cm* 24.0 * 60.0)  AS cd, 
+                    SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS obs
+                GROUP BY year, month
+            )
+            ;
+            """
+        )
+
+        return con.sql("SELECT * FROM strom_per_month;").df()

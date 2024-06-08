@@ -1,0 +1,119 @@
+```{python}
+# | include: false
+# | eval: true
+import strom
+import epyfun
+
+strom_per_month = strom.read_result("make_strom_per_month")
+
+strom_per_month["month_name"] = pd.to_datetime(
+    strom_per_month["month"], format="%m"
+).dt.month_name()
+
+monthly_averages = strom_per_month.groupby(["month", "month_name"]).agg(
+    mean_nd=("nd", "mean"), mean_wd=("wd", "mean")
+)
+monthly_averages = epyfun.clean_names(monthly_averages).reset_index()
+month_order = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
+```
+
+## Row
+
+```{python}
+nd_df = monthly_averages.rename(
+    columns={"month_name": "Monat", "mean_nd": "Verbrauch (kWh)"}
+).drop(columns=["month", "mean_wd"])
+price = strom.consumption.strom_prices.get("normalstrom_minute")
+nd_df["Verbrauch (€)"] = nd_df["Verbrauch (kWh)"] * price
+nd_df["Verbrauch (kWh)"] = nd_df["Verbrauch (kWh)"].round().astype(int)
+nd_df["Verbrauch (€)"] = nd_df["Verbrauch (€)"].round().astype(int)
+nd_df
+```
+
+```{python}
+nd_df = monthly_averages.rename(
+    columns={"month_name": "Monat", "mean_wd": "Verbrauch (kWh)"}
+).drop(columns=["month", "mean_nd"])
+price = strom.consumption.strom_prices.get("waermestrom_minute")
+nd_df["Verbrauch (€)"] = nd_df["Verbrauch (kWh)"] * price
+nd_df["Verbrauch (kWh)"] = nd_df["Verbrauch (kWh)"].round().astype(int)
+nd_df["Verbrauch (€)"] = nd_df["Verbrauch (€)"].round().astype(int)
+nd_df
+```
+
+
+## Row
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.line(
+    strom_per_month,
+    x="month_name",
+    y="nd",
+    color="year",
+    category_orders={"month_name": month_order},
+)
+
+fig = fig.add_trace(
+    go.Bar(
+        x=monthly_averages["month_name"],
+        y=monthly_averages["mean_nd"],
+        name="Durchschnitt",
+    )
+)
+
+fig = fig.update_layout(xaxis_title=None, yaxis_title="Verbrauch im Monat (kWh)")
+fig = fig.update_layout(
+    legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
+)
+fig
+```
+
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.line(
+    strom_per_month,
+    x="month_name",
+    y="wd",
+    color="year",
+    category_orders={"month_name": month_order},
+)
+
+
+fig = fig.add_trace(
+    go.Bar(
+        x=monthly_averages["month_name"],
+        y=monthly_averages["mean_wd"],
+        name="Durchschnitt",
+    )
+)
+
+fig = fig.update_layout(xaxis_title=None, yaxis_title="Verbrauch im Monat (kWh)")
+fig = fig.update_layout(
+    legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
+)
+fig
+```
+

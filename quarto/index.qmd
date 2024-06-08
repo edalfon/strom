@@ -6,8 +6,9 @@ format: dashboard
 # Die gesamte Periode
 
 ```{python}
-#| include: false
+# | include: false
 import strom
+
 normalstrom_consumption = strom.read_result("normalstrom_consumption")
 waermestrom_consumption = strom.read_result("waermestrom_consumption")
 
@@ -218,3 +219,10 @@ daily, average = strom.read_result("last_5_days")
 ```
 
 {{< include Dashboard/_periods.qmd >}}
+
+
+# Im Monat
+
+{{< include Dashboard/_month.qmd >}}
+
+
