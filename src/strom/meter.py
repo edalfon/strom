@@ -151,8 +151,12 @@ def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
                     * 
                     FROM strom_minute
                     WHERE 
-                        (minute >= '2020-12-01' AND minute <= '2021-05-31') OR 
-                        (minute >= '2022-12-01')
+                        (minute >= '2020-12-01' AND minute <= '2021-04-30') 
+                        OR 
+                        (minute >= '2022-12-01' AND minute < (
+                            SELECT DATE_TRUNC('month', MAX(minute))
+                            FROM strom_minute
+                        ))
                 )
                 PIVOT_WIDER cte
                 ON meterid
