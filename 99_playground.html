@@ -314,7 +314,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<div id="cell-0" class="cell" data-execution_count="1">
+<div id="cell-0" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext sql</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql <span class="op">--</span>section duck</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> epyfun</span>
@@ -1138,6 +1138,367 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </table>
 
 <p>12469425 rows × 9 columns</p>
+</div>
+</div>
+</div>
+</div>
+<div id="cell-9" class="cell" data-vscode="{&quot;languageId&quot;:&quot;sql&quot;}" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>sql</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>            SELECT </span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>                year, month, day, hour,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                <span class="co">"1_cd"</span> AS nd,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>                <span class="co">"2_cd"</span> <span class="op">+</span> <span class="st">"3_cd"</span> AS wd,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>                <span class="co">"2_cd"</span> AS nt,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>                <span class="co">"3_cd"</span> AS ht,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>                (<span class="st">"1_weight"</span> <span class="op">+</span> <span class="st">"2_weight"</span> <span class="op">+</span> <span class="st">"3_weight"</span>) <span class="op">/</span> <span class="dv">3</span> AS weight</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>            FROM (</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>                WITH cte AS (</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>                    SELECT     </span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>                    EXTRACT(YEAR FROM minute) AS year,    </span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>                    EXTRACT(MONTH FROM minute) AS month,</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>                    EXTRACT(DAY FROM minute) AS day,</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>                    EXTRACT(HOUR FROM minute) AS hour,</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>                    <span class="dv">1</span> <span class="op">/</span> FIRST_VALUE(minutes IGNORE NULLS) OVER(</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>                        PARTITION BY meterid </span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>                        ORDER BY minute </span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>                        ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING </span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>                    ) AS weight,</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>                    <span class="op">*</span> </span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>                    FROM strom_minute</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>                    WHERE </span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>                        (minute <span class="op">&gt;=</span> <span class="st">'2020-12-01'</span> AND minute <span class="op">&lt;=</span> <span class="st">'2021-05-25'</span>) </span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>                        OR </span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>                        (minute <span class="op">&gt;=</span> <span class="st">'2022-12-01'</span>)</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>                PIVOT_WIDER cte</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>                ON meterid</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>                USING </span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>                    SUM(cm) AS cd,</span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>                    <span class="op">--</span>AVG(cm<span class="op">*</span> <span class="fl">24.0</span> <span class="op">*</span> <span class="fl">60.0</span>)  AS cd, </span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>                    AVG(weight) AS weight</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>                GROUP BY year, month, day, hour</span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>            <span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="21">
+<div>
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">year</th>
+<th data-quarto-table-cell-role="th">month</th>
+<th data-quarto-table-cell-role="th">day</th>
+<th data-quarto-table-cell-role="th">hour</th>
+<th data-quarto-table-cell-role="th">nd</th>
+<th data-quarto-table-cell-role="th">wd</th>
+<th data-quarto-table-cell-role="th">nt</th>
+<th data-quarto-table-cell-role="th">ht</th>
+<th data-quarto-table-cell-role="th">weight</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>2023</td>
+<td>10</td>
+<td>5</td>
+<td>2</td>
+<td>0.365440</td>
+<td>0.195918</td>
+<td>0.11303</td>
+<td>0.082889</td>
+<td>0.000063</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>2023</td>
+<td>10</td>
+<td>5</td>
+<td>10</td>
+<td>0.365440</td>
+<td>0.195918</td>
+<td>0.11303</td>
+<td>0.082889</td>
+<td>0.000063</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>2023</td>
+<td>10</td>
+<td>5</td>
+<td>18</td>
+<td>0.365440</td>
+<td>0.195918</td>
+<td>0.11303</td>
+<td>0.082889</td>
+<td>0.000063</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>2023</td>
+<td>10</td>
+<td>6</td>
+<td>1</td>
+<td>0.365440</td>
+<td>0.195918</td>
+<td>0.11303</td>
+<td>0.082889</td>
+<td>0.000063</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>2023</td>
+<td>10</td>
+<td>6</td>
+<td>21</td>
+<td>0.365440</td>
+<td>0.195918</td>
+<td>0.11303</td>
+<td>0.082889</td>
+<td>0.000063</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">17534</td>
+<td>2024</td>
+<td>1</td>
+<td>18</td>
+<td>11</td>
+<td>0.595238</td>
+<td>0.595238</td>
+<td>0.00000</td>
+<td>0.595238</td>
+<td>0.001984</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17535</td>
+<td>2024</td>
+<td>1</td>
+<td>18</td>
+<td>15</td>
+<td>0.597042</td>
+<td>0.546537</td>
+<td>0.00000</td>
+<td>0.546537</td>
+<td>0.002495</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">17536</td>
+<td>2024</td>
+<td>1</td>
+<td>18</td>
+<td>16</td>
+<td>0.606061</td>
+<td>0.303030</td>
+<td>0.00000</td>
+<td>0.303030</td>
+<td>0.005051</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17537</td>
+<td>2024</td>
+<td>1</td>
+<td>18</td>
+<td>22</td>
+<td>0.093750</td>
+<td>1.218750</td>
+<td>0.93750</td>
+<td>0.281250</td>
+<td>0.001562</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">17538</td>
+<td>2024</td>
+<td>1</td>
+<td>19</td>
+<td>4</td>
+<td>0.093750</td>
+<td>1.218750</td>
+<td>0.93750</td>
+<td>0.281250</td>
+<td>0.001562</td>
+</tr>
+</tbody>
+</table>
+
+<p>17539 rows × 9 columns</p>
+</div>
+</div>
+</div>
+</div>
+<div id="cell-10" class="cell" data-vscode="{&quot;languageId&quot;:&quot;sql&quot;}" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>sql</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>SELECT <span class="op">*</span>,</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>            <span class="dv">1</span> <span class="op">/</span> FIRST_VALUE(minutes IGNORE NULLS) OVER(</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>                PARTITION BY meterid </span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>                ORDER BY minute </span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>                ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING </span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>            ) AS weight,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>FROM strom_minute</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>WHERE meterid <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="op">--</span>LIMIT <span class="dv">50</span> OFFSET <span class="dv">100089</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="18">
+<div>
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">meterid</th>
+<th data-quarto-table-cell-role="th">minute</th>
+<th data-quarto-table-cell-role="th">cm</th>
+<th data-quarto-table-cell-role="th">date</th>
+<th data-quarto-table-cell-role="th">value</th>
+<th data-quarto-table-cell-role="th">minutes</th>
+<th data-quarto-table-cell-role="th">consumption</th>
+<th data-quarto-table-cell-role="th">weight</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>1</td>
+<td>2016-07-04 07:50:00</td>
+<td>0.100000</td>
+<td>2016-07-04 07:50:00</td>
+<td>0.0</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0.100000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>1</td>
+<td>2016-07-04 07:51:00</td>
+<td>0.100000</td>
+<td>NaT</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0.100000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>1</td>
+<td>2016-07-04 07:52:00</td>
+<td>0.100000</td>
+<td>NaT</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0.100000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>1</td>
+<td>2016-07-04 07:53:00</td>
+<td>0.100000</td>
+<td>NaT</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0.100000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>1</td>
+<td>2016-07-04 07:54:00</td>
+<td>0.100000</td>
+<td>NaT</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0.100000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4170844</td>
+<td>1</td>
+<td>2024-06-08 17:54:00</td>
+<td>0.012281</td>
+<td>NaT</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0.001754</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">4170845</td>
+<td>1</td>
+<td>2024-06-08 17:55:00</td>
+<td>0.012281</td>
+<td>NaT</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0.001754</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4170846</td>
+<td>1</td>
+<td>2024-06-08 17:56:00</td>
+<td>0.012281</td>
+<td>NaT</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0.001754</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">4170847</td>
+<td>1</td>
+<td>2024-06-08 17:57:00</td>
+<td>0.012281</td>
+<td>NaT</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>0.001754</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4170848</td>
+<td>1</td>
+<td>2024-06-08 17:58:00</td>
+<td>0.012281</td>
+<td>2024-06-08 17:58:00</td>
+<td>226.0</td>
+<td>570.0</td>
+<td>7.0</td>
+<td>0.001754</td>
+</tr>
+</tbody>
+</table>
+
+<p>4170849 rows × 8 columns</p>
 </div>
 </div>
 </div>
