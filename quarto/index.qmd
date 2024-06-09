@@ -226,3 +226,7 @@ daily, average = strom.read_result("last_5_days")
 {{< include Dashboard/_month.qmd >}}
 
 
+# Pro Stunde
+
+{{< include Dashboard/_hour.qmd >}}
+

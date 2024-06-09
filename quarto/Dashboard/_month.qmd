@@ -3,6 +3,7 @@
 # | eval: true
 import strom
 import epyfun
+import pandas as pd
 
 strom_per_month = strom.read_result("make_strom_per_month")
 

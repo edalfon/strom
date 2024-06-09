@@ -1,0 +1,177 @@
+```{python}
+# | include: false
+# | eval: true
+import strom
+import epyfun
+import pandas as pd
+import numpy as np
+
+strom_per_hour = strom.read_result("make_strom_per_hour")
+# .query("year == 2023")
+
+wm = lambda x: np.average(x, weights=strom_per_hour.loc[x.index, "weight"])
+
+strom_per_hour["month_name"] = pd.to_datetime(
+    strom_per_hour["month"], format="%m"
+).dt.month_name()
+
+hour_avg = strom_per_hour.groupby(["hour"]).agg(
+    mean_nd=("nd", wm),
+    mean_wd=("wd", wm),
+)
+hour_avg = epyfun.clean_names(hour_avg).reset_index()
+
+hour_month_avg = strom_per_hour.groupby(["hour", "month_name"]).agg(
+    mean_nd=("nd", wm),
+    mean_wd=("wd", wm),
+)
+hour_month_avg = epyfun.clean_names(hour_month_avg).reset_index()
+
+
+hour_year_avg = strom_per_hour.groupby(["hour", "year"]).agg(
+    mean_nd=("nd", wm),
+    mean_wd=("wd", wm),
+)
+hour_year_avg = epyfun.clean_names(hour_year_avg).reset_index()
+
+month_order = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
+```
+
+
+## Row
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.line(
+    hour_year_avg,
+    x="hour",
+    y="mean_nd",
+    color="year"
+)
+
+fig = fig.add_trace(
+    go.Bar(
+        x=hour_avg["hour"],
+        y=hour_avg["mean_nd"],
+        name="Durchschnitt",
+    )
+)
+
+fig = fig.update_layout(xaxis_title=None, yaxis_title="Verbrauch pro Stunde (kWh)")
+fig = fig.update_layout(
+    legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
+)
+fig
+```
+
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.line(
+    hour_year_avg,
+    x="hour",
+    y="mean_wd",
+    color="year"
+)
+
+fig = fig.add_trace(
+    go.Bar(
+        x=hour_avg["hour"],
+        y=hour_avg["mean_wd"],
+        name="Durchschnitt",
+    )
+)
+
+fig = fig.update_layout(xaxis_title=None, yaxis_title="Verbrauch pro Stunde (kWh)")
+fig = fig.update_layout(
+    legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
+)
+fig
+```
+
+
+
+## Row
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.line(
+    hour_month_avg,
+    x="hour",
+    y="mean_nd",
+    color="month_name",
+    category_orders={"month_name": month_order},
+)
+
+fig = fig.add_trace(
+    go.Bar(
+        x=hour_avg["hour"],
+        y=hour_avg["mean_nd"],
+        name="Durchschnitt",
+    )
+)
+
+fig = fig.update_layout(xaxis_title=None, yaxis_title="Verbrauch pro Stunde (kWh)")
+# fig = fig.update_layout(
+#     legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
+# )
+fig
+```
+
+
+```{python}
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.line(
+    hour_month_avg,
+    x="hour",
+    y="mean_wd",
+    color="month_name",
+    category_orders={"month_name": month_order},
+)
+
+fig = fig.add_trace(
+    go.Bar(
+        x=hour_avg["hour"],
+        y=hour_avg["mean_wd"],
+        name="Durchschnitt",
+    )
+)
+
+fig = fig.update_layout(xaxis_title=None, yaxis_title="Verbrauch pro Stunde (kWh)")
+# fig = fig.update_layout(
+#     legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
+# )
+fig
+```
+
+
+

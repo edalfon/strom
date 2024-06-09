@@ -34,6 +34,7 @@ def strom_flow():
     strom_minute = meter.expand_strom_minute(strom, duckdb_file)
     strom_per_day = meter.make_strom_per_day(strom_minute, duckdb_file)
     strom_per_month = meter.make_strom_per_month(strom_minute, duckdb_file)
+    strom_per_hour = meter.make_strom_per_hour(strom_minute, duckdb_file)
     # month
 
     climate_daily = dwd.get_climate_data(date.today())
