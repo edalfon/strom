@@ -339,10 +339,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="strom-consumption-per-day" class="level1">
 <h1>Strom consumption per day</h1>
-<div id="35246bd0" class="cell" data-execution_count="8">
+<div id="4eab1fcd" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql strom_per_measurement <span class="op">&lt;&lt;</span> SELECT <span class="op">*</span> FROM normalstrom<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="2e14c47b" class="cell" data-execution_count="9">
+<div id="ad576a8d" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.express <span class="im">as</span> px</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.graph_objects <span class="im">as</span> go</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> px.bar(strom_per_day, y<span class="op">=</span><span class="st">'cd'</span>, x<span class="op">=</span><span class="st">'date'</span>)</span>
@@ -396,7 +396,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>So, an normalen Tagen beträgt der Stromverbrauch etwa 10-11 kWh. An Urlaubstagen liegt er bei 2,85 kWh. Also, man kann sagen, es sind 3 kWh. Das entspricht wahrscheinlich hauptsächlich dem Stromverbrauch des Kühlschranks, …, und was noch? Keine Ahnung. Aber gut, 10 - 11 kWh bedeuten bei aktuellen 0,38 Cent pro kWh, dass der Stromverbrauch etwa 4 Euro pro Tag beträgt. Im Urlaub, bei 2,85-3 kWh zu 38 Cent pro kWh, sind es ungefähr 1 Euro pro Tag. Das heißt, 10 Tage Urlaub sparen etwa 30 Euro (3 Euro pro Tag).</p>
-<div id="9a6b7e10" class="cell" data-execution_count="10">
+<div id="4f517323" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>sql</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>SELECT <span class="op">*</span></span>
@@ -408,7 +408,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="consumption-per-week" class="level1">
 <h1>Consumption per week</h1>
-<div id="2f3911e4" class="cell" data-execution_count="12">
+<div id="f8843f2b" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.express <span class="im">as</span> px</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> px.bar(normalstrom_per_week, y<span class="op">=</span><span class="st">'cd'</span>, x<span class="op">=</span><span class="st">'week_start'</span>)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>fig.update_xaxes(</span>
