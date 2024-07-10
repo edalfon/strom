@@ -4406,12 +4406,12 @@ test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
 
 [[package]]
 name = "quarto-cli"
-version = "1.4.553"
+version = "1.4.555"
 description = "Open-source scientific and technical publishing system built on Pandoc."
 optional = false
 python-versions = "*"
 files = [
-    {file = "quarto-cli-1.4.553.tar.gz", hash = "sha256:e25071ff518c9f5e66216aa0b41c2dbd1560aa0c168434f014bd27d14b9ee4af"},
+    {file = "quarto_cli-1.4.555.tar.gz", hash = "sha256:89dd5b367b0f679c5fe502045d4c0362f762d71b05c37c9eabda667ca3d12b2c"},
 ]
 
 [package.dependencies]

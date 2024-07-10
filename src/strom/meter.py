@@ -184,7 +184,7 @@ def make_strom_per_hour(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
                 "2_cd" + "3_cd" AS wd,
                 "2_cd" AS nt,
                 "3_cd" AS ht,
-                ("1_weight" + "2_weight" + "3_weight") / 3 AS weight
+                (("1_weight" + "2_weight" + "3_weight") / 3) AS weight
             FROM (
                 WITH cte AS (
                     SELECT     
