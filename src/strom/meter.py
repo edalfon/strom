@@ -1,6 +1,7 @@
 from prefect import task
 
 from strom.prefect_ops import task_ops
+from strom.duckdb import duck_md5
 
 import duckdb
 import pandas as pd
@@ -48,13 +49,7 @@ def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
             ;
             """
         )
-        strom_md5 = con.sql(
-            """
-            SELECT md5(string_agg(strom::text, '')) AS md5 
-            FROM strom;
-            """
-        ).df()
-        return strom_md5
+        return duck_md5(con, "strom")
 
 
 @task(**task_ops)
@@ -93,9 +88,7 @@ def expand_strom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
             """
         )
 
-        return con.sql(
-            "SELECT md5(string_agg(strom_minute::text, '')) FROM strom_minute;"
-        ).df()
+        return duck_md5(con, "strom_minute")
 
 
 @task(**task_ops)
