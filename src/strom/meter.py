@@ -9,10 +9,39 @@ import pandas as pd
 
 @task(**task_ops)
 def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
-    """Ingest data into `normalstrom` table.
+    """Ingest strom measurements data into a DuckDB table named 'strom'.
+
+    This function reads the raw data from a SQLite file containing meter
+    data. In such data, every row is one measurement for a given meter
+    (meterid). The function ingest that into the strom table in duckdb,
+    that includes the following columns:
+
+    - meterid: int with the meter id, where 1 corresponds to normal strom and 2
+      and 3 to wärmestrom in hoch and niedrig tariff, respectively.
+    - date: datetime of the measurement.
+    - value: value of the meter at the measurement datetime.
+    - first: dummy variable, where 1 indicates that it is a first measurement
+     (e.g. the beginning of all time, or when meter is changes or restarted).
+    - minutes: number of minutes between previous and current measurement.
+    - consumption: consumption since the last measurement, calculated as
+      value_(i) - value_(i-1)). Whenever there is a first measurement,
+      consumption should be NA / NULL, because the meter started again and
+      the comparison with the previous value is not relevant anymore.
+    - cm: consumption per minute, calculated as consumption / minutes.
+
+    Finally, note the decorator. This is a prefect task, to be used within a
+    prefect flow, gaining its benefits such as caching, logging, monitoring.
+    That's also why we decided to return the md5 checksum of the data, to
+    help prefect in tracking changes, without returning the whole table.
+
+    Args:
+        sqlite_file: Path to the SQLite file containing the electricity data.
+        duckdb_file: Path to the DuckDB database file
+                     (defaults to "./duckdb/strom.duckdb").
 
     Returns:
-        pandas.DataFrame: A DataFrame containing the MD5 checksum of the 'normalstrom' table.
+        A pandas DataFrame containing a single row with the column 'md5'
+        containing the checksum of the whole table.
     """
     with duckdb.connect(duckdb_file) as con:
         con.install_extension("sqlite")  # con.sql("INSTALL sqlite;")
@@ -49,11 +78,12 @@ def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
             ;
             """
         )
+
         return duck_md5(con, "strom")
 
 
 @task(**task_ops)
-def expand_strom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
+def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         con.sql(
             f"""
