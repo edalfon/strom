@@ -1,76 +1,85 @@
 ---
 title: "Strom"
 execute:
-  echo: true
-  eval: false
+  echo: false
+  eval: true
+  code-fold: true
 ---
 
 ```{python}
 #| include: false
 %load_ext sql
-%sql --section ducktest
+%sql --section duck
 #%sql duckdb:///./duckdb/strom.duckdb
 ```
 
+```{python}
+#| include: false
+%sql SELECT * FROM strom;
+```
 
 ```{python}
 #| include: false
-%sql SELECT * FROM normalstrom;
-```
-```{python}
-#| include: false
-%sql SELECT * FROM normalstrom_minute;
+%sql SELECT * FROM strom_minute;
 ```
 
 # Stromverbrauch im Durchschnitt
 
 ```{python}
-#| include: false
-%%sql
-
-strom_avg << SELECT 
-  MIN(value) AS Min,
-  MAX(value) AS Max,
-  MAX(value) - MIN(value) AS Use,
-
-  MIN(date) AS First,
-  MAX(date) AS Last,
-  date_sub('minute', MIN(date), MAX(date)) AS Mins, 
-
-  24.0 * 60.0 * Use / Mins AS "Use/Day",
-  365.0 * "Use/Day" AS "Use/Year",
-  0.3894 * "Use/Year" AS "Yearly Exp"
-FROM normalstrom
-;
-```
-
-
-```{python}
-#| echo: false
-strom_avg
-```
-
-```{python}
-#| include: false
+#| include: true
 %%sql
 
 SELECT 
   MIN(value) AS Min,
   MAX(value) AS Max,
-  MAX(value) - MIN(value) AS Use,
+  -- this approach does not work anyore, due to meter restart
+  -- MAX(value) - MIN(value) AS Use,
+  -- 24.0 * 60.0 * Use / Mins AS "Use/Day",
 
   MIN(date) AS First,
   MAX(date) AS Last,
   date_sub('minute', MIN(date), MAX(date)) AS Mins, 
 
-  24.0 * 60.0 * Use / Mins AS "Use/Day",
-  24.0 * 60.0 * AVG(cm), -- this should be the same as the above (perhaps rounding errors are ok)
+  24.0 * 60.0 * AVG(cm) AS "Use/Day", 
 
   365.0 * "Use/Day" AS "Use/Year",
   0.3894 * "Use/Year" AS "Yearly Exp"
-FROM normalstrom_minute
+FROM strom_minute
+WHERE meterid = 1
 ;
 ```
+
+<details><summary>pro Jahr</summary>
+<p>
+```{python}
+#| include: true
+%%sql
+
+SELECT 
+  year(minute) AS year,
+  MIN(value) AS Min,
+  MAX(value) AS Max,
+  -- this approach does not work anyore, due to meter restart
+  -- MAX(value) - MIN(value) AS Use,
+  -- 24.0 * 60.0 * Use / Mins AS "Use/Day",
+
+  MIN(date) AS First,
+  MAX(date) AS Last,
+  date_sub('minute', MIN(date), MAX(date)) AS Mins, 
+
+  24.0 * 60.0 * AVG(cm) AS "Use/Day", 
+
+  365.0 * "Use/Day" AS "Use/Year",
+  0.3894 * "Use/Year" AS "Yearly Exp"
+FROM strom_minute
+WHERE meterid = 1
+GROUP BY year(minute)
+;
+```
+</p>
+</details>
+
+
 
 # Strom consumption per day
 
@@ -82,34 +91,37 @@ strom_per_day << SELECT
   minute::DATE AS date,
   24.0 * 60.0 * AVG(cm) AS cd,
   24.0 * 60.0 * AVG(consumption/minutes) AS obs,
-FROM normalstrom_minute
+FROM strom_minute
+WHERE meterid = 1
 GROUP BY minute::DATE
 ;
 ```
 
 
 ```{python}
-%sql strom_per_measurement << SELECT * FROM normalstrom;
+%sql strom_per_measurement << SELECT * FROM strom WHERE meterid = 1;
 ```
 
 
 ```{python}
 import plotly.express as px
 import plotly.graph_objects as go
-fig = px.bar(strom_per_day, y='cd', x='date')
+from datetime import datetime, timedelta
+
+fig = px.bar(strom_per_day, y="cd", x="date")
 # trying to add data points for the actual measurements, on top of the daily average
-# but this way to do it, messes with the x-range (which could be fixed, but 
-# requires typing) and with the y-range as well, because the individual data 
-# points have, of course, more variability (this can only be fixed, at the cost 
-# of not including all points in the chart). It also steals the thunder of the 
+# but this way to do it, messes with the x-range (which could be fixed, but
+# requires typing) and with the y-range as well, because the individual data
+# points have, of course, more variability (this can only be fixed, at the cost
+# of not including all points in the chart). It also steals the thunder of the
 # bar plot, at least when you look at the whole-range plot (fiddling with size
 # and opacity could help with this).
 # But overall, I have the feeling this does not add much value or valuable info
 # to the plot.
 # fig.add_trace(go.Scatter(
-#   x=strom_per_measurement['date'], 
-#   y=strom_per_measurement['consumption_day_equivalent'], 
-#   mode='markers', 
+#   x=strom_per_measurement['date'],
+#   y=strom_per_measurement['consumption_day_equivalent'],
+#   mode='markers',
 #   marker=dict(
 #     size=2,
 #     color='LightSkyBlue',
@@ -120,9 +132,9 @@ fig = px.bar(strom_per_day, y='cd', x='date')
 # So let' try adding just points on the days there were actual measurements
 # this a bit better, but still I am not convinced this add much value
 # fig.add_trace(go.Scatter(
-#   x=strom_per_day['date'], 
-#   y=strom_per_day['obs'], 
-#   mode='markers', 
+#   x=strom_per_day['date'],
+#   y=strom_per_day['obs'],
+#   mode='markers',
 #   marker=dict(
 #     size=3,
 #     color='LightSkyBlue',
@@ -133,17 +145,23 @@ fig = px.bar(strom_per_day, y='cd', x='date')
 fig.update_xaxes(
     rangeslider_visible=True,
     rangeselector=dict(
-        buttons=list([
-            dict(count=15, label="15d", step="day", stepmode="backward"),
-            dict(count=1, label="1m", step="month", stepmode="backward"),
-            dict(count=6, label="6m", step="month", stepmode="backward"),
-            dict(count=1, label="YTD", step="year", stepmode="todate"),
-            dict(count=1, label="1y", step="year", stepmode="backward"),
-            dict(step="all")
-        ])
-    )
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+    range=[
+        "2022-12-01",
+        strom_per_day["date"].max(),
+    ],
 )
-fig.update_xaxes(rangeslider_thickness = 0.1)
+fig.update_xaxes(rangeslider_thickness=0.1)
 fig.show()
 ```
 
@@ -154,7 +172,8 @@ So, an normalen Tagen beträgt der Stromverbrauch etwa 10-11 kWh. An Urlaubstage
 %%sql
 
 SELECT *
-FROM normalstrom
+FROM strom
+WHERE meterid = 1
 ORDER BY date DESC
 LIMIT 10
 ;
@@ -170,7 +189,8 @@ LIMIT 10
 normalstrom_per_week << SELECT 
   DATE_TRUNC('week', minute) AS week_start,
   24.0 * 60.0 * AVG(cm) AS cd
-FROM normalstrom_minute
+FROM strom_minute
+WHERE meterid = 1
 GROUP BY DATE_TRUNC('week', minute)
 ;
 ```
