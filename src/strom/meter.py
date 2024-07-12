@@ -96,6 +96,15 @@ def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
       and 3 to wärmestrom in hoch and niedrig tariff, respectively.
     - minute: datetime (there will be one row per every minute in the
       observation period, for every meter).
+      DONE: currently it generates to the actual first and last minute of
+      measurement. But it may be worth expanding to the whole day. >>>
+      Tried, date_trunc('day', ts[2]) + interval '1 day' - interval '1 minute'
+      and, it seems to me it would be better to stick to the observation
+      date (filling until the end of the day, would just extend the last
+      measurement consumption to the rest of the day. That's fine, but, if
+      you already have several observations within the day, perhaps it would
+      be better to extrapolate using all those obs, and not just the last
+      measurement.)
     - cm: consumption per minute, as calculated in the strom table
       (consumption/minutes) and extrapolated throughout the whole period.
       So we are making here a probably unrealistic assumption that the
@@ -139,8 +148,9 @@ def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
             CREATE OR REPLACE TABLE strom_minute AS
             WITH minutes_table AS (
                 SELECT 
-                    UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) 
-                        AS minute, 
+                    UNNEST(generate_series(
+                        ts[1], ts[2], interval 1 minute
+                    )) AS minute, 
                     generate_series AS meterid
                 FROM (VALUES ([(
                     SELECT MIN(date) FROM strom), (SELECT MAX(date) FROM strom)]

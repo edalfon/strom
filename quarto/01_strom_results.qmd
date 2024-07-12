@@ -38,9 +38,10 @@ SELECT
 
   MIN(date) AS First,
   MAX(date) AS Last,
-  date_sub('minute', MIN(date), MAX(date)) AS Mins, 
+  date_sub('minute', First, Last) AS Mins, 
 
   24.0 * 60.0 * AVG(cm) AS "Use/Day", 
+  24.0 * 60.0 * SUM(cm) / Mins AS "check", 
 
   365.0 * "Use/Day" AS "Use/Year",
   0.3894 * "Use/Year" AS "Yearly Exp"
@@ -51,6 +52,7 @@ WHERE meterid = 1
 
 <details><summary>pro Jahr</summary>
 <p>
+
 ```{python}
 #| include: true
 %%sql
@@ -59,15 +61,13 @@ SELECT
   year(minute) AS year,
   MIN(value) AS Min,
   MAX(value) AS Max,
-  -- this approach does not work anyore, due to meter restart
-  -- MAX(value) - MIN(value) AS Use,
-  -- 24.0 * 60.0 * Use / Mins AS "Use/Day",
 
   MIN(date) AS First,
   MAX(date) AS Last,
-  date_sub('minute', MIN(date), MAX(date)) AS Mins, 
+  date_sub('minute', First, Last) AS Mins, 
 
   24.0 * 60.0 * AVG(cm) AS "Use/Day", 
+  24.0 * 60.0 * SUM(cm) / Mins AS "check", 
 
   365.0 * "Use/Day" AS "Use/Year",
   0.3894 * "Use/Year" AS "Yearly Exp"
@@ -76,6 +76,7 @@ WHERE meterid = 1
 GROUP BY year(minute)
 ;
 ```
+
 </p>
 </details>
 
