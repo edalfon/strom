@@ -14,49 +14,38 @@ import epyfun
 import pandas as pd
 import strom
 strom_climate = strom.read_result("merge_strom_climate_data")
+strom_climate = strom_climate[strom_climate['obs'] > 0]
 ```
 
 ```{python}
-# TT_TU	Lufttemperatur	°C
-# TT_STD	Lufttemperatur in 2m Hoehe	°C
-# TT	Temperatur der Luft in 2m Hoehe	°C
-
-# RF_TU	relative Feuchte	%
-# RF_STD	Stundenwerte der Relativen Feuchte	%
-
-# ABSF_STD	berechnete Stundenwerte der absoluten Feuchte	g/m³
-# P_STD	Stundenwerte Luftdruck	hpa
-# TD_STD	Taupunkttemperatur in 2m Hoehe	°C
-# TF_STD	berechnete Stundenwerte der Feuchttemperatur	°C
-# VP_STD	berechnete Stundenwerte des Dampfdruckes	hpa
-# TD	Taupunktstemperatur	°C
-
+# ABSF_STD	berechnete Stundenwerte der absoluten Feuchte g/m³
 # fmt: off
-all_columns = [
-    "nd", "wd", "obs", 
+climate_vars = [
+    #"tt_tu", # TT_TU	Lufttemperatur	°C
+    #'tt_std', # TT_STD	Lufttemperatur in 2m Hoehe	°C
+    'tt', # TT	Temperatur der Luft in 2m Hoehe	°C
 
-    #"tt_tu_min", "tt_tu_mean", "tt_tu_max",
-    #'tt_std_min', 'tt_std_mean', 'tt_std_max',
-    'tt_min', 'tt_mean', 'tt_max',
+    "rf_tu", # RF_TU	relative Feuchte	%
+    #'rf_std', # RF_STD	Stundenwerte der Relativen Feuchte	%
 
-    "rf_tu_min", "rf_tu_mean", "rf_tu_max",
-    #'rf_std_min', 'rf_std_mean', 'rf_std_max',
+    'td', # TD	Taupunktstemperatur	°C
+    #'td_std', # TD_STD	Taupunkttemperatur in 2m Hoehe	°C
 
-    'td_min', 'td_mean', 'td_max',
+    'vp_std', # VP_STD	berechnete Stundenwerte des Dampfdruckes	hpa
 
-    'vp_std_min', 'vp_std_mean', 'vp_std_max',
+    'tf_std', # TF_STD	berechnete Stundenwerte der Feuchttemperatur	°C
 
-    'tf_std_min', 'tf_std_mean', 'tf_std_max',
+    'p_std', # P_STD	Stundenwerte Luftdruck	hpa
 
-    'p_std_min', 'p_std_mean', 'p_std_max',
-
-    'td_std_min', 'td_std_mean', 'td_std_max',
-
-    "r1_min", "r1_mean", "r1_max",
-    #'rs_ind_min', 'rs_ind_mean', 'rs_ind_max', 
-    # 'wrtr_min', 'wrtr_mean', 'wrtr_max'
+    "r1", 
+    #'rs_ind', 
+    # 'wrtr', 
 ]
 # fmt: on
+
+aggfns = ["min", "max", "mean", "median", "std"]
+
+all_columns = [f"{i}_{j}" for i in climate_vars for j in aggfns]
 ```
 
 # Mean values of climate variables
@@ -171,6 +160,88 @@ plt.show()
 fig = epyfun.splom(strom_climate, selected_columns, height=700)
 fig
 ```
+
+# Median values of climate variables
+
+```{python}
+selected_columns = ["wd", "nd", "obs"] + [
+    col for col in all_columns if col.endswith("_median")
+]
+```
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+selected_df = strom_climate[selected_columns]
+correlation_matrix = selected_df.corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+plt.title("Correlation Matrix Plot")
+plt.show()
+```
+
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+from pandas.plotting import scatter_matrix
+
+selected_df = strom_climate[selected_columns]
+scatter_matrix(selected_df, alpha=0.8, figsize=(10, 8), diagonal="hist")
+plt.suptitle("Scatter Plot Matrix", y=1.02)
+plt.show()
+```
+
+
+```{python}
+fig = epyfun.splom(strom_climate, selected_columns, height=700)
+fig
+```
+
+
+# Std. deviation of climate variables
+
+```{python}
+selected_columns = ["wd", "nd", "obs"] + [
+    col for col in all_columns if col.endswith("_std")
+]
+```
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+selected_df = strom_climate[selected_columns]
+correlation_matrix = selected_df.corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+plt.title("Correlation Matrix Plot")
+plt.show()
+```
+
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+from pandas.plotting import scatter_matrix
+
+selected_df = strom_climate[selected_columns]
+scatter_matrix(selected_df, alpha=0.8, figsize=(10, 8), diagonal="hist")
+plt.suptitle("Scatter Plot Matrix", y=1.02)
+plt.show()
+```
+
+
+```{python}
+fig = epyfun.splom(strom_climate, selected_columns, height=700)
+fig
+```
+
+
+
 
 some first-look insights
 
