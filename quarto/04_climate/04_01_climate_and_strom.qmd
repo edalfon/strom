@@ -14,7 +14,6 @@ import epyfun
 import pandas as pd
 import strom
 strom_climate = strom.read_result("merge_strom_climate_data")
-strom_climate = strom_climate[strom_climate['obs'] > 0]
 ```
 
 ```{python}
@@ -38,15 +37,16 @@ climate_vars = [
     'p_std', # P_STD	Stundenwerte Luftdruck	hpa
 
     "r1", 
-    #'rs_ind', 
-    # 'wrtr', 
+    'rs_ind', 
+    #'wrtr', 
 ]
 # fmt: on
 
 aggfns = ["min", "max", "mean", "median", "std"]
 
-all_columns = [f"{i}_{j}" for i in climate_vars for j in aggfns]
+all_columns = ["wd", "nd", "obs"] + [f"{i}_{j}" for i in climate_vars for j in aggfns]
 ```
+
 
 # Mean values of climate variables
 
