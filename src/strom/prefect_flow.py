@@ -14,7 +14,14 @@ import epyfun
 @task(**task_ops)
 def merge_strom_climate_data(strom_per_day, climate_daily):
     strom_climate = pd.merge(strom_per_day, climate_daily, on="date", how="left")
-    return strom_climate
+
+    period1_cond = (strom_climate["date"] >= "2020-12-01") & (
+        strom_climate["date"] <= "2021-05-25"
+    )
+    period2_cond = strom_climate["date"] >= "2022-12-01"
+    obs_cond = strom_climate["obs"] > 0
+
+    return strom_climate[period1_cond | period2_cond]
 
 
 @flow(log_prints=True)
@@ -40,8 +47,6 @@ def strom_flow():
     climate_daily = dwd.get_climate_data(date.today())
 
     strom_climate = merge_strom_climate_data(strom_per_day, climate_daily)
-
-    # strom_prices = consumption.ingest_prices()
 
     consumption.normalstrom_consumption(duckdb_file)
     consumption.waermestrom_consumption(duckdb_file)
