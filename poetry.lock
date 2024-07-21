@@ -1177,26 +1177,22 @@ idna = ">=2.0.0"
 
 [[package]]
 name = "epyfun"
-version = "0.3.7"
+version = "0.3.8"
 description = "epyfun"
 optional = false
-python-versions = "^3.9"
-files = []
-develop = false
+python-versions = "<4.0,>=3.9"
+files = [
+    {file = "epyfun-0.3.8-py3-none-any.whl", hash = "sha256:4c04f7954206494e26ffd1b1447ea499ff1395be53278edb70310ab31c982a4b"},
+    {file = "epyfun-0.3.8.tar.gz", hash = "sha256:dccbd7d190e96f939b7026ca417413ecbc26940a1763cc4704a5dab71063b8e6"},
+]
 
 [package.dependencies]
 chardet = ">=5.2.0"
 pandas = ">=2.1.4"
-pandas-stubs = "^2.2.2.240514"
+pandas-stubs = ">=2.2.2.240514,<3.0.0.0"
 plotly = ">=5.18.0"
-requests = "^2.32.2"
-types-requests = "^2.32.0.20240523"
-
-[package.source]
-type = "git"
-url = "https://github.com/edalfon/epyfun"
-reference = "HEAD"
-resolved_reference = "8c8811f25cb176a7db97d0dd4d5c72e5c99e2966"
+requests = ">=2.32.2,<3.0.0"
+types-requests = ">=2.32.0.20240523,<3.0.0.0"
 
 [[package]]
 name = "exceptiongroup"
@@ -3179,17 +3175,20 @@ xml = ["lxml (>=4.9.2)"]
 
 [[package]]
 name = "pandas-stubs"
-version = "2.2.2.240514"
+version = "2.2.2.240603"
 description = "Type annotations for pandas"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "pandas_stubs-2.2.2.240514-py3-none-any.whl", hash = "sha256:5d6f64d45a98bc94152a0f76fa648e598cd2b9ba72302fd34602479f0c391a53"},
-    {file = "pandas_stubs-2.2.2.240514.tar.gz", hash = "sha256:85b20da44a62c80eb8389bcf4cbfe31cce1cafa8cca4bf1fc75ec45892e72ce8"},
+    {file = "pandas_stubs-2.2.2.240603-py3-none-any.whl", hash = "sha256:e08ce7f602a4da2bff5a67475ba881c39f2a4d4f7fccc1cba57c6f35a379c6c0"},
+    {file = "pandas_stubs-2.2.2.240603.tar.gz", hash = "sha256:2dcc86e8fa6ea41535a4561c1f08b3942ba5267b464eff2e99caeee66f9e4cd1"},
 ]
 
 [package.dependencies]
-numpy = {version = ">=1.26.0", markers = "python_version < \"3.13\""}
+numpy = [
+    {version = ">=1.23.5", markers = "python_version >= \"3.9\" and python_version < \"3.12\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\" and python_version < \"3.13\""},
+]
 types-pytz = ">=2022.1.1"
 
 [[package]]
@@ -5816,13 +5815,13 @@ files = [
 
 [[package]]
 name = "types-requests"
-version = "2.32.0.20240523"
+version = "2.32.0.20240712"
 description = "Typing stubs for requests"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "types-requests-2.32.0.20240523.tar.gz", hash = "sha256:26b8a6de32d9f561192b9942b41c0ab2d8010df5677ca8aa146289d11d505f57"},
-    {file = "types_requests-2.32.0.20240523-py3-none-any.whl", hash = "sha256:f19ed0e2daa74302069bbbbf9e82902854ffa780bc790742a810a9aaa52f65ec"},
+    {file = "types-requests-2.32.0.20240712.tar.gz", hash = "sha256:90c079ff05e549f6bf50e02e910210b98b8ff1ebdd18e19c873cd237737c1358"},
+    {file = "types_requests-2.32.0.20240712-py3-none-any.whl", hash = "sha256:f754283e152c752e46e70942fa2a146b5bc70393522257bb85bd1ef7e019dcc3"},
 ]
 
 [package.dependencies]
@@ -6431,4 +6430,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "c4626a47e82777a2de415ca078d40d57871f3cf6309bc1b4cd41de3759c361ad"
+content-hash = "d619ee076ba636ec3b6842d6364dd5d3a1c0e3042e8ee7bb5ea8221ee8ef46ac"
