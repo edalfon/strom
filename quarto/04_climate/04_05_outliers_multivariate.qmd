@@ -15,10 +15,7 @@ import pandas as pd
 import numpy as np
 import strom
 strom_climate = strom.read_result("merge_strom_climate_data")
-strom_climate = strom_climate.loc[:, ~strom_climate.columns.str.endswith('_min')]
-strom_climate = strom_climate.loc[:, ~strom_climate.columns.str.endswith('_max')]
-strom_climate = strom_climate.loc[:, ~strom_climate.columns.str.endswith('_median')]
-strom_climate = strom_climate.loc[:, ~strom_climate.columns.str.endswith('_std')]
+strom_climate = strom_climate[["date", "wd", "tt_mean", "rf_tu_mean", "td_mean", "vp_std_mean", "tf_std_mean"]]
 ```
 
 
@@ -33,17 +30,17 @@ from prophet import Prophet
 
 strom_climate["y"] = strom_climate["wd"]
 strom_climate["ds"] = strom_climate["date"].dt.date
-strom_climate["cap"] = 150  # Set this to a reasonable maximum value for your data
-strom_climate["floor"] = 1  # This ensures non-negative values
+# strom_climate["cap"] = 150  # Set this to a reasonable maximum value for your data
+# strom_climate["floor"] = 1  # This ensures non-negative values
 
-m = Prophet(changepoint_prior_scale=1, growth="logistic")
+m = Prophet(changepoint_prior_scale=1)  # growth="logistic"
 m.add_regressor("tt_mean")
 m.add_regressor("rf_tu_mean")
 m.fit(strom_climate)
 
 future = m.make_future_dataframe(periods=0)  # do not really want to forecast
-future["cap"] = 150  # Set this to a reasonable maximum value for your data
-future["floor"] = 1  # This ensures non-negative values
+# future["cap"] = 150  # Set this to a reasonable maximum value for your data
+# future["floor"] = 1  # This ensures non-negative values
 future["tt_mean"] = strom_climate["tt_mean"].reset_index(drop=True)
 future["rf_tu_mean"] = strom_climate["rf_tu_mean"].reset_index(drop=True)
 future.tail()
@@ -112,6 +109,8 @@ fig.update_xaxes(
         )
     ),
 )
+fig.data[0].customdata = strom_climate
+fig.update_traces(hovertemplate=make_hover_template(strom_climate))
 fig.update_layout(showlegend=False)
 fig.show()
 ```
