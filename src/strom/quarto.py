@@ -23,11 +23,16 @@ def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
 
 
 @task(**task_ops)
-def render_report(*args, changes=True, **kwargs):
-    cmd = ["quarto", "render", "quarto", "--execute-dir", "."]
-    if changes:
-        cmd.append("--metadata")
-        cmd.append("freeze:false")
+def render_report(*args, changes=detect_changes(), **kwargs):
+    cmd = [
+        "quarto",
+        "render",
+        "quarto",
+        "--execute-dir",
+        ".",
+        "--metadata",
+        "freeze:false",
+    ]
 
     subprocess.run(cmd)
 
