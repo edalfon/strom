@@ -1,0 +1,358 @@
+---
+title: "Outliers"
+execute:
+  echo: false
+  eval: true
+---
+
+```{python}
+#| include: false
+%load_ext sql
+#%sql --section duck
+
+import epyfun
+import pandas as pd
+import strom
+strom_climate = strom.read_result("merge_strom_climate_data")
+```
+
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.express as px
+import numpy as np
+
+
+import plotly.figure_factory as ff
+
+fig = ff.create_distplot(
+    [strom_climate["wd"]],
+    ["label that I do not want to show"],
+    show_hist=False,
+    colors=None,
+    show_rug=False,
+)
+fig.update_layout(
+    title="",
+    xaxis_title="wd",
+    yaxis_title="KDE Density",
+    showlegend=False,
+    # plot_bgcolor='rgba(0,0,0,0)',
+    # paper_bgcolor='rgba(0,0,0,0)'
+)
+fig.show()
+```
+
+```{python}
+import plotly.express as px
+
+fig = px.violin(strom_climate, x="wd", points='all',  box=True,)
+fig.show()
+```
+
+# Naive outliers
+
+## Z score
+
+```{python}
+wd_mean = strom_climate["wd"].mean()
+wd_std = strom_climate["wd"].std()
+strom_climate["wd_z"] = abs((strom_climate["wd"] - wd_mean) / wd_std)
+strom_climate[strom_climate["wd_z"] > 3]
+```
+
+## Z score
+
+```{python}
+import numpy as np
+wd_median = strom_climate["wd"].median()
+wd_mad = np.median(np.abs(strom_climate["wd"] - wd_median))
+strom_climate["wd_zr"] = abs((strom_climate["wd"] - wd_median) / wd_mad)
+strom_climate[strom_climate["wd_zr"] > 7]
+```
+
+This is of course naive and catches many allegedly legit observations.
+
+# STL-based outlier detection
+
+For Wärmestrom is particularly relevant to consider the season in detecting outliers.
+So let's try that, using Multiple Seasonal-Trend decomposition using Loess.
+
+## MSTL
+
+```{python}
+from statsmodels.tsa.seasonal import MSTL
+
+from statsmodels.tsa.seasonal import DecomposeResult
+
+# Need to filter beforehand to keep a period with continuous data
+# and properly set the index that make statsmodels' life easier
+# strom_climate = strom_climate[strom_climate["date"] >= "2022-12-01"]
+# new_index = pd.date_range(
+#     start=strom_climate["date"].min(),
+#     end=strom_climate["date"].max(),
+#     freq="D"
+# )
+# strom_climate = strom_climate.set_index('date', drop=False).reindex(new_index)
+
+
+mstl = MSTL(
+    strom_climate["wd"],
+    periods=[7, 30, 90],
+    windows=None,
+    iterate=5,
+    stl_kwargs={
+        "robust": True,
+    },
+)
+res = mstl.fit()
+fig = res.plot()
+strom_climate["mstl_resid"] = res.resid
+```
+
+```{python}
+wd_mean = strom_climate["mstl_resid"].mean()
+wd_std = strom_climate["mstl_resid"].std()
+strom_climate["mstl_resid_z"] = abs((strom_climate["mstl_resid"] - wd_mean) / wd_std)
+strom_climate["mstl_outlier"] = strom_climate["mstl_resid_z"] > 3
+```
+
+```{python}
+import plotly.express as px
+
+fig = px.violin(strom_climate, x="wd", points='all',color="mstl_outlier", box=True,)
+fig.show()
+```
+
+This seems better. It catches some observations that, looking only at the univariate 
+distribution, may not seem like an outlier, but within the typical consumption
+in the season, the seem extreme.
+
+I've spotted a couple of those points already in the correlation matrix. So let's see
+how do these outliers look out there.
+
+```{python}
+from epyfun import splom
+
+splom(
+    strom_climate,
+    ["wd", "tt_mean", "rf_tu_mean", "td_mean", "vp_std_mean", "tf_std_mean", "r1_mean"],
+    color="mstl_outlier",
+    height=700,
+)
+```
+
+```{python}
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.scatter(strom_climate, y="wd", x="date", color="mstl_outlier")
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeslider_thickness=0.1,
+    rangeselector=dict(
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+)
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+Well, a bit better than the naive approach, but still fails to detect a couple of points 
+that, for higher temperatures show a very high consumption. Perhaps we need to resort to
+multivariate outlier detection.
+
+# Prophet-based outlier detection
+
+```{python}
+#| include: false
+import pandas as pd
+from prophet import Prophet
+
+strom_climate["y"] = strom_climate["wd"]
+strom_climate["ds"] = strom_climate["date"].dt.date
+
+m = Prophet(changepoint_prior_scale=1)
+m.fit(strom_climate)
+
+future = m.make_future_dataframe(periods=0)  # do not really want to forecast
+future.tail()
+
+forecast = m.predict(future)
+forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail()
+```
+
+```{python}
+from prophet.plot import plot_plotly, plot_components_plotly
+
+fig = plot_plotly(m, forecast)
+fig = fig.update_layout(xaxis=dict(rangeslider=dict(thickness=0.1)))
+fig.show()
+
+fig = plot_components_plotly(m, forecast)
+fig.show()
+```
+
+
+```{python}
+forecast["ds"] = forecast["ds"].dt.date
+strom_climate = pd.merge(strom_climate, forecast, how="inner", on="ds")
+
+strom_climate["prophet_error"] = strom_climate["y"] - strom_climate["yhat"]
+strom_climate["prophet_band"] = (
+    strom_climate["yhat_upper"] - strom_climate["yhat_lower"]
+)
+
+# Anomaly detection
+strom_climate["prophet_outlier"] = (
+    strom_climate["prophet_error"].abs() > 1.5 * strom_climate["prophet_band"]
+)
+```
+
+```{python}
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.scatter(strom_climate, y="wd", x="date", color="prophet_outlier")
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeslider_thickness=0.1,
+    rangeselector=dict(
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+)
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+```{python}
+from epyfun import splom
+
+splom(
+    strom_climate,
+    ["wd", "tt_mean", "rf_tu_mean", "td_mean", "vp_std_mean", "tf_std_mean", "r1_mean"],
+    color="prophet_outlier",
+    height=700,
+)
+```
+
+Well, rather similar. I mean, the band is pretty wide, and not sensible to the seasons. 
+So, unsurprisingly, it only catches extreme values on the cold season. Again, 
+it seems we would need necesarilly to include the climate data.
+
+# Isolation forests
+
+```{python}
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import IsolationForest
+
+
+scaler = StandardScaler()
+np_scaled = scaler.fit_transform(strom_climate["wd"].values.reshape(-1, 1))
+data = pd.DataFrame(np_scaled)
+
+
+outliers_fraction = float(0.05)
+model = IsolationForest(contamination=outliers_fraction)
+model.fit(data)
+
+strom_climate["isolation_outlier"] = model.predict(data) == -1
+
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.scatter(strom_climate, y="wd", x="date", color="isolation_outlier")
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeslider_thickness=0.1,
+    rangeselector=dict(
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+)
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+Well, it catches again the extreme values, and a couple of very low values. But still 
+fails to capture the possible outliers in the warm season.
+
+
+# Local Outlier Factor - LOF
+
+```{python}
+from sklearn.neighbors import LocalOutlierFactor
+
+y = strom_climate["wd"]
+
+
+lof = LocalOutlierFactor(n_neighbors=90, contamination=0.05)
+y_pred = lof.fit_predict(strom_climate["wd"].values.reshape(-1, 1))
+outlier_scores = lof.negative_outlier_factor_
+strom_climate["lof_outlier"] = y_pred == -1
+```
+
+
+```{python}
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+
+fig = px.scatter(strom_climate, y="wd", x="date", color="lof_outlier")
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeslider_thickness=0.1,
+    rangeselector=dict(
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+)
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+I had higher hopes about this one. But yeah, it is pretty sensitive to the parameters.
+
+
+# TODOs
+
+- [ ] Try clustering algorithms
+- [ ] Try autoencoders
+
