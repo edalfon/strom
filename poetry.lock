@@ -676,6 +676,28 @@ files = [
 ]
 
 [[package]]
+name = "cmdstanpy"
+version = "1.2.4"
+description = "Python interface to CmdStan"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "cmdstanpy-1.2.4-py3-none-any.whl", hash = "sha256:ad60f8ca17050216ab7140e13aa493628d88af8a689f17253a5ad294a9826c78"},
+    {file = "cmdstanpy-1.2.4.tar.gz", hash = "sha256:ad586be0b9f4c654ecbdc4af4541f4d282f99175956cda88cc5eb873719356cc"},
+]
+
+[package.dependencies]
+numpy = ">=1.21"
+pandas = "*"
+stanio = ">=0.4.0,<2.0.0"
+tqdm = "*"
+
+[package.extras]
+all = ["xarray"]
+docs = ["ipykernel", "ipython", "ipywidgets", "matplotlib", "nbsphinx", "pydata-sphinx-theme (<0.9)", "sphinx (>5,<6)", "sphinx-copybutton", "xarray"]
+test = ["flake8", "mypy", "pylint", "pytest", "pytest-cov", "pytest-order", "xarray"]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -1558,6 +1580,20 @@ tabulate = "*"
 
 [package.extras]
 kerberos = ["gssapi", "pykerberos (>=1.1.8,<2.0.0)", "winkerberos (>=0.5.0)"]
+
+[[package]]
+name = "holidays"
+version = "0.53"
+description = "Generate and work with holidays in Python"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "holidays-0.53-py3-none-any.whl", hash = "sha256:371080faaa1c85fef49a64b16c52c2ec5cc9674360cc9fafad312eba74f3de1a"},
+    {file = "holidays-0.53.tar.gz", hash = "sha256:ed8c935d35ad3c3e0866cd49256a51fb3e63d4ba506ca7ebbf07819feb055bfa"},
+]
+
+[package.dependencies]
+python-dateutil = "*"
 
 [[package]]
 name = "hpack"
@@ -3727,6 +3763,34 @@ files = [
 wcwidth = "*"
 
 [[package]]
+name = "prophet"
+version = "1.1.5"
+description = "Automatic Forecasting Procedure"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "prophet-1.1.5-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:1c522a76ce49264ad140bbebca7d1c7cdc9ebfe718cdcaaf2c289db96e9e03bd"},
+    {file = "prophet-1.1.5-py3-none-macosx_11_0_arm64.whl", hash = "sha256:24e7ce972f95068af7074dbad5846f83485257366b023af44e86716fb438bb0d"},
+    {file = "prophet-1.1.5-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cd5991a86dc0a86e09da550fb072ade8714dc17741da0231907d972429476a54"},
+    {file = "prophet-1.1.5-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7761d127a41d3434b83d16f27b41cdc71052c7d98c0d6013a227a0bc55347da9"},
+    {file = "prophet-1.1.5-py3-none-win_amd64.whl", hash = "sha256:337d9cf7728b8d3ef18a8304aa90c079f206aead15d9f0beff87cad8050553ff"},
+    {file = "prophet-1.1.5.tar.gz", hash = "sha256:80973c0b8a22d835bfa9d6665a78ebc63115135eaef0f73b46ee14e9bad3ca1a"},
+]
+
+[package.dependencies]
+cmdstanpy = ">=1.0.4"
+holidays = ">=0.25"
+importlib-resources = "*"
+matplotlib = ">=2.0.0"
+numpy = ">=1.15.4"
+pandas = ">=1.0.4"
+tqdm = ">=4.36.1"
+
+[package.extras]
+dev = ["jupyterlab", "nbconvert", "plotly", "pytest", "setuptools (>=64)", "wheel"]
+parallel = ["dask[dataframe]", "distributed"]
+
+[[package]]
 name = "psutil"
 version = "5.9.8"
 description = "Cross-platform lib for process and system monitoring in Python."
@@ -5432,6 +5496,24 @@ pure-eval = "*"
 tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
 
 [[package]]
+name = "stanio"
+version = "0.5.1"
+description = "Utilities for preparing Stan inputs and processing Stan outputs"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "stanio-0.5.1-py3-none-any.whl", hash = "sha256:99ad590daa5834681245c2b651716ec2e06223853661ada21430c621521c849f"},
+    {file = "stanio-0.5.1.tar.gz", hash = "sha256:348d52f947dec431e118f4b601c4c5296929b86401d4d4dd5aa9373b0d4ae4ac"},
+]
+
+[package.dependencies]
+numpy = "*"
+
+[package.extras]
+test = ["pandas", "pytest", "pytest-cov"]
+ujson = ["ujson (>=5.5.0)"]
+
+[[package]]
 name = "starlette"
 version = "0.32.0.post1"
 description = "The little ASGI library that shines."
@@ -6349,4 +6431,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "979572c4c9781540be98416636447f073a9671708d14474824b7507034f98944"
+content-hash = "c4626a47e82777a2de415ca078d40d57871f3cf6309bc1b4cd41de3759c361ad"
