@@ -1,38 +1,10 @@
 ---
-title: "playground"
+title: "H20 AutoML"
 execute:
   echo: true
   eval: false
 ---
 
-
-```{python}
-#| include: false
-%load_ext sql
-%sql --section ducktest
-```
-
-```{python}
-#| include: false
-import epyfun
-sqlite_file = epyfun.get_latest_file("./data/")
-```
-
-```{python}
-%%sql
-SELECT
-  meterid, 
-  decode(date)::DATETIME AS date, 
-  decode(value)::INT AS value,
-  decode(first)::INT AS first
-FROM sqlite_scan('{{sqlite_file}}', 'reading') 
-WHERE meterid = 1
-;
-```
-
-
-
-# base model
 
 So let's start from the pipeline with the best model cross-validated before
 ```{python}
@@ -531,57 +503,6 @@ grid.best_params_
 grid.best_score_
 ```
 
-```{python}
-#{'columns__columns': ('tt_tu_mean', 'tt_tu_min', 'rf_tu_min'), 'preprocessor__degree': 3}
-```
-
-
-```{python}
-#| eval: false
-df = pd.DataFrame(grid.cv_results_)
-
-value_vars = [
-    col for col in df.columns if col.endswith("test_r2") and col.startswith("split")
-]
-
-# Melt the DataFrame to a long format
-df_long = pd.melt(
-    df,
-    id_vars=["params"],
-    value_vars=value_vars,
-    var_name="scoring",
-    value_name="score",
-)
-
-df_long["params"] = df_long["params"].astype(str)
-
-import plotly.graph_objects as go
-
-# Create a list of unique params
-params = df_long['params'].unique()
-
-# Create an empty list to store the traces
-traces = []
-
-# Loop through the params and create a histogram for each one
-for i, param in enumerate(params):
-    scores = df_long[df_long['params'] == param]['score']
-    if all(scores > 0.3):
-        traces.append(
-            go.Violin(x=[i]*len(scores), y=scores, name=str(i), box_visible=True, meanline_visible=True, hovertemplate=param)
-        )
- 
-# Create the figure
-fig = go.Figure(data=traces)
-
-fig
-```
-
-```{python}
-#| eval: false
-fig.show(renderer="browser") 
-```
-
 
 
 
@@ -714,5 +635,318 @@ strom.assess_vetiver_regression(v, X, y)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{python}
+wd_pipeline.set_params(polynomial__degree=9).fit(X, y).score(X, y)
+```
+
+```{python}
+import pandas as pd
+penguins = pd.read_csv("https://gist.githubusercontent.com/slopp/ce3b90b9168f2f921784de84fa445651/raw/4ecf3041f0ed4913e7c230758733948bc561f434/penguins.csv")
+ojs_define(data = penguins)
+```
+
+
+```{ojs}
+filtered = transpose(data).filter(function(penguin) {
+  return bill_length_min < penguin.bill_length_mm &&
+         islands.includes(penguin.island);
+})
+```
+
+
+```{ojs}
+viewof bill_length_min = Inputs.range(
+  [32, 50], 
+  {value: 35, step: 1, label: "Bill length (min):"}
+)
+viewof islands = Inputs.checkbox(
+  ["Torgersen", "Biscoe", "Dream"], 
+  { value: ["Torgersen", "Biscoe"], 
+    label: "Islands:"
+  }
+)
+```
+
+
+```{ojs}
+Plot.rectY(filtered, 
+  Plot.binX(
+    {y: "count"}, 
+    {x: "body_mass_g", fill: "species", thresholds: 20}
+  ))
+  .plot({
+    facet: {
+      data: filtered,
+      x: "sex",
+      y: "species",
+      marginRight: 80
+    },
+    marks: [
+      Plot.frame(),
+    ]
+  }
+)
+```
+
+
+
+
+
+
+
+
+
+```{ojs}
+transpose(metrics_scores)
+```
+
+```{ojs}
+Plot.plot({
+  x: {axis: null},
+  y: {tickFormat: "s", grid: true},
+  color: {scheme: "spectral", legend: true},
+  marks: [
+    Plot.barY(transpose(metrics_scores), {
+      x: "mode",
+      y: "value",
+      fill: "traintest",
+      fx: "metric",
+    }),
+    Plot.ruleY([0])
+  ]
+})
+```
+
+```{ojs}
+Plot.plot((() => {
+  const n = 3; // number of facet columns
+  const keys = Array.from(d3.union(transpose(metrics_scores).map((d) => d.metric)));
+  const index = new Map(keys.map((key, i) => [key, i]));
+  const fx = (key) => index.get(key) % n;
+  const fy = (key) => Math.floor(index.get(key) / n);
+  return {
+    height: 300,
+    axis: null,
+    y: {insetTop: 10},
+    fx: {padding: 0.03},
+    marks: [
+        Plot.barY(transpose(metrics_scores), {
+        x: "mode",
+        y: "value",
+        fill: "traintest",
+        fx: (d) => fx(d.metric),
+        fy: (d) => fy(d.metric),
+        }),
+        Plot.ruleY([0])
+    ]
+  };
+})())
+```
+
+not going this way to make the plot anymore because
+observable plot does not yet have automatic facet wrap https://observablehq.com/plot/features/facets
+and although it is not so hard to do, as in the example above,
+what is not yet possible is to have something like scales free_y
+
+
+
+
+
+
+
+
+
+9. Influence Plot:
+7. Partial Regression (Added Variable) Plot:
+5. Cook’s Distance Plot:
+4. Residuals vs. Leverage Plot:
+
+
+
+```{python}
+from statsmodels.graphics.regressionplots import plot_partregress
+
+# Assuming 'model' is your fitted regression model and 'x' is the predictor variable
+plot_partregress('wd', 'tt_tu_mean', ['rf_tu_mean'], data=train_set)
+plt.title("Partial Regression (Added Variable) Plot")
+plt.show()
+```
+
+### 4. Influence and Outliers:
+
+```{python}
+#| eval: false
+
+# Influence plot
+sm.graphics.influence_plot(model)
+plt.show()
+```
+
+This plot helps identify influential points or outliers.
+
+### 5. Leverage-Residuals plot:
+
+```{python}
+#| eval: false
+
+# Leverage-Residuals plot
+sm.graphics.plot_leverage_resid2(model)
+plt.show()
+```
+
+```{python}
+#| eval: false
+
+from statsmodels.graphics.regressionplots import plot_leverage_resid2
+
+# Assuming 'model' is your fitted regression model
+plot_leverage_resid2(model)
+plt.title("Residuals vs. Leverage Plot")
+plt.show()
+```
+This plot helps identify points with high leverage.
+
+### 6. Cook's Distance:
+
+```{python}
+#| eval: false
+# Cook's Distance plot
+sm.graphics.plot_cooks_distance(model)
+plt.show()
+```
+
+This plot helps identify influential observations.
+
+
+```{python}
+#| eval: false
+
+import scipy as sp
+import numpy as np
+import pandas as pd 
+import matplotlib.pyplot as plt 
+
+# Note: statsmodels requires scipy 1.2
+import statsmodels.formula.api as sm
+
+from sklearn.datasets import make_regression
+from sklearn.linear_model import LinearRegression
+from statsmodels.stats.outliers_influence import OLSInfluence as influence
+
+```
+
+```{python}
+#| eval: false
+
+inf = influence(model)
+C, P = inf.cooks_distance
+def plot_cooks_distance(c):
+    _, ax = plt.subplots(figsize=(9,6))
+    ax.stem(c, markerfmt=",")
+    ax.set_xlabel("instance")
+    ax.set_ylabel("distance")
+    ax.set_title("Cook's Distance Outlier Detection")
+    return ax
+
+
+plot_cooks_distance(C)
+```
+
+
+### 7. Partial Regression Plots:
+
+```{python}
+#| eval: false
+
+# Partial regression plots
+import statsmodels.api as sm
+sm.graphics.plot_partregress_grid(model)
+plt.show()
+```
+
+These plots help identify the influence of each independent variable on the dependent variable while holding other variables constant.
+
+These diagnostic plots can provide insights into the performance of your regression model and help you identify any violations of the assumptions of linear regression. Adjustments to the model or data transformation may be necessary based on the diagnostic results.
+
+
+
+### 7. Partial Regression (Added Variable) Plot:
+This plot helps visualize the relationship between an individual predictor and the response variable while accounting for the other predictors in the model.
+
+
+```{python}
+#| eval: false
+
+from statsmodels.graphics.regressionplots import plot_partregress
+# Assuming 'model' is your fitted regression model and 'x' is the predictor variable
+plot_partregress('wd', 'tt_tu_mean', ['rf_tu_mean'], data=strom_climate)
+plt.title("Partial Regression (Added Variable) Plot")
+plt.show()
+
+```
+
+- [ ] influence plot and leverage plots should be interactive with tooltips with all the data associated to the points. Cook's distance perhaps as well.
+
+
+Time series models ala auto-ml
+- Cassandra
+- AutoTS
+- Prophet
+- Orbit
+
+
+# TODO plot param vs. metric, and to the side, param vs. time
+
+
+# TODO: PCA https://medium.com/geekculture/principal-component-analysis-pca-in-feature-engineering-472afa39c27d
+
+https://scikit-learn.org/stable/auto_examples/compose/plot_digits_pipe.html#sphx-glr-auto-examples-compose-plot-digits-pipe-py
+
+
+# todo through
+https://scikit-learn.org/stable/modules/cross_validation.html
+
+
+# todo
+out of bag estimates
+https://scikit-learn.org/stable/modules/grid_search.html
+
+
+# todo
+yellow brick 
+https://www.scikit-yb.org/en/latest/matplotlib.html
+
+# model persistence 
+https://scikit-learn.org/stable/model_persistence.html
+
+
+
+wrappers including prophet wrappers fr scikit learn api
+https://hcrystalball.readthedocs.io/en/latest/wrappers.html
 
 

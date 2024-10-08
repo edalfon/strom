@@ -1,0 +1,184 @@
+---
+title: "SVM"
+execute:
+  echo: false
+  eval: true
+---
+
+```{python}
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import epyfun
+
+import strom
+
+strom_climate = strom.read_result("merge_strom_climate_data")
+strom_climate["ds"] = strom_climate["date"].dt.date
+strom_climate = strom_climate.set_index("ds")
+
+cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
+
+X = strom_climate.drop(columns="wd")
+y = strom_climate["wd"]
+
+train_set = strom_climate[strom_climate["date"] <= cutoff]
+test_set = strom_climate[strom_climate["date"] > cutoff]
+
+X_train = train_set.drop(columns="wd")
+y_train = train_set["wd"]
+X_test = test_set.drop(columns="wd")
+y_test = test_set["wd"]
+```
+
+
+Before moving forward with the to-do list, let's throw a Random Forest to it.
+
+# SVM
+
+For many reasons, Random Forest is usually a very good baseline model. In this particular
+case I started with the polynomial OLS as baseline model, just because it was so evident
+from the correlations that the relationship between temperature and consumption
+follows a polynomial shape. But let's go back to a beloved RF.
+
+```{python}
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.svm import LinearSVR
+
+from sklego.preprocessing import ColumnSelector
+
+vars = ["tt_tu_mean", "rf_tu_mean", "td_mean", "vp_std_mean", "tf_std_mean"]
+pipe = Pipeline(
+    [
+        ("vars", ColumnSelector(columns=vars)),
+        ("model", LinearSVR(random_state=7)),
+    ]
+)
+pipe.fit(X_train, y_train)
+strom.log_vetiver(
+    pipe,
+    "wd-svm",
+    description="SVM",
+)
+```
+
+{{< include _assess_model.qmd >}}
+
+Well, not that bad, but it is overfitting quite a lot. 
+
+
+
+```{python}
+# | eval: False
+from sklearn.model_selection import GridSearchCV
+
+# https://www.baeldung.com/cs/random-forest-overfitting-fix#:~:text=One%20effective%20strategy%20involves%20simplifying,features%20considered%20at%20each%20split.
+param_grid = {
+    "model__n_estimators": [10, 100],
+    "model__max_features": ["sqrt", "log2", None],
+    "model__max_depth": [None, 3, 6, 9, 12, 15, 18, 21],
+    "model__max_leaf_nodes": [None, 3, 6, 9, 12, 15, 18, 21],  # , 12, 15, 18, 21
+    "model__criterion": ["squared_error", "absolute_error"],
+    "model__n_jobs": [-1],
+}
+
+grid = GridSearchCV(
+    pipe,
+    param_grid=param_grid,
+    scoring=strom.get_scoring(),
+    n_jobs=-1,
+    cv=strom.get_cv(),
+    refit=strom.refit_strategy("MAE - Mean Absolute Error"),
+    return_train_score=True,
+)
+grid = grid.fit(X_train, y_train)
+grid_fit = grid
+pipe = grid.best_estimator_
+# pd.DataFrame(grid.cv_results_)
+grid.best_params_
+```
+
+```{python}
+#| eval: False
+
+strom.reload_all()
+df = strom.summarize_grid_search_results(grid.cv_results_)
+
+# Get all parameter names
+param_names = [name for name in grid.param_grid.keys() if name.startswith('param_model__')]
+
+# Plot results for each parameter
+for param in param_names:
+    plots = strom.plot_grid_search_results(grid, param)
+    plots["MAE - Mean Absolute Error"].show()
+    plots["RMSE - Root Mean Squared Error"].show()
+
+```
+
+```{python}
+#| eval: False
+
+strom.reload_all()
+summ_plots = strom.plot_grid_search_results_summary(grid, "param_model__max_leaf_nodes")
+weg = summ_plots["MAE - Mean Absolute Error"].show()
+weg = summ_plots["RMSE - Root Mean Squared Error"].show()
+```
+
+
+
+
+```{python}
+from sklearn.model_selection import GridSearchCV
+
+from itertools import combinations
+
+vars = [
+    # "tt_tu_mean",
+    "rf_tu_mean",
+    "td_mean",
+    "vp_std_mean",
+    "tf_std_mean",
+    # "p_std_mean",
+]
+combs = [
+    ["tt_tu_mean"] + list(combo)
+    for r in range(1, len(vars) + 1)
+    for combo in combinations(vars, r)
+]
+param_grid = [
+    {
+        "vars__columns": combs,
+    },
+]
+
+grid = GridSearchCV(
+    pipe,
+    param_grid=param_grid,
+    scoring=strom.get_scoring(),
+    n_jobs=-1,
+    cv=strom.get_cv(),
+    refit="RMSE - Root Mean Squared Error",
+    return_train_score=False,
+)
+grid = grid.fit(X_train, y_train)
+
+pipe = grid.best_estimator_
+
+strom.log_vetiver(
+    pipe,
+    "wd-svm",
+    description="SVM-tuned",
+)
+
+
+grid.best_params_
+```
+
+{{< include _assess_model.qmd >}}
+
+
+# TODOs
+
+

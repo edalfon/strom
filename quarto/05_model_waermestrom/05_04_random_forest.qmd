@@ -1,0 +1,181 @@
+---
+title: "Random forest"
+execute:
+  echo: false
+  eval: true
+---
+
+```{python}
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import epyfun
+
+import strom
+
+strom_climate = strom.read_result("merge_strom_climate_data")
+strom_climate["ds"] = strom_climate["date"].dt.date
+strom_climate = strom_climate.set_index("ds")
+
+cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
+
+X = strom_climate.drop(columns="wd")
+y = strom_climate["wd"]
+
+train_set = strom_climate[strom_climate["date"] <= cutoff]
+test_set = strom_climate[strom_climate["date"] > cutoff]
+
+X_train = train_set.drop(columns="wd")
+y_train = train_set["wd"]
+X_test = test_set.drop(columns="wd")
+y_test = test_set["wd"]
+```
+
+Before moving forward with the to-do list, let's throw a Random Forest to it.
+
+# Random Forest
+
+For many reasons, Random Forest is usually a very good baseline model. In this particular
+case I started with the polynomial OLS as baseline model, just because it was so evident
+from the correlations that the relationship between temperature and consumption
+follows a polynomial shape. But let's go back to a beloved RF.
+
+```{python}
+#| include: false
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.svm import LinearSVR
+
+from sklego.preprocessing import ColumnSelector
+
+vars = ["tt_tu_mean", "rf_tu_mean", "td_mean", "vp_std_mean", "tf_std_mean"]
+pipe = Pipeline(
+    [
+        ("vars", ColumnSelector(columns=vars)),
+        ("model", RandomForestRegressor(random_state=7)),
+    ]
+)
+pipe.fit(X_train, y_train)
+strom.log_vetiver(
+    pipe,
+    "wd-rf",
+    description="Random Forest Vanilla",
+)
+```
+
+{{< include _assess_model.qmd >}}
+
+Well, not that bad, but it is overfitting quite a lot. 
+
+
+
+# Tuning using the same brute-force approach
+
+```{python}
+# | include: false
+from sklearn.model_selection import GridSearchCV
+
+from itertools import combinations
+
+vars = [
+    "tt_tu_mean",
+    "rf_tu_mean",
+    "td_mean",
+    "vp_std_mean",
+    "tf_std_mean",
+    # "p_std_mean",
+]
+combs = [
+    list(combo) for r in range(1, len(vars) + 1) for combo in combinations(vars, r)
+]
+
+# https://www.baeldung.com/cs/random-forest-overfitting-fix#:~:text=One%20effective%20strategy%20involves%20simplifying,features%20considered%20at%20each%20split.
+
+param_grid = [
+    {
+        "vars__columns": ["tt_tu_mean"],  # ["tt_tu_mean"],  # combs,
+        "model__n_estimators": [1, 2, 3, 4, 5, 10, 20],  # range(1, 50, 1),
+        # "model__max_features": ["sqrt", "log2", None],
+        "model__max_depth": [3, 4, 5],  # range(1, 30, 1),
+        "model__min_samples_split": [2, 10, 50],  # range(2, 20, 1),
+        "model__max_leaf_nodes": range(10, 20, 1),  # [22],  # range(1, 30, 1)
+        "model__min_samples_leaf": range(1, 7, 1),  # [1],  # range(1, 30, 1),
+        # "model__criterion": ["absolute_error"],  # ["squared_error", "absolute_error"],
+    },
+]
+
+
+grid = GridSearchCV(
+    pipe,
+    param_grid=param_grid,
+    scoring=strom.get_scoring(),
+    n_jobs=-1,
+    cv=strom.get_cv(),
+    refit="RMSE - Root Mean Squared Error",
+    return_train_score=True,
+)
+grid = grid.fit(X_train, y_train)
+
+pipe = grid.best_estimator_
+
+strom.log_vetiver(
+    pipe,
+    "wd-rf",
+    description="Random Forest-tuned.",
+)
+
+# strom.reload_all()
+
+# grid_plots = strom.plot_grid_search_results(grid, "param_model__n_estimators", False)
+# fig = grid_plots["MAE - Mean Absolute Error"].show()
+# fig = grid_plots["RMSE - Root Mean Squared Error"].show()
+
+# grid_plots = strom.plot_grid_search_results(grid)
+# fig = grid_plots["MAE - Mean Absolute Error"].show()
+# fig = grid_plots["RMSE - Root Mean Squared Error"].show()
+# grid.best_params_
+```
+
+```{python}
+# | output: asis
+cols = pd.DataFrame(grid.cv_results_).filter(like="param_").columns.to_list()
+for col in cols:
+    print(f"## Parameter: {col}")
+    grid_plots = strom.plot_grid_search_results(grid, col, False)
+    print("::: {.panel-tabset}")
+    for key in grid_plots:
+        print(f"####### {key.split('-', 1)[0].strip()}")
+        grid_plots[key].show()
+    print(":::")
+```
+
+
+## Best model
+```{python}
+grid.best_params_
+```
+```{python}
+pipe
+```
+
+{{< include _assess_model.qmd >}}
+
+
+# Compare vanilla vs. tuned
+
+```{python}
+import strom
+
+# strom.get_board().pin_delete("wd-rf")
+versions = strom.get_board().pin_versions("wd-rf")
+vetivers = [strom.get_vetiver("wd-rf", version=v) for v in versions.version]
+
+v = strom.get_vetiver("wd-rf", version="20240820T134244Z-169bc")
+```
+
+{{< include _compare_models.qmd >}}
+
+# TODOs
+
+
