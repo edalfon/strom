@@ -70,13 +70,13 @@ def strom_flow():
     consumption.normalstrom_consumption(duckdb_file)
     consumption.waermestrom_consumption(duckdb_file)
 
-    consumption.compare_last_days()
-    consumption.compare_last_days.with_options(result_storage_key="last_5_days")(5)
-    consumption.compare_last_days.with_options(result_storage_key="last_15_days")(15)
-    consumption.compare_last_days.with_options(result_storage_key="last_30_days")(30)
-    consumption.compare_last_days.with_options(result_storage_key="last_60_days")(60)
-    consumption.compare_last_days.with_options(result_storage_key="last_90_days")(90)
-    consumption.compare_last_days.with_options(result_storage_key="last_365_days")(
+    consumption.compare_last_days(climate_daily)
+    consumption.compare_last_days.with_options(result_storage_key="last_5_days")(climate_daily, 5)
+    consumption.compare_last_days.with_options(result_storage_key="last_15_days")(climate_daily, 15)
+    consumption.compare_last_days.with_options(result_storage_key="last_30_days")(climate_daily, 30)
+    consumption.compare_last_days.with_options(result_storage_key="last_60_days")(climate_daily, 60)
+    consumption.compare_last_days.with_options(result_storage_key="last_90_days")(climate_daily, 90)
+    consumption.compare_last_days.with_options(result_storage_key="last_365_days")(climate_daily, 
         365.25
     )
 
