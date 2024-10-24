@@ -1,0 +1,326 @@
+---
+title: "Seasonal-Trend decomposition: Normal Strom"
+execute:
+  echo: false
+  eval: true
+---
+
+```{python}
+#| include: false
+%load_ext sql
+#%sql --section duck
+
+import epyfun
+import pandas as pd
+import strom
+strom_climate = strom.read_result("merge_strom_climate_data")
+
+# Need to filter beforehand to keep a period with continuous data
+# and properly set the index that make statsmodels' life easier
+strom_climate = strom_climate[strom_climate["date"] >= "2022-12-01"]
+new_index = pd.date_range(
+    start=strom_climate["date"].min(),
+    end=strom_climate["date"].max(),
+    freq="D"
+)
+strom_climate = strom_climate.set_index('date', drop=False).reindex(new_index)
+strom_climate["y"] = strom_climate["nd"]
+strom_climate["ds"] = strom_climate["date"].dt.date
+```
+
+```{python}
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from pandas.plotting import register_matplotlib_converters
+
+# register_matplotlib_converters()
+sns.set_style("darkgrid")
+plt.rc("figure", figsize=(9.5, 8))
+```
+
+
+
+# Normal Strom
+
+## Seasonal-Trend decomposition using LOESS (STL)
+
+```{python}
+# https://www.statsmodels.org/dev/generated/statsmodels.tsa.seasonal.STL.html#statsmodels.tsa.seasonal.STL
+from statsmodels.tsa.seasonal import STL
+
+
+stl = STL(strom_climate["nd"], period=7, seasonal_deg=1, robust=True)
+res = stl.fit()
+fig = res.plot()
+```
+
+
+Again, let's see the raw data per week.
+
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+strom_climate["day_of_week"] = strom_climate["date"].dt.day_name()
+strom_climate["year"] = strom_climate["date"].dt.isocalendar().year
+strom_climate["week"] = strom_climate["date"].dt.isocalendar().week
+
+pivot_df = strom_climate.pivot(
+    index=["year", "week"], columns="day_of_week", values="nd"
+)
+
+days_order = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+]
+pivot_df = pivot_df.reindex(columns=days_order)
+mean_wd = pivot_df.mean()
+
+fig = go.Figure()
+
+for week in pivot_df.index:
+    fig.add_trace(
+        go.Scatter(
+            x=pivot_df.columns,
+            y=pivot_df.loc[week],
+            mode="lines",
+            name=f"Week {week}",
+            line=dict(color="lightblue", width=2),
+            opacity=0.3,
+        )
+    )
+
+# Add trace for the mean
+fig.add_trace(
+    go.Scatter(
+        x=pivot_df.columns,
+        y=mean_wd,
+        mode="lines+markers",
+        name="Mean of all weeks",
+        line=dict(color="blue", width=5),  # Make the mean line red and thicker
+        marker=dict(size=8),
+    )
+)
+fig.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=0, r=0, t=0, b=0),
+)
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+So, again, there does not seem to be a weekly pattern, nor a weekend thing going on.
+
+Now let's see the raw data within a month.
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+strom_climate["month"] = strom_climate["date"].dt.month
+strom_climate["year"] = strom_climate["date"].dt.year
+strom_climate["day"] = strom_climate["date"].dt.day
+
+# Pivot the data
+pivot_df = strom_climate.pivot(
+    index=["year", "month"], columns="day", values="nd"
+)
+
+mean_wd = pivot_df.mean()
+
+fig = go.Figure()
+
+for week in pivot_df.index:
+    fig.add_trace(
+        go.Scatter(
+            x=pivot_df.columns,
+            y=pivot_df.loc[week],
+            mode="lines",
+            line=dict(color="lightblue", width=2),
+            opacity=0.3,
+        )
+    )
+
+# Add trace for the mean
+fig.add_trace(
+    go.Scatter(
+        x=pivot_df.columns,
+        y=mean_wd,
+        mode="lines+markers",
+        line=dict(color="blue", width=5),  # Make the mean line red and thicker
+        marker=dict(size=8),
+    )
+)
+fig.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=0, r=0, t=0, b=0),
+)
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+More variation, but again, no discernable pattern.
+
+Year-month changes, perhaps something related to December where consumption could 
+increase due to christmas lights?, and sommer due to the pool?
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+strom_climate["month"] = strom_climate["date"].dt.month
+strom_climate["year"] = strom_climate["date"].dt.year
+strom_climate["day"] = strom_climate["date"].dt.day
+
+# Pivot the data
+pivot_df = strom_climate.pivot(index=["year", "day"], columns="month", values="nd")
+
+mean_wd = pivot_df.mean()
+
+fig = go.Figure()
+
+for week in pivot_df.index:
+    fig.add_trace(
+        go.Scatter(
+            x=pivot_df.columns,
+            y=pivot_df.loc[week],
+            mode="lines",
+            line=dict(color="lightblue", width=2),
+            opacity=0.3,
+        )
+    )
+
+# Add trace for the mean
+fig.add_trace(
+    go.Scatter(
+        x=pivot_df.columns,
+        y=mean_wd,
+        mode="lines+markers",
+        line=dict(color="blue", width=5),  # Make the mean line red and thicker
+        marker=dict(size=8),
+    )
+)
+fig.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=0, r=0, t=0, b=0),
+)
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+Well, small differences though.
+
+
+## Multiple Seasonal-Trend decomposition using LOESS (MSTL)
+
+```{python}
+# https://www.statsmodels.org/dev/generated/statsmodels.tsa.seasonal.MSTL.html#statsmodels.tsa.seasonal.MSTL
+from statsmodels.tsa.seasonal import MSTL
+
+from statsmodels.tsa.seasonal import DecomposeResult
+
+mstl = MSTL(strom_climate["nd"], periods=[7, 30, 90])
+res = mstl.fit()
+fig = res.plot()
+```
+
+
+## Prophet
+
+Prophet shoud make it pretty straightforward to do something similar.
+
+```{python}
+#| include: false
+import pandas as pd
+from prophet import Prophet
+
+m = Prophet(changepoint_prior_scale=0.9)
+m.fit(strom_climate)
+
+future = m.make_future_dataframe(periods=0)  # do not really want to forecast
+future.tail()
+
+forecast = m.predict(future)
+forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail()
+```
+
+```{python}
+from prophet.plot import plot_plotly, plot_components_plotly
+
+fig = plot_plotly(m, forecast)
+fig = fig.update_layout(xaxis=dict(rangeslider=dict(thickness=0.1)))
+fig.show()
+
+fig = plot_components_plotly(m, forecast)
+fig.show()
+```
+
+Ok. Not worth it exploring further, or fine-tuning this.
+
+
+
+```{python}
+# | eval: false
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.seasonal import STL
+from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+import matplotlib.pyplot as plt
+
+# Perform STL decomposition
+stl = STL(strom_climate["wd"], seasonal=7)
+res = stl.fit()
+
+# Define features and target
+X = pd.DataFrame(
+    {
+        "Trend": res.trend,
+        "Seasonal": res.seasonal,
+    }
+)
+y = strom_climate["wd"]
+
+# Train-Test Split using TimeSeriesSplit
+tscv = TimeSeriesSplit(n_splits=5)
+model = RandomForestRegressor(random_state=42)
+
+# Hyperparameter Tuning using GridSearchCV
+param_grid = {
+    "n_estimators": [100, 200, 300],
+    "max_depth": [None, 5, 10, 15],
+    "min_samples_split": [2, 5, 10],
+    "min_samples_leaf": [1, 2, 4],
+    "max_features": ["auto", "sqrt"],
+}
+grid_search = GridSearchCV(
+    estimator=model,
+    param_grid=param_grid,
+    cv=3,
+    n_jobs=-1,
+    verbose=2,
+    scoring="neg_mean_squared_error",
+)
+
+gsearch = GridSearchCV(model, param_grid, cv=tscv, scoring="neg_mean_squared_error")
+gsearch.fit(X, y)
+
+# Best Model
+best_model = gsearch.best_estimator_
+
+# Predictions and Evaluation
+predictions = best_model.predict(X)
+
+# Evaluation Metrics
+mse = mean_squared_error(y, predictions)
+mae = mean_absolute_error(y, predictions)
+```

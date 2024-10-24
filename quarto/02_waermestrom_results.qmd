@@ -1,43 +1,101 @@
 ---
 title: "Wärmestrom"
 execute:
-  echo: true
-  eval: false
+  echo: false
+  eval: true
 ---
 
 ```{python}
 #| include: false
 %load_ext sql
-%sql --section ducktest
+%sql --section duck
 ```
 
 
 ```{python}
 #| include: false
 %%sql
-SELECT * FROM waermestrom_minute;
+SELECT * FROM strom_minute
+WHERE meterid <> 1
+;
 ```
+
+```{python}
+#| include: false
+%%sql
+SELECT * FROM strom
+WHERE meterid <> 1
+;
+```
+
+
+<details><summary>Note on how to calculate consumption</summary>
+<p>
+
+Note that minute-level granularity makes it possible to calculate simple (unweighted)
+averages of the consumption per minute `cm` to extrapolate to periods. Thus, for a whole 
+period (e.g. one day fully extended to minute-level) summing and averaging cm 
+(times minutes in the period) are equivalent.
+```{python}
+%%sql
+
+SELECT 
+24.0 * 60.0 * AVG(cm) AS averaging_cm,
+SUM(cm) AS summing_cm,
+FROM strom_minute
+WHERE meterid = 1
+AND minute::DATE = '2024-07-09'
+```
+
+But be careful, when dealing with wärmestrom, you actually have two different meters,
+so in averaging, the denominator will be twice the number of minutes, and you would
+need to account for that.
+```{python}
+%%sql
+
+SELECT 
+24.0 * 60.0 * AVG(cm) AS averaging_cm,
+SUM(cm) AS summing_cm,
+FROM strom_minute
+WHERE meterid <> 1
+AND minute::DATE = '2024-07-09'
+```
+```{python}
+%%sql
+
+SELECT 
+2 * (24.0 * 60.0 * AVG(cm)) AS averaging_cm,
+SUM(cm) AS summing_cm,
+FROM strom_minute
+WHERE meterid <> 1
+AND minute::DATE = '2024-07-09'
+```
+
+</p>
+</details>
+
 
 
 # Wärmestrom average consumption
 
 ```{python}
-#| echo: false
 %%sql
 
 SELECT 
-  MIN(value),
-  MAX(value),
-  MAX(value) - MIN(value) AS cmtot,
+  MIN(value) AS Min,
+  MAX(value) AS Max,
 
-  MIN(date),
-  MAX(date),
-  date_sub('minute', MIN(date), MAX(date)) AS mintot, 
+  MIN(date) AS First,
+  MAX(date) AS Last,
+  date_sub('minute', First, Last) AS Mins, 
 
-  24.0 * 60.0 * cmtot / mintot AS avgcm,
-  365.0 * avgcm as avgcy,
-  0.2479 * avgcy AS avgyearexpend
-FROM waermestrom
+  2 * (24.0 * 60.0 * AVG(cm)) AS "Use/Day", 
+  24.0 * 60.0 * SUM(cm) / Mins AS "check", 
+
+  365.0 * "Use/Day" AS "Use/Year",
+  0.3894 * "Use/Year" AS "Yearly Exp"
+FROM strom_minute
+WHERE meterid <> 1
 ;
 ```
 
@@ -46,32 +104,55 @@ FROM waermestrom
 #| echo: false
 %%sql
 
-SELECT 
-  tarif,
-  MIN(value),
-  MAX(value),
-  MAX(value) - MIN(value) AS cmtot,
-  cmtot / max(cmtot) OVER () AS frac,
+SELECT
+  MIN(value) AS Min,
+  MAX(value) AS Max,
 
-  MIN(date),
-  MAX(date),
-  date_sub('minute', MIN(date), MAX(date)) AS mintot, 
+  MIN(date) AS First,
+  MAX(date) AS Last,
+  date_sub('minute', First, Last) AS Mins, 
 
+  2 * (24.0 * 60.0 * AVG(cm)) AS "Use/Day", 
+  24.0 * 60.0 * SUM(cm) / Mins AS "check", 
 
-  24.0 * 60.0 * cmtot / mintot AS avgcm,
-  365.0 * avgcm as avgcy,
-  0.2479 * avgcy AS avgyearexpend
-FROM (
-  UNPIVOT waermestrom
-  ON value, value_hoch, value_niedrig
-  INTO
-    NAME tarif
-    VALUE value
-)
-GROUP BY tarif
-ORDER BY tarif
+  365.0 * "Use/Day" AS "Use/Year",
+  0.3894 * "Use/Year" AS "Yearly Exp"
+FROM strom_minute
+WHERE meterid <> 1
+GROUP BY meterid
 ;
 ```
+
+
+<details><summary>pro Jahr</summary>
+<p>
+
+```{python}
+#| include: true
+%%sql
+
+SELECT 
+  year(minute) AS year,
+  MIN(value) AS Min,
+  MAX(value) AS Max,
+
+  MIN(date) AS First,
+  MAX(date) AS Last,
+  date_sub('minute', First, Last) AS Mins, 
+
+  2 * (24.0 * 60.0 * AVG(cm)) AS "Use/Day", 
+  24.0 * 60.0 * SUM(cm) / Mins AS "check", 
+
+  365.0 * "Use/Day" AS "Use/Year",
+  0.3894 * "Use/Year" AS "Yearly Exp"
+FROM strom_minute
+WHERE meterid <> 1
+GROUP BY year(minute)
+;
+```
+
+</p>
+</details>
 
 
 
@@ -83,12 +164,9 @@ ORDER BY tarif
 
 waermestrom_per_day << SELECT 
   minute::DATE AS date,
-  24.0 * 60.0 * AVG(cm) AS cd,
-  24.0 * 60.0 * AVG(cm_hoch) AS cd_hoch,
-  24.0 * 60.0 * AVG(cm_niedrig) AS cd_niedrig,
-  cd_hoch / (cd_niedrig + cd_hoch) AS hoch_frac2,
-  cd_hoch / cd AS hoch_frac
-FROM waermestrom_minute
+  SUM(cm) AS cd,
+FROM strom_minute
+WHERE meterid <> 1
 GROUP BY minute::DATE
 ;
 ```
@@ -96,21 +174,28 @@ GROUP BY minute::DATE
 
 ```{python}
 import plotly.express as px
-fig = px.bar(waermestrom_per_day, y='cd', x='date')
+
+fig = px.bar(waermestrom_per_day, y="cd", x="date")
 fig.update_xaxes(
     rangeslider_visible=True,
     rangeselector=dict(
-        buttons=list([
-            dict(count=15, label="15d", step="day", stepmode="backward"),
-            dict(count=1, label="1m", step="month", stepmode="backward"),
-            dict(count=6, label="6m", step="month", stepmode="backward"),
-            dict(count=1, label="YTD", step="year", stepmode="todate"),
-            dict(count=1, label="1y", step="year", stepmode="backward"),
-            dict(step="all")
-        ])
-    )
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+    range=[
+        "2022-12-01",
+        waermestrom_per_day["date"].max(),
+    ],
 )
-fig.update_xaxes(rangeslider_thickness = 0.1)
+fig.update_xaxes(rangeslider_thickness=0.1)
 fig.show()
 ```
 
@@ -119,7 +204,7 @@ Wärmestrom zeigt natürlich das saisonale Muster. Es gibt einen hohen und volat
 Der Verbrauch in der Heizperiode liegt zwischen 12 und bis zu 50 kWh. Vermutlich stark abhängig von der Außentemperatur.
 
 Overlay temperature
-Was ist am 25-26 Juli passiert?, warum im sommer solcher hoher verbreauch?
+Was ist am 25-26 Juli passiert?, warum im sommer solcher hoher verbreauch?, Wartung?
 
 # Hoch und Niedrig tarif
 
@@ -139,33 +224,35 @@ Trotzdem, schau ma moi wir war der verlauf von denen. But let's aggregate at wee
 
 waermestrom_per_week << SELECT 
   DATE_TRUNC('week', minute) AS week_start,
-  24.0 * 60.0 * AVG(cm) AS cd,
-  24.0 * 60.0 * AVG(cm_hoch) AS cd_hoch,
-  24.0 * 60.0 * AVG(cm_niedrig) AS cd_niedrig,
-  cd_hoch / (cd_niedrig + cd_hoch) AS hoch_frac2,
+  SUM(cm) AS cd,
+  SUM(CASE WHEN meterid = 3 THEN cm ELSE 0 END) AS cd_hoch,
   cd_hoch / cd AS hoch_frac
-FROM waermestrom_minute
+FROM strom_minute
+WHERE meterid <> 1
 GROUP BY DATE_TRUNC('week', minute)
 ;
 ```
 
 ```{python}
 import plotly.express as px
-fig = px.bar(waermestrom_per_week, y='hoch_frac', x='week_start')
+
+fig = px.bar(waermestrom_per_week, y="hoch_frac", x="week_start")
 fig.update_xaxes(
     rangeslider_visible=True,
     rangeselector=dict(
-        buttons=list([
-            dict(count=15, label="15d", step="day", stepmode="backward"),
-            dict(count=1, label="1m", step="month", stepmode="backward"),
-            dict(count=6, label="6m", step="month", stepmode="backward"),
-            dict(count=1, label="YTD", step="year", stepmode="todate"),
-            dict(count=1, label="1y", step="year", stepmode="backward"),
-            dict(step="all")
-        ])
-    )
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
 )
-fig.update_xaxes(rangeslider_thickness = 0.1)
+fig.update_xaxes(rangeslider_thickness=0.1)
 fig.show()
 ```
 

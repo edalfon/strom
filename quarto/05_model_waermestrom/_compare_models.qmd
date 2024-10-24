@@ -1,0 +1,510 @@
+```{python}
+# | eval: false
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import epyfun
+
+import strom
+
+strom_climate = strom.read_result("merge_strom_climate_data")
+strom_climate["ds"] = strom_climate["date"].dt.date
+strom_climate = strom_climate.set_index("ds")
+
+cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
+
+X = strom_climate.drop(columns="wd")
+y = strom_climate["wd"]
+
+train_set = strom_climate[strom_climate["date"] <= cutoff]
+test_set = strom_climate[strom_climate["date"] > cutoff]
+
+X_train = train_set.drop(columns="wd")
+y_train = train_set["wd"]
+X_test = test_set.drop(columns="wd")
+y_test = test_set["wd"]
+```
+
+
+```{python}
+# | eval: false
+
+import strom
+
+versions = strom.get_board().pin_versions("wd")
+vetivers = [strom.get_vetiver("wd", version=v) for v in versions.version]
+
+versions = strom.get_board().pin_versions("wd-ols")
+vetivers = [strom.get_vetiver("wd-ols", version=v) for v in versions.version]
+
+[i.description for i in vetivers]
+```
+
+
+
+```{python}
+import strom
+from sklearn.model_selection import cross_validate
+import pandas as pd
+
+scores = pd.concat([ 
+    pd.DataFrame({
+        **cross_validate(
+            v.model,
+            X_train,
+            y_train,
+            scoring=strom.get_scoring(),
+            cv=strom.get_cv(),
+            n_jobs=-1,
+            verbose=0,
+            return_train_score=True,
+        ),
+        "description": v.description,
+        "version": v.metadata.version,
+    })
+    for v in vetivers
+])  # fmt: skip
+```
+
+
+
+```{python}
+metrics_df = pd.concat([
+    pd.DataFrame({
+        "train": {
+            name: fn(v.model, X_train, y_train)
+            for name, fn in strom.get_scoring().items()
+        },
+        "test": {
+            name: fn(v.model, X_test, y_test)
+            for name, fn in strom.get_scoring().items()
+        },
+        "description": v.description,
+        "version": v.metadata.version,
+    })
+    for v in vetivers
+])  # fmt: skip
+
+metrics_df = metrics_df.reset_index(names="scorer").melt(
+    id_vars=["description", "version", "scorer"],
+    value_vars=["train", "test"],
+    var_name="set",
+)
+```
+
+
+```{python}
+# the version is unique (because it include the hash), so we will use it
+# to group by and plot. But, in the legends we want to show the description
+name_mapping = dict(zip(scores["version"], scores["description"].str[:25]))
+```
+
+```{python}
+#| eval: false
+# hash_versions = strom.get_board().pin_versions("wd").query("hash == 'b8115'")
+# for ver in hash_versions.version:
+#     strom.get_board().pin_version_delete("wd", ver)
+```
+
+```{python}
+#| eval: false
+# strom.get_board().pin_delete("wd")
+```
+
+
+
+
+## Metrics
+
+### Single split
+Metrics based on the test set of the single split
+
+::: {.panel-tabset}
+####### Line plot
+
+```{python}
+# | eval: true
+
+
+def normalize(x):
+    return (x - x.min()) / (x.max() - x.min())
+
+
+# metrics_df["normalized_value"] = metrics_df.groupby("scorer")["value"].transform(
+#     normalize
+# )
+
+df_radar = (
+    metrics_df[metrics_df["set"] == "test"]
+    .groupby(["version", "description", "scorer"])["value"]
+    .mean()
+    .reset_index()
+)
+df_radar["normalized_value"] = df_radar.groupby("scorer")["value"].transform(normalize)
+
+
+# df_radar = df_radar[df_radar["description"] == "Random Firest-tuned."]
+
+# https://plotly.com/python/radar-chart/
+
+import plotly.express as px
+import pandas as pd
+
+fig = px.line(
+    df_radar,
+    x="normalized_value",
+    y="scorer",
+    color="version",
+    hover_data=["value", "version", "description"],
+    markers=["line", "points"],
+)
+
+fig = fig.for_each_trace(lambda t: t.update(name=name_mapping.get(t.name, t.name)))
+
+fig = fig.update_layout(
+    margin=dict(l=0, r=0, t=0, b=0),
+    # legend=dict(
+    #     orientation="v",  # horizontal orientation
+    #     yanchor="bottom",
+    #     y=1.01,  # position slightly above the plot
+    #     xanchor="right",
+    #     x=1,
+    # ),
+)
+
+fig.show()
+```
+
+####### Radar plot
+```{python}
+# | eval: true
+
+def normalize(x):
+    return 0.3 + 0.7 * (x - x.min()) / (x.max() - x.min())
+
+
+df_radar = (
+    metrics_df[metrics_df["set"] == "test"]
+    .groupby(["version", "description", "scorer"])["value"]
+    .mean()
+    .reset_index()
+)
+df_radar["normalized_value"] = df_radar.groupby("scorer")["value"].transform(normalize)
+
+
+# https://plotly.com/python/radar-chart/
+import plotly.express as px
+import pandas as pd
+
+fig = px.line_polar(
+    df_radar,
+    r="normalized_value",
+    theta="scorer",
+    line_close=True,
+    color="version",
+    hover_data=["value"],
+)
+fig = fig.for_each_trace(lambda t: t.update(name=name_mapping.get(t.name, t.name)))
+fig = fig.update_layout(
+    # margin=dict(l=0, r=0, t=0, b=0),
+    legend=dict(
+        orientation="h",  # horizontal orientation
+        yanchor="bottom",
+        y=1.01,  # position slightly above the plot
+        xanchor="right",
+        x=1,
+    ),
+)
+
+fig.show()
+```
+:::
+
+
+
+
+### Cross validation
+
+
+::: {.panel-tabset}
+####### Line plot
+```{python}
+# | eval: true
+
+df = strom.tidy_cross_validate_scores(scores, False)
+
+
+def normalize(x):
+    return (x - x.min()) / (x.max() - x.min())
+
+
+df["normalized_value"] = df.groupby("scorer")["value"].transform(normalize)
+
+df_radar = (
+    df[df["set"] == "test"]
+    .groupby(["version", "description", "scorer"])["value"]
+    .mean()
+    .reset_index()
+)
+df_radar["normalized_value"] = df_radar.groupby("scorer")["value"].transform(normalize)
+
+
+# df_radar = df_radar[df_radar["description"] == "Random Firest-tuned."]
+
+# https://plotly.com/python/radar-chart/
+
+import plotly.express as px
+import pandas as pd
+
+fig = px.line(
+    df_radar,
+    x="normalized_value",
+    y="scorer",
+    color="version",
+    hover_data=["value", "version", "description"],
+    markers=["line", "points"],
+)
+
+fig = fig.for_each_trace(lambda t: t.update(name=name_mapping.get(t.name, t.name)))
+
+fig = fig.update_layout(
+    margin=dict(l=0, r=0, t=0, b=0),
+    # legend=dict(
+    #     orientation="v",  # horizontal orientation
+    #     yanchor="bottom",
+    #     y=1.01,  # position slightly above the plot
+    #     xanchor="right",
+    #     x=1,
+    # ),
+)
+
+fig.show()
+```
+
+####### Radar plot
+```{python}
+# | eval: true
+
+df = strom.tidy_cross_validate_scores(scores, False)
+
+
+def normalize(x):
+    return 0.3 + 0.7 * (x - x.min()) / (x.max() - x.min())
+
+
+df_radar = (
+    df[df["set"] == "test"].groupby(["version", "scorer"])["value"].mean().reset_index()
+)
+df_radar["normalized_value"] = df_radar.groupby("scorer")["value"].transform(normalize)
+
+
+# https://plotly.com/python/radar-chart/
+import plotly.express as px
+import pandas as pd
+
+fig = px.line_polar(
+    df_radar,
+    r="normalized_value",
+    theta="scorer",
+    line_close=True,
+    color="version",
+    hover_data=["value"],
+)
+fig = fig.for_each_trace(lambda t: t.update(name=name_mapping.get(t.name, t.name)))
+
+fig = fig.update_layout(
+    # margin=dict(l=0, r=0, t=0, b=0),
+    legend=dict(
+        orientation="h",  # horizontal orientation
+        yanchor="bottom",
+        y=1.01,  # position slightly above the plot
+        xanchor="right",
+        x=1,
+    ),
+)
+
+fig.show()
+```
+:::
+
+```{python}
+strom.reload_all()
+plots = strom.plot_cross_validate_scores(scores, "version")
+# plots["MAE - Mean Absolute Error"]
+```
+
+::: {.panel-tabset}
+```{python}
+# | output: asis
+for key in plots:
+    print(f"####### {key.split('-', 1)[0].strip()}")
+    plots[key].show()
+```
+:::
+
+
+
+
+
+## Predictions, residuals, observed
+
+```{python}
+predicts = [
+    pd.DataFrame(
+        {
+            "y_hat": v.model.predict(X_test),
+            "y_true": y_test,
+            "description": v.description,
+            "version": v.metadata.version,
+        }
+    )
+    for v in vetivers
+]
+
+df = pd.concat(predicts, axis=0)
+df["residuals"] = df["y_true"] - df["y_hat"]
+```
+
+
+
+```{python}
+fig = strom.observed_residuals_predicted(
+    df["y_true"], df["y_hat"], X_test, color=df["version"]
+)
+fig = fig.for_each_trace(lambda t: t.update(name=name_mapping.get(t.name, t.name)))
+fig.show()
+```
+
+next 
+
+```{python}
+from plotly import express as px
+from plotly import graph_objects as go
+
+fig = px.scatter(df, x="y_true", y="residuals", color="version")
+
+fig = fig.update_traces(hoverinfo="text")
+
+fig = fig.add_trace(
+    go.Scatter(
+        x=[min(df.y_true), max(df.y_true)],
+        y=[0, 0],
+        mode="lines",
+        line=dict(color="red", dash="dot"),
+        name="Diagonal Line",
+        showlegend=False,
+        hoverinfo=None,
+    )
+)
+
+fig = fig.for_each_trace(lambda t: t.update(name=name_mapping.get(t.name, t.name)))
+
+fig = fig.update_layout(
+    autosize=True,
+    xaxis_title="Observed",
+    yaxis_title="Residuals",
+    margin=dict(l=0, r=0, t=0, b=0),
+    # hovermode="y",
+)
+
+fig.show()
+```
+
+## Time vs. Predicted and Observed
+
+```{python}
+fig = px.scatter(df.reset_index(), x="ds", y="y_hat", color="version")
+
+# Add a diagonal line
+fig = fig.add_trace(
+    go.Scatter(
+        x=y.index,
+        y=y,
+        mode="lines",
+        line=dict(color="black"),
+        showlegend=False,
+    )
+)
+
+fig = fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeslider_thickness=0.1,
+    rangeselector=dict(
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+)
+
+fig = fig.for_each_trace(lambda t: t.update(name=name_mapping.get(t.name, t.name)))
+
+fig = fig.update_layout(
+    autosize=True,
+    xaxis_title="Time",
+    yaxis_title="Residuals",
+    margin=dict(l=0, r=0, t=0, b=0),
+)
+
+fig.show()
+```
+
+
+## Time vs. Residuals
+
+```{python}
+
+# fig = strom.scatter_plotly(time, y_true - y_pred, data, dimensions)
+
+fig = px.scatter(df.reset_index(), x="ds", y="residuals", color="version")
+
+# Add a diagonal line
+fig = fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeslider_thickness=0.1,
+    rangeselector=dict(
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+)
+
+fig = fig.for_each_trace(lambda t: t.update(name=name_mapping.get(t.name, t.name)))
+
+fig = fig.update_layout(
+    autosize=True,
+    xaxis_title="Time",
+    yaxis_title="Residuals",
+    margin=dict(l=0, r=0, t=0, b=0),
+)
+
+fig.show()
+```
+
+## Model details
+
+::: {.panel-tabset}
+```{python}
+# | output: asis
+
+from IPython.display import display
+
+for v in vetivers:
+    print(f"####### {v.metadata.version.split('-', 1)[-1].strip()}")
+    display(v.model)
+```
+:::
+

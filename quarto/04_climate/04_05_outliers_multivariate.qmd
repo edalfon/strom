@@ -1,0 +1,136 @@
+---
+title: "Outliers Multivariate"
+execute:
+  echo: false
+  eval: true
+---
+
+```{python}
+#| include: false
+%load_ext sql
+#%sql --section duck
+
+import epyfun
+import pandas as pd
+import numpy as np
+import strom
+strom_climate = strom.read_result("merge_strom_climate_data")
+strom_climate = strom_climate[["date", "wd", "tt_mean", "rf_tu_mean", "td_mean", "vp_std_mean", "tf_std_mean"]]
+```
+
+
+
+
+# Prophet-based outlier detection, multivariate
+
+```{python}
+# | include: false
+import pandas as pd
+from prophet import Prophet
+
+strom_climate["y"] = strom_climate["wd"]
+strom_climate["ds"] = strom_climate["date"].dt.date
+# strom_climate["cap"] = 150  # Set this to a reasonable maximum value for your data
+# strom_climate["floor"] = 1  # This ensures non-negative values
+
+m = Prophet(changepoint_prior_scale=1)  # growth="logistic"
+m.add_regressor("tt_mean")
+m.add_regressor("rf_tu_mean")
+m.fit(strom_climate)
+
+future = m.make_future_dataframe(periods=0)  # do not really want to forecast
+# future["cap"] = 150  # Set this to a reasonable maximum value for your data
+# future["floor"] = 1  # This ensures non-negative values
+future["tt_mean"] = strom_climate["tt_mean"].reset_index(drop=True)
+future["rf_tu_mean"] = strom_climate["rf_tu_mean"].reset_index(drop=True)
+future.tail()
+
+forecast = m.predict(future)
+forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail()
+```
+
+```{python}
+from prophet.plot import plot_plotly, plot_components_plotly
+
+fig = plot_plotly(m, forecast)
+fig = fig.update_layout(xaxis=dict(rangeslider=dict(thickness=0.1)))
+fig.show()
+
+fig = plot_components_plotly(m, forecast)
+fig.show()
+```
+
+Adding these two relevant predictors -without much feature-engineering really-,
+substantially improves the fit and reduces the uncertainty band. This could
+actually be useful for outlier detection. Only concern I had, I would have expected the 
+uncertainty band to be wider in the cold season (due to extreme values and higher 
+variability). Additional concern, it can predict negative values, so we sould 
+add some contraint about that.
+
+```{python}
+forecast["ds"] = forecast["ds"].dt.date
+strom_climate = pd.merge(
+    strom_climate,
+    forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]],
+    how="inner",
+    on="ds",
+)
+
+strom_climate["prophet_error"] = strom_climate["y"] - strom_climate["yhat"]
+strom_climate["prophet_band"] = (
+    strom_climate["yhat_upper"] - strom_climate["yhat_lower"]
+)
+
+strom_climate["prophet_outlier"] = (
+    np.abs(strom_climate["prophet_error"]) > 1.2 * strom_climate["prophet_band"]
+)
+```
+
+```{python}
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+from epyfun import make_hover_template
+
+fig = px.scatter(strom_climate, y="wd", x="date", color="prophet_outlier")
+fig.update_xaxes(
+    rangeslider_visible=True,
+    rangeslider_thickness=0.1,
+    rangeselector=dict(
+        buttons=list(
+            [
+                dict(count=15, label="15d", step="day", stepmode="backward"),
+                dict(count=1, label="1m", step="month", stepmode="backward"),
+                dict(count=6, label="6m", step="month", stepmode="backward"),
+                dict(count=1, label="YTD", step="year", stepmode="todate"),
+                dict(count=1, label="1y", step="year", stepmode="backward"),
+                dict(step="all"),
+            ]
+        )
+    ),
+)
+fig.data[0].customdata = strom_climate
+fig.update_traces(hovertemplate=make_hover_template(strom_climate))
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+```{python}
+from epyfun import splom
+
+splom(
+    strom_climate,
+    ["wd", "tt_mean", "rf_tu_mean", "td_mean", "vp_std_mean", "tf_std_mean"],
+    color="prophet_outlier",
+    height=700,
+)
+```
+
+Yeah, I think this is actually better. Still, the thing about the uncertainty during 
+the cold periods being not so big, I think it is concerning. It end up detecting some 
+outliers that are probably legit. It also may end up failing to catch some outliers 
+in the warm period.
+
+# TODOs
+
+- [ ] Perhaps fine-tune this multivariate model?

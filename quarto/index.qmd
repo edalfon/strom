@@ -230,3 +230,75 @@ daily, average = strom.read_result("last_5_days")
 
 {{< include Dashboard/_hour.qmd >}}
 
+# OJS {orientation="columns"}
+
+## col {width=0%}
+
+```{python}
+# | echo: false
+import strom
+import epyfun
+import pandas as pd
+
+strom_per_month = strom.read_result("make_strom_per_month")
+
+strom_per_month["month_name"] = pd.to_datetime(
+    strom_per_month["month"], format="%m"
+).dt.month_name()
+
+monthly_averages = strom_per_month.groupby(["month", "month_name"]).agg(
+    mean_nd=("nd", "mean"), mean_wd=("wd", "mean")
+)
+monthly_averages = epyfun.clean_names(monthly_averages).reset_index()
+monthly_averages["tot"] = monthly_averages["mean_nd"] + monthly_averages["mean_wd"]
+monthly_averages["prod"] = [
+    800,
+    900,
+    1200,
+    1500,
+    1800,
+    2000,
+    2100,
+    2000,
+    1700,
+    1300,
+    1000,
+    900,
+]
+# monthly_averages["prod"] = [
+#     205,
+#     316,
+#     803,
+#     1385,
+#     1460,
+#     1393,
+#     1460,
+#     1240,
+#     931,
+#     410,
+#     265,
+#     137,
+# ]
+monthly_averages["frac"] = monthly_averages["prod"] / monthly_averages["prod"].sum()
+month_order = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
+
+ojs_define(wowdata=monthly_averages)
+```
+
+
+{{< include Dashboard/_ojs.qmd >}}
+
+

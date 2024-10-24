@@ -1,0 +1,33 @@
+---
+title: "Sweet Viz report"
+execute:
+  echo: false
+  eval: true
+---
+
+```{python}
+#| include: false
+%load_ext sql
+#%sql --section duck
+
+import epyfun
+import pandas as pd
+import strom
+strom_climate = strom.read_result("merge_strom_climate_data")
+```
+
+
+```{python}
+import sweetviz as sw
+
+report = sw.analyze(strom_climate)
+# report.show_html("./results/output.html", open_browser=True)
+report.show_notebook()
+# Pandas-Profiling
+# Sweetviz
+# Autoviz
+# D-Tale
+# DataPrep
+# FastEDA  https://medium.com/bitgrit-data-science-publication/fast-exploratory-data-analysis-with-one-line-of-code-677fcba2342e
+```
+

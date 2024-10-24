@@ -15,6 +15,7 @@ monthly_averages = strom_per_month.groupby(["month", "month_name"]).agg(
     mean_nd=("nd", "mean"), mean_wd=("wd", "mean")
 )
 monthly_averages = epyfun.clean_names(monthly_averages).reset_index()
+monthly_averages["tot"] = monthly_averages["mean_nd"] + monthly_averages["mean_wd"]
 month_order = [
     "January",
     "February",

@@ -1,0 +1,370 @@
+---
+title: "Fine tuning the polynomial Model"
+execute:
+  echo: false
+  eval: true
+---
+
+```{python}
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import epyfun
+
+import strom
+
+strom_climate = strom.read_result("merge_strom_climate_data")
+strom_climate["ds"] = strom_climate["date"].dt.date
+strom_climate = strom_climate.set_index("ds")
+
+cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
+
+X = strom_climate.drop(columns="wd")
+y = strom_climate["wd"]
+
+train_set = strom_climate[strom_climate["date"] <= cutoff]
+test_set = strom_climate[strom_climate["date"] > cutoff]
+
+X_train = train_set.drop(columns="wd")
+y_train = train_set["wd"]
+X_test = test_set.drop(columns="wd")
+y_test = test_set["wd"]
+```
+
+Let's address here a couple of the to-dos from the previous pages. Namely, 
+let's check the degree of the polynomial using a grid search and checkout other
+climatic variables, playing a bit with variable selection.
+
+# Tune polynomial degree
+
+First, let's fine-tune the [degree of the polynomial](05_02_baseline.qmd#todos). 
+From the initial scatter plots, it seems that a 2 or 3 degree polynomial would be 
+good. But let's throw a grid search on that.
+
+```{python}
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+
+from sklego.preprocessing import ColumnSelector
+
+pipe = Pipeline(
+    [
+        ("vars", ColumnSelector(columns=["tt_tu_mean", "rf_tu_mean"])),
+        ("polynomial", PolynomialFeatures(degree=3)),
+        ("model", LinearRegression()),
+    ]
+)
+```
+
+```{python}
+from sklearn.model_selection import GridSearchCV
+
+param_grid = [
+    {
+        "polynomial__degree": [2, 3, 4, 5, 6, 7],
+    },
+]
+
+grid = GridSearchCV(
+    pipe,
+    param_grid=param_grid,
+    scoring=strom.get_scoring(),
+    n_jobs=-1,
+    cv=strom.get_cv(),
+    refit=False,
+    return_train_score=True,
+)
+grid = grid.fit(X_train, y_train)
+grid_fit = grid
+# pd.DataFrame(grid.cv_results_)
+# grid.best_params_
+```
+
+```{python}
+strom.reload_all()
+plots = strom.plot_grid_search_results(grid)
+# fig = plots["MAE - Mean Absolute Error"]
+# fig.show()
+```
+
+::: {.panel-tabset}
+```{python}
+# | output: asis
+for key in plots:
+    print(f"#### {key.split('-', 1)[0].strip()}")
+    plots[key].show()
+```
+:::
+
+It seems degree 4 would be best. Of course there is a a small variation
+according to the metric/scorer used, but overall, I think 4 seems best.
+The differences are rather small, but there is still this tension between
+MAE and RSME. A model that better fit on the warmer season and therefore has 
+smaller small errors and a small MAE, tend to have a few very large errors,
+affecting the RSME. And the other way around.
+
+# Variable selection
+
+Now let's try here a brute-force approach to [variable selection](05_03_tune_polynomial.qmd#todos).
+Thereby, taking a not-so-thoughtful-but-quick-and-effective approach to
+trying out [other climatic variables](05_02_baseline.qmd#todos) and checking the
+[associations with relative humidity](05_02_baseline.qmd#todos) and other variables, 
+to see if there is indeed a signal or just noise in some of them like humidity and so on.
+
+Just let it crunch through a bunch of variable combinations.
+There will be many non-sensical or 
+irrelevant combinations. But it's just fast to write and the machine will 
+have to work, me not so much.
+
+From topic knowledge and the first correlations observed, we would 
+expect mostly temprature to play a key role in the model. Yet, other
+variables such a humidity, pressure or condensation point could
+also be relevant. So let's throw all that into a grid search and see
+what it spits out of it.
+
+- `tt`: Temperatur der Luft in 2m Hoehe	°C
+- `rf_tu`: relative Feuchte	%
+- `td`: Taupunktstemperatur	°C
+- `vp_std`: berechnete Stundenwerte des Dampfdruckes hpa
+- `tf_std`: berechnete Stundenwerte der Feuchttemperatur	°C
+- `p_std`: Stundenwerte Luftdruck	hpa
+
+```{python}
+from sklearn.model_selection import GridSearchCV
+
+from itertools import combinations
+
+vars = [
+    "tt_tu_mean",
+    "rf_tu_mean",
+    "td_mean",
+    "vp_std_mean",
+    "tf_std_mean",
+    # "p_std_mean",
+    # "r1_mean",
+    # "rs_ind_mean",
+]
+combs = [
+    list(combo) for r in range(1, len(vars) + 1) for combo in combinations(vars, r)
+]
+
+# param_grid = [
+#     {
+#         "vars__columns": [
+#             ["tt_tu_mean"],
+#             ["tt_tu_mean", "rf_tu_mean"],
+#             ["tt_tu_mean", "tt_tu_min", "tt_tu_max", "rf_tu_mean"],
+#             ["tt_tu_mean", "rf_tu_min", "rf_tu_max", "rf_tu_mean"],
+#             ["tt_tu_min", "tt_tu_max", "rf_tu_min", "rf_tu_max"],
+#         ],
+#     },
+# ]
+
+param_grid = [
+    {
+        "vars__columns": combs,
+    },
+]
+
+grid = GridSearchCV(
+    pipe,
+    param_grid=param_grid,
+    scoring=strom.get_scoring(),
+    n_jobs=-1,
+    cv=strom.get_cv(),
+    refit=False,
+    return_train_score=True,
+)
+grid = grid.fit(X_train, y_train)
+
+# pd.DataFrame(grid.cv_results_)
+# grid.best_params_
+```
+
+```{python}
+strom.reload_all()
+plots = strom.plot_grid_search_results(grid)
+# fig = plots["MAE - Mean Absolute Error"]
+# fig.show()
+```
+
+::: {.panel-tabset}
+```{python}
+# | output: asis
+for key in plots:
+    print(f"#### {key.split('-', 1)[0].strip()}")
+    plots[key].show()
+```
+:::
+
+```{python}
+from itables import init_notebook_mode, show
+
+init_notebook_mode(all_interactive=True)
+
+show(
+    strom.summarize_grid_search_results(grid.cv_results_),
+    column_filters="footer",
+    layout={"topEnd": None},
+)
+
+```
+
+Well humidity and other climatic variables can only improve the model marginally. 
+A proper mediation analysis would still be in order, but this at least shed some light on 
+it. Interestingly, some models without temperature but the set of other climatic variables
+almost equal the performance of the best model with temperature. Overall, it seems that 
+at least temperature, humidity and pressure should be considered. Yet, the tend
+to be collineal and thus not really be able to used them all just like that in this 
+kind of model.
+
+
+# One last brute-force approach for today and let automatically choose the best model
+
+```{python}
+# | include: false
+from sklearn.model_selection import GridSearchCV
+
+from itertools import combinations
+
+vars = [
+    # "tt_tu_mean",
+    "rf_tu_mean",
+    "td_mean",
+    "vp_std_mean",
+    "tf_std_mean",
+    # "p_std_mean",
+]
+# combs = [
+#     ["tt_tu_mean"] + list(combo)
+#     for r in range(1, len(vars) + 1)
+#     for combo in combinations(vars, r)
+# ]
+param_grid = [
+    {
+        "vars__columns": combs,
+        "polynomial__degree": [3, 4, 5],
+    },
+]
+
+from sklearn import metrics
+
+grid = GridSearchCV(
+    pipe,
+    param_grid=param_grid,
+    scoring=strom.get_scoring(),
+    n_jobs=-1,
+    cv=strom.get_cv(),
+    # refit=strom.refit_strategy("MAE - Mean Absolute Error"),
+    refit="RMSE - Root Mean Squared Error",
+    return_train_score=False,
+)
+grid = grid.fit(X_train, y_train)
+
+pipe = grid.best_estimator_
+
+strom.log_vetiver(
+    grid.best_estimator_,
+    "wd-ols",
+    description="Baseline-tuned, via grid-search on variables and polynomial degree",
+)
+```
+
+
+Best parameters
+```{python}
+grid.best_params_
+```
+```{python}
+pipe
+```
+
+
+```{python}
+show(
+    strom.summarize_grid_search_results(grid.cv_results_),
+    column_filters="footer",
+    layout={"topEnd": None},
+)
+```
+
+```{python}
+show(pd.DataFrame(grid.cv_results_).filter(regex="^(mean_test|param)"))
+```
+
+
+## Assessment of the best model in that brute force approach
+
+{{< include _assess_model.qmd >}}
+
+
+# Compare models
+
+So let's compare the models with and without humidity.
+
+```{python}
+# | include: false
+pipe = Pipeline(
+    [
+        ("vars", ColumnSelector(columns=["tt_tu_mean", "tf_std_mean"])),
+        ("polynomial", PolynomialFeatures(degree=4)),
+        ("model", LinearRegression()),
+    ]
+)
+pipe.fit(X_train, y_train)
+strom.log_vetiver(
+    pipe,
+    "wd-ols",
+    description="degree 4, with humidity",
+)
+
+# make sure the best model of the grid search will be the latest version in vetiver
+strom.log_vetiver(
+    grid.best_estimator_,
+    "wd-ols",
+    description="Baseline-tuned, via grid-search on variables and polynomial degree",
+)
+```
+
+```{python}
+import strom
+
+versions = strom.get_board().pin_versions("wd-ols")
+vetivers = [strom.get_vetiver("wd-ols", version=v) for v in versions.version]
+```
+
+{{< include _compare_models.qmd >}}
+
+
+
+A nice improvement over the baseline model, and the model without humidity 
+is slightly better across all metrics (a rather small improvement, but across all metrics).
+
+# TODOs
+
+- [X] Let's just compare the models diretly. 
+- [ ] Conduct a proper mediation analysis to tease out the relationship between
+      the climatic variables and wärmestrom consumption
+- [ ] Already mentioned in the previous model, but the results here reinforce that
+      it would be a good idea to use PCA for feature engineering and make the most
+      out of the -highly correlated- climatic variables
+- [ ] Create interaction terms between important features
+- [ ] Derive new features based on domain knowledge (e.g., day of week, holidays)
+- [ ] Improve hyperparameter tuning, for example, using randomized grid search to explore a wider range of parameters more efficiently, and possibly also using more advanced strategies like Bayesian optimization (scikit-optimize) or genetic algorithms.
+- [ ] try lagged features and incoporate seasonal-trend decomposition in the model.
+- [ ] after that kind of feature engineering, use perhaps recursive feature elimination instead of the brute-force approach.
+
+
+
+Sorry, ich konnte nicht früher antworten. Wir waren unterwegs und sind erst ein paar Minuten vor dem Sturm zurückgekommen.
+
+Wir haben wohl nicht so viel geübt, wie wir sollten, aber wir haben ja ein paar verschiedene Schulwege ausprobiert. Am Ende haben wir beschlossen, sie gehen von hier über die Edelweißstraße zur Kaiserblickstraße, dann an eurem Haus vorbei und biegen links ab zu der Sparkasse-Ampel. Danach gehen wir an der Eisdiele vorbei, überqueren bei der Bedarfsampel die Straße und gehen dann hinauf bis zur Schule.
+
+Macht ihr etwas Ähnliches?
+
+Ich mag die Kreuzung bei der Sparkasse eigentlich nicht. Ich finde sie etwas gefährlich. Aber die Kreuzung bei Netto finde ich noch viel gefährlicher, und die Ampel bei Prechtl, obwohl es meiner Meinung nach sicherer ist, macht den Weg länger. Außerdem ist das Gehen auf dem schmalen Gehweg entlang der Hauptstraße auch nicht besonders sicher. Also ...
+
+Wir planen sowieso, die Kinder in den ersten Tagen zu begleiten und dann zu schauen, wie es weiterläuft.
+
+Und was habt ihr darüber gedacht? Vielleicht können wir etwas zusammen organisieren.

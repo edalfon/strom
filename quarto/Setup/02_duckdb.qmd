@@ -53,7 +53,7 @@ Also, remember the ["trick" here](https://github.com/quarto-dev/quarto-cli/discu
 
 > In Quarto projects, an include path that begins with a leading slash will be interpreted as project relative, meaning that you should be able to use an include such as:
 ```
-{{< include /_codebit.qmd >}}
+"{{< include /_codebit.qmd >}}"
 ``` 
 > to include from the project root no matter the subdirectory of the file itself.
 

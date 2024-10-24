@@ -1,0 +1,404 @@
+```{python}
+# | eval: false
+# | include: false
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import epyfun
+
+import strom
+
+strom_climate = strom.read_result("merge_strom_climate_data")
+strom_climate["ds"] = strom_climate["date"].dt.date
+strom_climate = strom_climate.set_index("ds")
+
+cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
+
+train_set = strom_climate[strom_climate["date"] <= cutoff]
+test_set = strom_climate[strom_climate["date"] > cutoff]
+
+X = strom_climate.drop(columns="wd")
+y = strom_climate["wd"]
+
+X_train = train_set.drop(columns="wd")
+y_train = train_set["wd"]
+X_test = test_set.drop(columns="wd")
+y_test = test_set["wd"]
+
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+
+from sklego.preprocessing import ColumnSelector
+
+pipe = Pipeline(
+    [
+        ("vars", ColumnSelector(columns=["tt_tu_mean"])),
+        ("polynomial", PolynomialFeatures(degree=3)),
+        ("model", LinearRegression()),
+    ]
+)
+```
+
+
+```{python}
+import strom
+
+cols = [
+    "wd",
+    "tt_tu_mean",
+    "rf_tu_mean",
+    "td_mean",
+    "vp_std_mean",
+    "tf_std_mean",
+    # "p_std_mean",
+    # "r1_mean",
+    # "rs_ind_mean",
+]
+```
+
+```{python}
+pipe.fit(X_train, y_train)
+
+y_pred_train = pipe.predict(X_train)
+
+y_pred_test = pipe.predict(X_test)
+```
+
+
+```{python}
+# | include: false
+
+from sklearn import metrics
+from sklearn.model_selection import cross_validate
+
+metrics_use = strom.get_metrics()
+metrics_train = {name: fn(y_train, y_pred_train) for name, fn in metrics_use.items()}
+metrics_test = {name: fn(y_test, y_pred_test) for name, fn in metrics_use.items()}
+
+metrics_df = pd.DataFrame({"train": metrics_train, "test": metrics_test})
+
+scores = cross_validate(
+    pipe,
+    X_train,
+    y_train,
+    scoring=strom.get_scoring(),
+    cv=strom.get_cv(),
+    n_jobs=-1,
+    verbose=1,
+    return_train_score=True,
+)
+scores
+
+scores_summ = strom.summarize_cross_validate_scores(scores)
+scores_summ
+```
+
+
+```{python}
+# | eval: false
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.model_selection import cross_validate
+from sklearn import metrics
+
+cv = TimeSeriesSplit(
+    n_splits=5,
+    gap=0,
+    # max_train_size=365,
+    test_size=45,
+)
+[{"train": len(split[0]), "test": len(split[1])} for split in list(cv.split(X_train))]
+
+scores = cross_validate(
+    pipe,
+    X_train,
+    y_train,
+    scoring="r2",
+    cv=cv,
+    n_jobs=-1,
+    verbose=1,
+    return_train_score=True,
+)
+pd.DataFrame(scores)
+
+# #cv = strom.get_cv()
+splits = list(cv.split(X_train))
+train_0 = splits[3][0]
+test_0 = splits[3][1]
+X_train.iloc[train_0]
+y_train.iloc[train_0]
+
+pipe.fit(X_train.iloc[train_0], y_train.iloc[train_0])
+y_hat = pipe.predict(X_train.iloc[test_0])
+y_true = y_train.iloc[test_0]
+
+pd.DataFrame({"y_true": y_true, "y_hat": y_hat})
+strom.observed_residuals_predicted(y_true, y_hat)
+strom.splom_fitted_observed(
+    y_true,
+    y_hat,
+    X_train.iloc[test_0],
+    ["y", "tt_tu_mean", "rf_tu_mean", "rf_tu_median", "nd"],
+)
+metrics.r2_score(y_true, y_hat, multioutput="raw_values")
+metrics.mean_absolute_error(y_true, y_hat)
+
+for split_i in splits:
+    train_i = split_i[0]
+    test_i = split_i[1]
+    pipe.fit(X_train.iloc[train_i], y_train.iloc[train_i])
+    y_hat = pipe.predict(X_train.iloc[test_i])
+    y_true = y.iloc[test_i]
+
+    strom.observed_residuals_predicted(y_true, y_hat, X_train).show()
+
+```
+
+
+### Metrics
+
+```{python}
+metrics_df.columns = pd.MultiIndex.from_product([['Single Split'], metrics_df.columns.to_list()])
+
+scores_summ.columns = pd.MultiIndex.from_product([['CV'], scores_summ.columns.droplevel(0).to_list()])
+metrics_scores = metrics_df.join(scores_summ, how="inner")
+
+
+metrics_scores_long = metrics_scores.melt(ignore_index=False).reset_index()
+metrics_scores_long.columns = ["metric", "mode", "traintest", "value"]
+metrics_scores_long['metric'] = metrics_scores_long['metric'].str.split('-').str[0].str.strip()
+
+# ojs_define(metrics_scores=metrics_scores)
+```
+
+
+::: {.panel-tabset}
+#### Plot
+```{python}
+from plotnine import (
+    ggplot,
+    geom_point,
+    aes,
+    stat_smooth,
+    facet_wrap,
+    geom_col,
+    theme,
+    element_rect,
+    element_blank,
+    element_line,
+    element_text,
+    geom_text,
+    position_dodge,
+    scale_y_continuous,
+)
+from plotnine.data import mtcars
+
+
+metrics_scores_long = metrics_scores_long.assign(
+    traintest=pd.Categorical(
+        metrics_scores_long["traintest"], categories=["train", "test"]
+    ),
+    mode=pd.Categorical(metrics_scores_long["mode"], categories=["Single Split", "CV"]),
+    metric=pd.Categorical(
+        metrics_scores_long["metric"],
+        categories=["MAE", "MAPE", "MeAE", "MSE", "RMSE", "Pinball", "R2", "EVS", "D2"],
+    ),
+)
+
+
+(
+    ggplot(metrics_scores_long, aes("mode", "value", fill="traintest"))
+    + geom_col(position="dodge")
+    + facet_wrap("metric", scales="free", labeller="label_context")
+    + geom_text(
+        aes(y=0, label="traintest"),
+        position=position_dodge(width=0.9),
+        color="gray",
+        size=7,
+        va="bottom",
+    )
+    + geom_text(
+        aes(label="value"),
+        position=position_dodge(width=0.9),
+        size=8,
+        va="bottom",
+        format_string="{:.2f}",
+    )
+    + scale_y_continuous(expand=(0, 0, 0, 0.2))
+    + theme(
+        panel_background=element_rect(fill="white"),
+        axis_title_y=element_blank(),
+        axis_title_x=element_blank(),
+        axis_text_y=element_text(color="grey", size=5),
+        axis_text_x=element_text(color="grey"),
+        axis_ticks_major_y=element_blank(),
+        legend_position="none",
+    )
+)
+
+# TODO: try to nudge the traintest labels a bit upwards, That would be like vjust = 1
+#       or something like that. But that does not seems to exists here. There is however
+#       nudge_y, but it is relative to the y axis range, so it does not play nice
+#       with free_y scales. DONE, there is this argument `va` that solves the issue
+# TODO: similarly, there is no space enough above for all the value text. The position
+#       is fine, but the plot area is not exapnded enough. One solution should be
+#       to use scale_y_continuous(expand=) but again, this does not seem to play nice
+#       with free_y scales, because it applies the expansion equally for all facets
+```
+
+#### Table
+```{python}
+metrics_scores
+```
+:::
+
+
+
+### Scatter plot matrix
+
+::: {.panel-tabset}
+#### Test
+```{python}
+strom.splom_fitted_observed(y_test, y_pred_test, test_set, cols)
+```
+
+#### Train
+```{python}
+strom.splom_fitted_observed(y_train, y_pred_train, train_set, cols)
+```
+:::
+
+### Observed vs. Predicted and Residuals vs. Predicted
+
+<details><summary>Check for ...</summary>
+<p>
+check the residuals to assess the goodness of fit.
+
+- white noise or is there a pattern?
+- heteroscedasticity? 
+- non-linearity?
+</p>
+</details>
+
+::: {.panel-tabset}
+#### Test
+```{python}
+strom.observed_residuals_predicted(y_test, y_pred_test, X_test)
+# strom.observed_predicted(y_test, y_pred_test, X_test)
+# strom.residuals_predicted(y_test, y_pred_test, X_test)
+```
+
+#### Train
+```{python}
+strom.observed_residuals_predicted(y_train, y_pred_train, X_train)
+# strom.observed_predicted(y_train, y_pred_train, X_train)
+# strom.residuals_predicted(y_train, y_pred_train, X_train)
+```
+:::
+
+
+### Normality of Residuals:
+
+<details><summary>Check for ...</summary>
+<p>
+- Are residuals normally distributed?
+</p>
+</details>
+
+::: {.panel-tabset}
+#### Test
+```{python}
+fig = strom.residuals_hist(y_test, y_pred_test)
+```
+
+#### Train
+```{python}
+fig = strom.residuals_hist(y_train, y_pred_train)
+```
+:::
+
+
+::: {.panel-tabset}
+#### Test
+```{python}
+fig = strom.residuals_qq(y_test, y_pred_test)
+```
+
+#### Train
+```{python}
+fig = strom.residuals_qq(y_train, y_pred_train)
+```
+:::
+
+
+### Leverage
+
+::: {.panel-tabset}
+#### Test
+```{python}
+#| eval: false
+strom.leverage(y_test, y_pred_test, pipe, X_test)
+```
+
+#### Train
+```{python}
+#| eval: false
+strom.leverage(y_train, y_pred_train, pipe, X_train)
+```
+:::
+
+
+### Scale-Location plot
+
+::: {.panel-tabset}
+#### Test
+```{python}
+fig = strom.scale_location(y_test, y_pred_test, pipe, X_test)
+```
+
+#### Train
+```{python}
+fig = strom.scale_location(y_train, y_pred_train, pipe, X_train)
+```
+:::
+
+
+### Residuals Autocorrelation Plot
+
+::: {.panel-tabset}
+#### Test
+```{python}
+import matplotlib.pyplot as plt
+from statsmodels.graphics.tsaplots import plot_acf
+
+plot_acf(y_test - y_pred_test, lags=30)
+plt.title("Residuals Autocorrelation Plot")
+plt.show()
+```
+
+#### Train
+```{python}
+import matplotlib.pyplot as plt
+from statsmodels.graphics.tsaplots import plot_acf
+
+plot_acf(y_train - y_pred_train, lags=30)
+plt.title("Residuals Autocorrelation Plot")
+plt.show()
+```
+:::
+
+
+### Residuals vs Time
+
+::: {.panel-tabset}
+#### Test
+```{python}
+strom.residuals_time(y_test, y_pred_test)
+```
+
+#### Train
+```{python}
+strom.residuals_time(y_train, y_pred_train)
+```
+:::
+

@@ -55,10 +55,16 @@ def get_climate_data(current_date):
     agg_df["date"] = agg_df["MESS_DATUM"].dt.normalize()
     agg_df = (
         agg_df.groupby("date")
-        .agg({key: ["min", "mean", "max"] for key in datacols})
+        .agg({key: ["min", "max", "mean", "median", "std"] for key in datacols})
         .reset_index()
     )
     climate_daily = epyfun.pandas.clean_names(agg_df)
+
+    # climate_daily = strom.read_result("get_climate_data")
+
+    # assert climate_daily.notna().all().all()
+
+    # columns_with_na = climate_daily.columns[climate_daily.isna().any()].tolist()
 
     return climate_daily
 

@@ -149,6 +149,7 @@ def get_period(
 
 @task(**task_ops)
 def compare_last_days(
+    climate_daily,
     days=15,
     years_back=4,
     duckdb_file="./duckdb/strom.duckdb",

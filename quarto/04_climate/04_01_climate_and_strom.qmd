@@ -1,0 +1,254 @@
+---
+title: "Correlations"
+execute:
+  echo: false
+  eval: true
+---
+
+```{python}
+#| include: false
+%load_ext sql
+#%sql --section duck
+
+import epyfun
+import pandas as pd
+import strom
+strom_climate = strom.read_result("merge_strom_climate_data")
+```
+
+```{python}
+# ABSF_STD	berechnete Stundenwerte der absoluten Feuchte g/m³
+# fmt: off
+climate_vars = [
+    #"tt_tu", # TT_TU	Lufttemperatur	°C
+    #'tt_std', # TT_STD	Lufttemperatur in 2m Hoehe	°C
+    'tt', # TT	Temperatur der Luft in 2m Hoehe	°C
+
+    "rf_tu", # RF_TU	relative Feuchte	%
+    #'rf_std', # RF_STD	Stundenwerte der Relativen Feuchte	%
+
+    'td', # TD	Taupunktstemperatur	°C
+    #'td_std', # TD_STD	Taupunkttemperatur in 2m Hoehe	°C
+
+    'vp_std', # VP_STD	berechnete Stundenwerte des Dampfdruckes	hpa
+
+    'tf_std', # TF_STD	berechnete Stundenwerte der Feuchttemperatur	°C
+
+    'p_std', # P_STD	Stundenwerte Luftdruck	hpa
+
+    "r1", 
+    'rs_ind', 
+    #'wrtr', 
+]
+# fmt: on
+
+aggfns = ["min", "max", "mean", "median", "std"]
+
+all_columns = ["wd", "nd", "obs"] + [f"{i}_{j}" for i in climate_vars for j in aggfns]
+```
+
+
+# Mean values of climate variables
+
+```{python}
+selected_columns = ["wd", "nd", "obs"] + [
+    col for col in all_columns if col.endswith("_mean")
+]
+```
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+selected_df = strom_climate[selected_columns]
+correlation_matrix = selected_df.corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+plt.title("Correlation Matrix Plot")
+plt.show()
+```
+
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+from pandas.plotting import scatter_matrix
+
+selected_df = strom_climate[selected_columns]
+scatter_matrix(selected_df, alpha=0.8, figsize=(10, 8), diagonal="hist")
+plt.suptitle("Scatter Plot Matrix", y=1.02)
+plt.show()
+```
+
+
+```{python}
+fig = epyfun.splom(strom_climate, selected_columns, height=700)
+fig
+```
+
+# Min values of climate variables
+
+```{python}
+selected_columns = ["wd", "nd", "obs"] + [
+    col for col in all_columns if col.endswith("_min")
+]
+```
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+selected_df = strom_climate[selected_columns]
+correlation_matrix = selected_df.corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+plt.title("Correlation Matrix Plot")
+plt.show()
+```
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+from pandas.plotting import scatter_matrix
+
+selected_df = strom_climate[selected_columns]
+scatter_matrix(selected_df, alpha=0.8, figsize=(10, 8), diagonal="hist")
+plt.suptitle("Scatter Plot Matrix", y=1.02)
+plt.show()
+```
+
+```{python}
+fig = epyfun.splom(strom_climate, selected_columns, height=700)
+fig
+```
+
+# Max values of climate variables
+
+```{python}
+selected_columns = ["wd", "nd", "obs"] + [
+    col for col in all_columns if col.endswith("_max")
+]
+```
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+selected_df = strom_climate[selected_columns]
+correlation_matrix = selected_df.corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+plt.title("Correlation Matrix Plot")
+plt.show()
+```
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+from pandas.plotting import scatter_matrix
+
+selected_df = strom_climate[selected_columns]
+scatter_matrix(selected_df, alpha=0.8, figsize=(10, 8), diagonal="hist")
+plt.suptitle("Scatter Plot Matrix", y=1.02)
+plt.show()
+```
+
+```{python}
+fig = epyfun.splom(strom_climate, selected_columns, height=700)
+fig
+```
+
+# Median values of climate variables
+
+```{python}
+selected_columns = ["wd", "nd", "obs"] + [
+    col for col in all_columns if col.endswith("_median")
+]
+```
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+selected_df = strom_climate[selected_columns]
+correlation_matrix = selected_df.corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+plt.title("Correlation Matrix Plot")
+plt.show()
+```
+
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+from pandas.plotting import scatter_matrix
+
+selected_df = strom_climate[selected_columns]
+scatter_matrix(selected_df, alpha=0.8, figsize=(10, 8), diagonal="hist")
+plt.suptitle("Scatter Plot Matrix", y=1.02)
+plt.show()
+```
+
+
+```{python}
+fig = epyfun.splom(strom_climate, selected_columns, height=700)
+fig
+```
+
+
+# Std. deviation of climate variables
+
+```{python}
+selected_columns = ["wd", "nd", "obs"] + [
+    col for col in all_columns if col.endswith("_std")
+]
+```
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+selected_df = strom_climate[selected_columns]
+correlation_matrix = selected_df.corr()
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5)
+plt.title("Correlation Matrix Plot")
+plt.show()
+```
+
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+from pandas.plotting import scatter_matrix
+
+selected_df = strom_climate[selected_columns]
+scatter_matrix(selected_df, alpha=0.8, figsize=(10, 8), diagonal="hist")
+plt.suptitle("Scatter Plot Matrix", y=1.02)
+plt.show()
+```
+
+
+```{python}
+fig = epyfun.splom(strom_climate, selected_columns, height=700)
+fig
+```
+
+
+
+
+some first-look insights
+
+- it's good that the correlation between normal and warme strom consumption is very low. It is expected, and could be useful to use normal strom utilization as a proxy for other things (i.e. being at home basically)
+- also as expected, the correlation between normal strom utilization and temprature is low.
+- there is a nice and strong negative correlation between temperature and wärmestrom consumption. It is not strictly linear though. Rather polinomial (inverse) relatioship.
+- there seems to be some sort of weak positive correlation between wärmestrom and relative humidity. Not at all consistent though. It is positive with min and mean humidity, but negative or non-existent with max humidity. It may well be just an artifact or spurious correlation, explained by temperature, because there is indeed a correlation (not that strong, though) between temperature and humidity.
+- the number of observations are somewhat related to the temperature, which kinda makes sense, because the measurements are not random. I am much more likely to measure the thing when it's cold!, and that seems to be reflected in the data.
+
+

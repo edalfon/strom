@@ -1,0 +1,353 @@
+## Col
+
+### Row
+
+```{ojs}
+//| include: false
+consumption_nd = calcdata.reduce((acc, item) => acc + item.mean_nd, 0);
+consumption_nd_show = Intl.NumberFormat('en-US').format(Math.round(consumption_nd))
+//https://github.com/quarto-dev/quarto-cli/issues/8823
+```
+
+::: {.valuebox icon="pencil" color="primary"}
+Normalstrom
+
+`{ojs} consumption_nd_show`
+:::
+
+
+```{ojs}
+//| include: false
+consumption_wd = calcdata.reduce((acc, item) => acc + item.mean_wd, 0);
+consumption_wd_show = Intl.NumberFormat('en-US').format(Math.round(consumption_wd))
+```
+
+::: {.valuebox icon="pencil" color="primary"}
+Wärmestrom
+
+`{ojs} consumption_wd_show`
+:::
+
+
+```{ojs}
+//| include: false
+consumption_tot = calcdata.reduce((acc, item) => acc + item.tot, 0);
+consumption_tot_show = Intl.NumberFormat('en-US').format(Math.round(consumption_tot))
+```
+
+::: {.valuebox icon="pencil" color="primary"}
+Total Verbrauch
+
+`{ojs} consumption_tot_show`
+:::
+
+
+### Row {.toolbar}
+
+```{ojs}
+//| echo: false
+viewof price_n = Inputs.range(
+  [0, 1], 
+  {value: 0.3713, step: 0.01, label: "Normalstrom Preis in Ct/kWh: "}
+)
+viewof grundprice_n = Inputs.range(
+  [0, 500], 
+  {value: 105.81, step: 1, label: "Normalstrom Grundpreis pro Jahr: "}
+)
+viewof price_w = Inputs.range(
+  [0, 1], 
+  {value: 0.2763, step: 0.01, label: "Wärmestrom Preis in Ct/kWh: "}
+)
+viewof grundprice_w = Inputs.range(
+  [0, 500], 
+  {value: 117.81, step: 1, label: "Wärmestrom Grundpreis pro Jahr: "}
+)
+```
+
+
+
+### Row
+
+```{ojs}
+//| include: false
+expend_n = consumption_nd * price_n + grundprice_n;
+expend_n_show = Intl.NumberFormat('en-US').format(Math.round(expend_n));
+```
+
+::: {.valuebox icon="pencil" color="primary"}
+Normalstrom Ausgabe
+
+`{ojs} expend_n_show`
+:::
+
+```{ojs}
+//| include: false
+expend_w = consumption_wd * price_w + grundprice_w;
+expend_w_show = Intl.NumberFormat('en-US').format(Math.round(expend_w));
+```
+
+::: {.valuebox icon="pencil" color="primary"}
+Wärmestrom Ausgabe
+
+`{ojs} expend_w_show`
+:::
+
+```{ojs}
+//| include: false
+expend_tot = consumption_nd * price_n + grundprice_n + consumption_wd * price_w + grundprice_w;
+expend_tot_show = Intl.NumberFormat('en-US').format(Math.round(expend_tot));
+```
+
+::: {.valuebox icon="pencil" color="primary"}
+Total Strom Ausgabe
+
+`{ojs} expend_tot_show`
+:::
+
+
+
+
+## col
+
+### Row {.toolbar}
+
+```{ojs}
+//| echo: false
+viewof prod_est = Inputs.range(
+  [7000, 25000], 
+  {value: 13153, step: 1, label: "Geschätzte Solarproduktion: "}
+)
+```
+
+### Row {height=40%}
+
+```{ojs}
+//| echo: false
+//| include: false
+calcdata = transpose(wowdata).map(d => ({
+  ...d,
+  prod_month: d.frac * prod_est
+}));
+```
+
+```{ojs}
+//| echo: false
+Plot.plot({
+  marginBottom: 60,
+  x: {
+    tickRotate: -30,
+  },
+  y: {
+    grid: 5
+  },
+  marks: [
+    Plot.ruleY([0]),
+    
+    Plot.barY(calcdata, {
+      x: "month",
+      y: "tot",
+      //sort: { x: "month", reverse: false, limit: 20 },
+      fill: "steelblue"
+    }),
+
+    Plot.areaY(calcdata, {
+      x: "month",
+      y: "prod_month",
+      fill: "yellow",
+      stroke: "yellow",
+      strokeWidth: 2,
+      fillOpacity: 0.5
+    })
+  ]
+})
+```
+
+#### Row {.toolbar}
+
+```{ojs}
+//| echo: false
+viewof kosten = Inputs.range(
+  [10000, 45000], 
+  {value: 37840, step: 1, label: "Kaufpreis: "}
+)
+viewof jahren = Inputs.range(
+  [5, 30], 
+  {value: 15, step: 1, label: "Jahren: "}
+)
+viewof i = Inputs.range(
+  [0, 0.1], 
+  {value: 0.059, step: 0.001, label: "Zinssatz: "}
+)
+```
+
+```{ojs}
+//| echo: false
+//| include: false
+N = jahren * 12
+r = i / 12
+rate = kosten * (r * (1 + r) ** N) / ((1 + r) ** N - 1)
+rate_show = Intl.NumberFormat('en-US').format(Math.round(rate));
+
+surplus = (neto + expend_tot) / 12
+periods = (Math.log(surplus / (surplus - kosten * r)) / Math.log(1 + r)) / 12;
+periods_show = Intl.NumberFormat('en-US').format(Math.round(periods));
+```
+
+### Row
+
+::: {.valuebox icon="pencil" color="primary"}
+Monatlicherate
+
+`{ojs} rate_show`
+:::
+
+
+::: {.valuebox icon="pencil" color="primary"}
+Periods
+
+`{ojs} periods_show`
+:::
+
+
+
+## col
+
+
+### Row
+
+
+```{ojs}
+//| include: false
+kaufen = calcdata
+  .filter(item => item.prod_month - item.tot < 0)
+  .reduce((acc, item) => acc + item.tot - item.prod_month, 0);
+
+einspeisen = calcdata
+  .filter(item => item.prod_month - item.tot >= 0)
+  .reduce((acc, item) => acc + item.prod_month - item.tot, 0);
+
+selbst = consumption_tot - kaufen
+
+kaufen_show = Intl.NumberFormat('en-US').format(Math.round(kaufen));
+einspeisen_show = Intl.NumberFormat('en-US').format(Math.round(einspeisen));
+selbst_show = Intl.NumberFormat('en-US').format(Math.round(selbst));
+```
+
+
+::: {.valuebox icon="pencil" color="primary"}
+Kaufen
+
+`{ojs} kaufen_show`
+:::
+
+
+
+::: {.valuebox icon="pencil" color="primary"}
+Einspeisen
+
+`{ojs} einspeisen_show`
+:::
+
+
+::: {.valuebox icon="pencil" color="primary"}
+Selbst genutzt
+
+`{ojs} selbst_show`
+:::
+
+
+
+### Row {.toolbar}
+
+```{ojs}
+//| echo: false
+viewof einspeisevergutung = Inputs.range(
+  [0, 1], 
+  {value: 0.0775, step: 0.01, label: "Einspeisevergütung in Ct/kWh: "}
+)
+viewof kaufpreis = Inputs.range(
+  [0, 1], 
+  {value: 0.2763, step: 0.01, label: "Strompreis in Ct/kWh: "}
+)
+viewof grundprice_k = Inputs.range(
+  [0, 500], 
+  {value: 223.62, step: 1, label: "Grundpreis pro Jahr: "}
+)
+viewof zusaetzliche_vergutung = Inputs.range(
+  [0, 2000], 
+  {value: 489.30, step: 1, label: "Zusätzliche Vergütung pro Jahr: "}
+)
+viewof wartung = Inputs.range(
+  [0, 1000], 
+  {value: 480, step: 1, label: "Wartung und Versicherung pro Jahr: "}
+)
+
+```
+
+
+
+
+
+### Row
+```{ojs}
+//| include: false
+einspeise_einnehme = einspeisevergutung * einspeisen
+kaufen_ausgabe = kaufpreis * kaufen
+neto = einspeise_einnehme - kaufen_ausgabe + zusaetzliche_vergutung - grundprice_k - wartung
+
+einspeise_einnehme_show = Intl.NumberFormat('en-US').format(Math.round(einspeise_einnehme));
+kaufen_ausgabe_show = Intl.NumberFormat('en-US').format(Math.round(kaufen_ausgabe));
+grundprice_k_show = Intl.NumberFormat('en-US').format(Math.round(grundprice_k));
+zusaetzliche_vergutung_k_show = Intl.NumberFormat('en-US').format(Math.round(zusaetzliche_vergutung));
+wartung_show = Intl.NumberFormat('en-US').format(Math.round(wartung));
+
+neto_show = Intl.NumberFormat('en-US').format(Math.round(neto));
+
+```
+
+
+::: {.valuebox icon="pencil" color="primary"}
+Kaufen Ausgabe
+
+`{ojs} kaufen_ausgabe_show`
+:::
+
+::: {.valuebox icon="pencil" color="primary"}
+ Staatliche Einspeisevergütung
+
+`{ojs} einspeise_einnehme_show`
+:::
+
+::: {.valuebox icon="pencil" color="primary"}
+Wartung und Versicherung
+
+`{ojs} wartung_show`
+:::
+
+
+### Row
+
+::: {.valuebox icon="pencil" color="primary"}
+Kaufen Grundpreis
+
+`{ojs} grundprice_k_show`
+:::
+
+::: {.valuebox icon="pencil" color="primary"}
+Extra Einspeisevergütung
+
+`{ojs} zusaetzliche_vergutung_k_show`
+:::
+
+
+### Row
+
+::: {.valuebox icon="pencil" color="primary"}
+Netto
+
+`{ojs} neto_show`
+:::
+
+
+
+

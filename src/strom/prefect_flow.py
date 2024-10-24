@@ -13,7 +13,33 @@ import epyfun
 
 @task(**task_ops)
 def merge_strom_climate_data(strom_per_day, climate_daily):
-    strom_climate = pd.merge(strom_per_day, climate_daily, on="date", how="left")
+
+    # strom_per_day = strom.read_result("make_strom_per_day")
+    # climate_daily = strom.read_result("get_climate_data")
+
+    strom_climate = pd.merge(
+        strom_per_day,
+        climate_daily,
+        on="date",
+        how="left",
+        indicator=True,
+        validate="one_to_one",
+    )
+
+    # only pass to strom_climate the data where we have actual observations
+    period1_cond = (strom_climate["date"] >= "2020-12-01") & (
+        strom_climate["date"] <= "2021-05-25"
+    )
+    period2_cond = strom_climate["date"] >= "2022-12-01"
+    obs_cond = strom_climate["obs"] > 0
+    strom_climate = strom_climate[period1_cond | period2_cond]
+
+    # at tis point, there might still be NAs in the climate data
+    for column in strom_climate.columns:
+        if strom_climate[column].isna().any():
+            # Apply forward fill to the column
+            strom_climate[column] = strom_climate[column].ffill()
+
     return strom_climate
 
 
@@ -41,18 +67,16 @@ def strom_flow():
 
     strom_climate = merge_strom_climate_data(strom_per_day, climate_daily)
 
-    # strom_prices = consumption.ingest_prices()
-
     consumption.normalstrom_consumption(duckdb_file)
     consumption.waermestrom_consumption(duckdb_file)
 
-    consumption.compare_last_days()
-    consumption.compare_last_days.with_options(result_storage_key="last_5_days")(5)
-    consumption.compare_last_days.with_options(result_storage_key="last_15_days")(15)
-    consumption.compare_last_days.with_options(result_storage_key="last_30_days")(30)
-    consumption.compare_last_days.with_options(result_storage_key="last_60_days")(60)
-    consumption.compare_last_days.with_options(result_storage_key="last_90_days")(90)
-    consumption.compare_last_days.with_options(result_storage_key="last_365_days")(
+    consumption.compare_last_days(climate_daily)
+    consumption.compare_last_days.with_options(result_storage_key="last_5_days")(climate_daily, 5)
+    consumption.compare_last_days.with_options(result_storage_key="last_15_days")(climate_daily, 15)
+    consumption.compare_last_days.with_options(result_storage_key="last_30_days")(climate_daily, 30)
+    consumption.compare_last_days.with_options(result_storage_key="last_60_days")(climate_daily, 60)
+    consumption.compare_last_days.with_options(result_storage_key="last_90_days")(climate_daily, 90)
+    consumption.compare_last_days.with_options(result_storage_key="last_365_days")(climate_daily, 
         365.25
     )
 

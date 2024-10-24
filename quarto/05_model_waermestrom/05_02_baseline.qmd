@@ -1,0 +1,153 @@
+---
+title: "Baseline Model"
+execute:
+  echo: false
+  eval: true
+---
+
+```{python}
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import epyfun
+
+import strom
+
+strom_climate = strom.read_result("merge_strom_climate_data")
+strom_climate["ds"] = strom_climate["date"].dt.date
+strom_climate = strom_climate.set_index("ds")
+
+cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
+
+X = strom_climate.drop(columns="wd")
+y = strom_climate["wd"]
+
+train_set = strom_climate[strom_climate["date"] <= cutoff]
+test_set = strom_climate[strom_climate["date"] > cutoff]
+
+X_train = train_set.drop(columns="wd")
+y_train = train_set["wd"]
+X_test = test_set.drop(columns="wd")
+y_test = test_set["wd"]
+```
+
+From the first look at the correlations, a model with polynomials looked fitting.
+So let's here fit such a model, that would be the model to beat later down the line.
+
+# Polynomial Model
+
+Here we stick to a simple OLS, but using a polynomial specification for the 
+predictors temperature and air humidity, thereby, addressing one of the
+[TODOs listed after the naive model](05_01_naive_model.qmd#todos)
+
+```{python}
+# | echo: true
+# | code-fold: true
+# | code-summary: "Show the code"
+# | output: false
+# | include: false
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+
+from sklego.preprocessing import ColumnSelector
+
+pipe = Pipeline(
+    [
+        ("vars", ColumnSelector(columns=["tt_tu_mean", "rf_tu_mean"])),
+        ("polynomial", PolynomialFeatures(degree=2)),
+        ("model", LinearRegression()),
+    ]
+)
+pipe.fit(X_train, y_train)
+strom.log_vetiver(
+    pipe,
+    "wd-ols",
+    description="Baseline: An OLS regression using a polynomial specification",
+)
+```
+
+{{< include _assess_model.qmd >}}
+
+# TODOs
+
+Substantial improvement here, we still have some items in the to-do list 
+and given these results, I would add a coulpe more:
+
+- [X] Check the degree of the polynomial
+- [ ] depite the much better fit, there are still some -although minor- heteroscedaticity, mostly associated to the lowest temperatures where the variance of strom use is higher. Here we can try other models that better handle that long tail, and also, try transformations.
+- [ ] there might be also a seasonal pattern, because we are not accounting for, for example, weekends and so on. Here we can see if the seasonal trend decomposition can help.
+- [ ] finally, there is still some evidence of autocorrelation. Which kinda makes sense: it is not the same to have one day with a very low temperature compared to a whole week with very low temperatures: while the former could be wintered with the heat already produced, as long as there is not much energy lose, the latter would certainly need much more work from the wärmepumpe to keep fighting the cold. In that sense, it seems unrealistic to just assume that the increase energy consumption of several days of extreme cold is just the sum of the daily increases. So if the one-day-increase due to extreme cold is 10, five consecutve days would probably result in an increase greater than 10*5=50, probably much greater. But let's explore such hipothesis in the data and try to accomodate that in the model using lags, or moving average of the last few days.
+- [ ] run some PCA, with min, max mean and so on and think about a Cumulative Explained Variance plot https://archive.is/X1wrZ#selection-1059.8-1059.37  PCA seems sensible, because 
+several climatic variables are highly correlated, but still could have different signals.
+E.g. temperature, the mean seems to capture well the process, but beyond that, how much it varies
+min, max, std dev, seems to have some predictive power. 
+- [X] perhaps experiment with feature selection.
+- [ ] and consider log-transforming the target, after all, the distribution of it is right-skewed with relatively long right tail
+- [ ] Consider models to handle censored data, since the consumption can never be negative.
+      This, being a linear model, can still predict negative values, even though the
+      polynomial show a rather good fit. But there is no restriction and in fact, 
+      in the test set, in the warm period with low consumption, there are a few instances
+      in which the model ends up predicting negative values. So we would need to take 
+      that into account and add some sort of constraint for that. 
+- [ ] Handle the outliers. These are really just a couple of points, but at least 
+      in these kind of model, they end up having a high leverage. So, we could just 
+      handle them by replacing them with locally-defined averages, or use models
+      that are robust to those.
+
+<details><summary>Polynomials but using statsmodels ...</summary>
+<p>
+```{python}
+from sklearn.preprocessing import PolynomialFeatures
+import matplotlib.pyplot as plt
+
+y_var = "wd"
+X_vars = ['tt_tu_mean', 'rf_tu_mean']
+
+y = strom_climate[y_var]
+X = strom_climate[X_vars]
+rest = strom_climate.drop(columns = y_var)
+
+
+polynomial_features = PolynomialFeatures(degree=3)
+xp = polynomial_features.fit_transform(X)
+xp.shape
+
+import statsmodels.formula.api as smf
+model = smf.ols(formula="""
+      wd ~ tt_tu_mean + I(tt_tu_mean ** 2) + I(tt_tu_mean ** 3) + 
+           I(tt_tu_mean ** 4) + I(tt_tu_mean ** 5) +
+           rf_tu_mean + rf_tu_min + rf_tu_max +
+           tt_tu_mean.shift(1) + tt_tu_mean.shift(2) + tt_tu_mean.shift(3)
+  """, data=strom_climate).fit()
+# model = smf.ols(formula="""
+#       wd ~ tt_tu_mean + I(tt_tu_mean ** 2) + I(tt_tu_mean ** 3) + 
+#            rf_tu_mean + I(rf_tu_mean ** 2) + I(rf_tu_mean ** 3) + tt_tu_mean:rf_tu_mean + I(tt_tu_mean ** 2):I(rf_tu_mean ** 2) +
+#            I(tt_tu_mean ** 3):I(rf_tu_mean ** 3)
+#   """, data=strom_climate).fit()
+
+
+print(model.summary())
+
+strom.log_vetiver(model, "waermestrom")
+```
+
+here's also the polynomial model, but using scikit-learn
+
+```{python}
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+
+from sklearn.metrics import r2_score
+
+polynomial_features = PolynomialFeatures(degree=3)
+X = polynomial_features.fit_transform(X)
+
+lr = LinearRegression()
+lr.fit(X, y)
+y_pred = lr.predict(X)
+print(r2_score(y, y_pred))
+```
+</p>
+</details>
+

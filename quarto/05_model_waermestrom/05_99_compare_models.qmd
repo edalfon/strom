@@ -1,0 +1,47 @@
+---
+title: "Compare Models"
+execute:
+  echo: false
+  eval: true
+---
+
+```{python}
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import epyfun
+
+import strom
+
+strom_climate = strom.read_result("merge_strom_climate_data")
+strom_climate["ds"] = strom_climate["date"].dt.date
+strom_climate = strom_climate.set_index("ds")
+
+cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
+
+X = strom_climate.drop(columns="wd")
+y = strom_climate["wd"]
+
+train_set = strom_climate[strom_climate["date"] <= cutoff]
+test_set = strom_climate[strom_climate["date"] > cutoff]
+
+X_train = train_set.drop(columns="wd")
+y_train = train_set["wd"]
+X_test = test_set.drop(columns="wd")
+y_test = test_set["wd"]
+```
+
+
+```{python}
+import strom
+
+versions = strom.get_board().pin_versions("wd")
+vetivers = [strom.get_vetiver("wd", version=v) for v in versions.version]
+
+models = ["wd-ols", "wd-rf", "wd-gb", "wd-svm"]
+vetivers = [strom.get_vetiver(v) for v in models]
+```
+
+# Compare models
+
+{{< include _compare_models.qmd >}}

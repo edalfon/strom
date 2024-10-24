@@ -1,0 +1,401 @@
+---
+title: "Seasonal-Trend decomposition: Wärmestrom"
+execute:
+  echo: false
+  eval: true
+  warning: false
+  error: false
+---
+
+```{python}
+#| include: false
+%load_ext sql
+#%sql --section duck
+
+import epyfun
+import pandas as pd
+import strom
+strom_climate = strom.read_result("merge_strom_climate_data")
+
+# Need to filter beforehand to keep a period with continuous data
+# and properly set the index that make statsmodels' life easier
+strom_climate = strom_climate[strom_climate["date"] >= "2022-12-01"]
+new_index = pd.date_range(
+    start=strom_climate["date"].min(),
+    end=strom_climate["date"].max(),
+    freq="D"
+)
+strom_climate = strom_climate.set_index('date', drop=False).reindex(new_index)
+strom_climate["y"] = strom_climate["wd"]
+strom_climate["ds"] = strom_climate["date"].dt.date
+```
+
+```{python}
+from itables import init_notebook_mode
+init_notebook_mode(all_interactive=True)
+```
+
+```{python}
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+from pandas.plotting import register_matplotlib_converters
+
+# register_matplotlib_converters()
+sns.set_style("darkgrid")
+plt.rc("figure", figsize=(9.5, 8))
+```
+
+
+# Wärmestrom
+
+
+## Seasonal-Trend decomposition using LOESS (STL)
+
+Quick and dirty STL. Probably not much insight from it, because the serie
+is too short to really capture the main seasonality pattern (e.g. year, heizperiode/sommer)
+
+```{python}
+# | fig-cap: "STL-7"
+# https://www.statsmodels.org/dev/generated/statsmodels.tsa.seasonal.STL.html#statsmodels.tsa.seasonal.STL
+from statsmodels.tsa.seasonal import STL
+
+
+stl = STL(strom_climate["y"], period=7, seasonal_deg=1, robust=True)
+res = stl.fit()
+fig = res.plot()
+```
+
+It seems to show some pattern, although that changes in time. Let's see the raw data 
+per week.
+
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+strom_climate["day_of_week"] = strom_climate["date"].dt.day_name()
+strom_climate["year"] = strom_climate["date"].dt.isocalendar().year
+strom_climate["week"] = strom_climate["date"].dt.isocalendar().week
+
+pivot_df = strom_climate.pivot(
+    index=["year", "week"], columns="day_of_week", values="y"
+)
+
+days_order = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+]
+pivot_df = pivot_df.reindex(columns=days_order)
+mean_wd = pivot_df.mean()
+
+fig = go.Figure()
+
+for week in pivot_df.index:
+    fig.add_trace(
+        go.Scatter(
+            x=pivot_df.columns,
+            y=pivot_df.loc[week],
+            mode="lines",
+            name=f"Week {week}",
+            line=dict(color="lightblue", width=2),
+            opacity=0.3,
+        )
+    )
+
+# Add trace for the mean
+fig.add_trace(
+    go.Scatter(
+        x=pivot_df.columns,
+        y=mean_wd,
+        mode="lines+markers",
+        name="Mean of all weeks",
+        line=dict(color="blue", width=5),  # Make the mean line red and thicker
+        marker=dict(size=8),
+    )
+)
+fig.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=0, r=0, t=0, b=0),
+)
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+Well, on average, very small changes (~ 1 Kwh), somewhat higher on wednesday and the
+weekend, and somewhat lower on Thursday and Friday. But this is a very weak signal amid
+a lot of noise, comming from the changes through the year. 
+
+Now let's see the raw data within a month.
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+strom_climate["month"] = strom_climate["date"].dt.month
+strom_climate["year"] = strom_climate["date"].dt.year
+strom_climate["day"] = strom_climate["date"].dt.day
+
+# Pivot the data
+pivot_df = strom_climate.pivot(
+    index=["year", "month"], columns="day", values="y"
+)
+
+mean_wd = pivot_df.mean()
+
+fig = go.Figure()
+
+for week in pivot_df.index:
+    fig.add_trace(
+        go.Scatter(
+            x=pivot_df.columns,
+            y=pivot_df.loc[week],
+            mode="lines",
+            line=dict(color="lightblue", width=2),
+            opacity=0.3,
+        )
+    )
+
+# Add trace for the mean
+fig.add_trace(
+    go.Scatter(
+        x=pivot_df.columns,
+        y=mean_wd,
+        mode="lines+markers",
+        line=dict(color="blue", width=5),  # Make the mean line red and thicker
+        marker=dict(size=8),
+    )
+)
+fig.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=0, r=0, t=0, b=0),
+)
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+Again, weak signal and a lot of noise. Some pattern in there, but apparently also
+strongly influenced by outliers.
+
+And finally, take a look at the seasonality that should mostly drive the game here.
+```{python}
+import pandas as pd
+import plotly.graph_objects as go
+
+strom_climate["month"] = strom_climate["date"].dt.month
+strom_climate["year"] = strom_climate["date"].dt.year
+strom_climate["day"] = strom_climate["date"].dt.day
+
+# Pivot the data
+pivot_df = strom_climate.pivot(index=["year", "day"], columns="month", values="y")
+
+mean_wd = pivot_df.mean()
+
+fig = go.Figure()
+
+for week in pivot_df.index:
+    fig.add_trace(
+        go.Scatter(
+            x=pivot_df.columns,
+            y=pivot_df.loc[week],
+            mode="lines",
+            line=dict(color="lightblue", width=2),
+            opacity=0.3,
+        )
+    )
+
+# Add trace for the mean
+fig.add_trace(
+    go.Scatter(
+        x=pivot_df.columns,
+        y=mean_wd,
+        mode="lines+markers",
+        line=dict(color="blue", width=5),  # Make the mean line red and thicker
+        marker=dict(size=8),
+    )
+)
+fig.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=0, r=0, t=0, b=0),
+)
+fig.update_layout(showlegend=False)
+fig.show()
+```
+
+As expected here you can clearly see the pattern. The serie is but too short
+to pass year seasonality to STL, but, yeah, perhaps 90 days at least can try to approximate 
+the heating-period vs. warmer period. Let's see
+
+```{python}
+from statsmodels.tsa.seasonal import STL
+
+stl = STL(strom_climate["y"], period=90, seasonal_deg=1, robust=True)
+res = stl.fit()
+fig = res.plot()
+```
+
+Does the week signal for the shorter periods justify using MSTL here?
+
+## Multiple Seasonal-Trend decomposition using LOESS (MSTL)
+
+```{python}
+# | layout-ncol: 1
+# https://www.statsmodels.org/dev/generated/statsmodels.tsa.seasonal.MSTL.html#statsmodels.tsa.seasonal.MSTL
+from statsmodels.tsa.seasonal import MSTL
+
+from statsmodels.tsa.seasonal import DecomposeResult
+
+mstl = MSTL(
+    strom_climate["y"],
+    periods=[7, 30, 90],
+    windows=None,
+    iterate=5,
+    stl_kwargs={
+        "robust": True,
+    },
+)
+res = mstl.fit()
+fig = res.plot()
+```
+
+- [ ] Validate periods
+- [ ] Assess and compare fit 
+
+## Prophet
+
+Prophet shoud make it pretty straightforward to do something similar.
+
+```{python}
+#| include: false
+import pandas as pd
+from prophet import Prophet
+
+m = Prophet(changepoint_prior_scale=0.9)
+m.fit(strom_climate)
+
+future = m.make_future_dataframe(periods=0)  # do not really want to forecast
+future.tail()
+
+forecast = m.predict(future)
+forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail()
+```
+
+```{python}
+from prophet.plot import plot_plotly, plot_components_plotly
+
+fig = plot_plotly(m, forecast)
+fig = fig.update_layout(xaxis=dict(rangeslider=dict(thickness=0.1)))
+fig.show()
+
+fig = plot_components_plotly(m, forecast)
+fig.show()
+```
+
+
+Ok, that's not bad. But even though I 
+[increased the trend flexibility](https://facebook.github.io/prophet/docs/trend_changepoints.html#adjusting-trend-flexibility), 
+it tends to underfit and smooth out the short-term variations, that are probably legit 
+(e.g. due to temperature changes within cold season) 
+
+
+
+```{python}
+#| eval: false
+from prophet.diagnostics import cross_validation
+
+df_cv = cross_validation(m, initial="180 days", period="30 days", horizon="30 days")
+
+from prophet.diagnostics import performance_metrics
+
+df_p = performance_metrics(df_cv)
+df_p.head()
+
+from prophet.plot import plot_cross_validation_metric
+
+fig = plot_cross_validation_metric(df_cv, metric="mape")
+```
+
+
+```{python}
+# | include: false
+import itertools
+import numpy as np
+import pandas as pd
+from prophet import Prophet
+from prophet.diagnostics import cross_validation
+from prophet.diagnostics import performance_metrics
+
+param_grid = {
+    "changepoint_prior_scale": [0.1, 1, 4, 5],
+    "seasonality_prior_scale": [0.01, 1.0, 10.0],
+    # "changepoint_prior_scale": [0.1, 0.5, 0.9, 1, 2, 4, 5, 100],
+    # "seasonality_prior_scale": [0.01, 1.0, 10.0, 20, 50, 100],
+}
+
+# Generate all combinations of parameters
+all_params = [
+    dict(zip(param_grid.keys(), v)) for v in itertools.product(*param_grid.values())
+]
+cv_metrics = []  # Store the RMSEs for each params here
+
+# Use cross validation to evaluate all parameters
+for params in all_params:
+    m = Prophet(**params).fit(strom_climate)  # Fit model with given params
+    df_cv = cross_validation(
+        m, initial="180 days", period="30 days", horizon="30 days"
+    )
+    df_p = performance_metrics(df_cv, rolling_window=1)
+    cv_metrics.append(df_p)
+```
+
+
+```{python}
+tuning_results = pd.DataFrame(all_params).join(pd.concat(cv_metrics, ignore_index=True))
+tuning_results
+```
+
+```{python}
+best_params = all_params[np.argmin(tuning_results["mse"])]
+print(best_params)
+```
+
+
+
+```{python}
+#| include: false
+import pandas as pd
+from prophet import Prophet
+
+m = Prophet(**best_params)
+m.fit(strom_climate)
+
+future = m.make_future_dataframe(periods=0)  # do not really want to forecast
+future.tail()
+
+forecast = m.predict(future)
+forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].tail()
+```
+
+```{python}
+from prophet.plot import plot_plotly, plot_components_plotly
+
+fig = plot_plotly(m, forecast)
+fig = fig.update_layout(xaxis=dict(rangeslider=dict(thickness=0.1)))
+fig.show()
+
+fig = plot_components_plotly(m, forecast)
+fig.show()
+```
+
+
+# TODOs
+
+- [ ] Perhaps validate this and assess decomposition fit
+- [ ] Assess the predictive power of trend, seasonal
+- [ ] Use decomposition to support outlier detection

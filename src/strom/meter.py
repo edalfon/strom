@@ -1,6 +1,7 @@
 from prefect import task
 
 from strom.prefect_ops import task_ops
+from strom.duckdb import duck_md5
 
 import duckdb
 import pandas as pd
@@ -8,10 +9,39 @@ import pandas as pd
 
 @task(**task_ops)
 def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
-    """Ingest data into `normalstrom` table.
+    """Ingest strom measurements data into a DuckDB table named 'strom'.
+
+    This function reads the raw data from a SQLite file containing meter
+    data. In such data, every row is one measurement for a given meter
+    (meterid). The function ingest that into the 'strom' table in duckdb,
+    that includes the following columns:
+
+    - meterid: int with the meter id, where 1 corresponds to normal strom and 2
+      and 3 to wärmestrom in hoch and niedrig tariff, respectively.
+    - date: datetime of the measurement.
+    - value: value of the meter at the measurement datetime.
+    - first: dummy variable, where 1 indicates that it is a first measurement
+     (e.g. the beginning of all time, or when meter is changes or restarted).
+    - minutes: number of minutes between previous and current measurement.
+    - consumption: consumption since the last measurement, calculated as
+      value_(t) - value_(t-1)). Whenever there is a first measurement,
+      consumption should be NA / NULL, because the meter started again and
+      the comparison with the previous value is not relevant anymore.
+    - cm: consumption per minute, calculated as consumption / minutes.
+
+    Finally, note the decorator. This is a prefect task, to be used within a
+    prefect flow, gaining its benefits such as caching, logging, monitoring.
+    That's also why we decided to return the md5 checksum of the data, to
+    help prefect in tracking changes, without returning the whole table.
+
+    Args:
+        sqlite_file: Path to the SQLite file containing the electricity data.
+        duckdb_file: Path to the DuckDB database file
+                     (defaults to "./duckdb/strom.duckdb").
 
     Returns:
-        pandas.DataFrame: A DataFrame containing the MD5 checksum of the 'normalstrom' table.
+        A pandas DataFrame containing a single row with the column 'md5'
+        containing the checksum of the whole table.
     """
     with duckdb.connect(duckdb_file) as con:
         con.install_extension("sqlite")  # con.sql("INSTALL sqlite;")
@@ -48,54 +78,106 @@ def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
             ;
             """
         )
-        strom_md5 = con.sql(
-            """
-            SELECT md5(string_agg(strom::text, '')) AS md5 
-            FROM strom;
-            """
-        ).df()
-        return strom_md5
+
+        return duck_md5(con, "strom")
 
 
 @task(**task_ops)
-def expand_strom_minute(normalstrom, duckdb_file="./duckdb/strom.duckdb"):
+def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
+    """Expand the 'strom' table to create a minute-by-minute table.
+
+    This function does that by generating a series of minutes for each meterid
+    (1 to 3) between the min and max dates in 'strom' and then joining the
+    strom data to bring the measurement values to the minute-level granularity.
+    The result is saved to the consumption table 'strom_minute', that includes
+    the following columns:
+
+    - meterid: int with the meter id, where 1 corresponds to normal strom and 2
+      and 3 to wärmestrom in hoch and niedrig tariff, respectively.
+    - minute: datetime (there will be one row per every minute in the
+      observation period, for every meter).
+      DONE: currently it generates to the actual first and last minute of
+      measurement. But it may be worth expanding to the whole day. >>>
+      Tried, date_trunc('day', ts[2]) + interval '1 day' - interval '1 minute'
+      and, it seems to me it would be better to stick to the observation
+      date (filling until the end of the day, would just extend the last
+      measurement consumption to the rest of the day. That's fine, but, if
+      you already have several observations within the day, perhaps it would
+      be better to extrapolate using all those obs, and not just the last
+      measurement.)
+    - cm: consumption per minute, as calculated in the strom table
+      (consumption/minutes) and extrapolated throughout the whole period.
+      So we are making here a probably unrealistic assumption that the
+      consumption between the different observations in the strom table is
+      constant. But that's fine to get an approximation to the consumption,
+      considering the relatively random-nature of the time of measurements.
+      Thus, if we have cm_(i), calculated as
+      cm_(i) = ( value_(t) - value_(t-1) ) / minutes
+      then we will assing a constant cm_(i) to the whole period between
+      t-1 and t.
+    - date: datetime indicating when the measurement was recorded. This column
+      will have a value only in the minute where the actual measurement took
+      place and thus, will have NULL in all other minutes
+      (the same applies for the columns below).
+    - value: value of the meter at the given date
+    - minutes: number of minutes between previous and current measurement.
+    - consumption: consumption since the last measurement, calculated as
+      value_(t) - value_(t-1)). Whenever there is a first measurement,
+      consumption should be NA / NULL, because the meter started again and
+      the comparison with the previous value is not relevant anymore.
+
+    Finally, note the decorator. This is a prefect task, to be used within a
+    prefect flow, gaining its benefits such as caching, logging, monitoring.
+    That's also why we decided to return the md5 checksum of the data, to
+    help prefect in tracking changes, without returning the whole table.
+
+    Args:
+        strom: Unused parameter. It's just a placeholder to be able to induce a
+        dependency between this task and the previous task (strom) in the
+        prefect workflow.
+        duckdb_file (str, optional): Path to the DuckDB file. Defaults to "./duckdb/strom.duckdb".
+
+    Returns:
+        pd.DataFrame: A DataFrame containing a single column 'md5' with the MD5
+        checksum of the 'strom_minute' table's contents.
+    """
+
     with duckdb.connect(duckdb_file) as con:
         con.sql(
             f"""
             CREATE OR REPLACE TABLE strom_minute AS
             WITH minutes_table AS (
-            SELECT 
-              UNNEST(generate_series(ts[1], ts[2], interval 1 minute)) 
-                AS minute, 
-              generate_series AS meterid
-            FROM (VALUES (
-                [(SELECT MIN(date) FROM strom), (SELECT MAX(date) FROM strom)]
-            )) t(ts), generate_series(1, 3)
+                SELECT 
+                    UNNEST(generate_series(
+                        ts[1], ts[2], interval 1 minute
+                    )) AS minute, 
+                    generate_series AS meterid
+                FROM (VALUES ([(
+                    SELECT MIN(date) FROM strom), (SELECT MAX(date) FROM strom)]
+                )) t(ts), generate_series(1, 3)
             )
             SELECT 
-            minutes_table.meterid,
-            minutes_table.minute,
-            FIRST_VALUE(strom.cm IGNORE NULLS) OVER(
-                PARTITION BY minutes_table.meterid 
-                ORDER BY minutes_table.minute 
-                ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
-            ) AS cm,
-            strom.date,
-            strom.value,
-            strom.minutes,
-            strom.consumption 
+                minutes_table.meterid,
+                minutes_table.minute,
+                FIRST_VALUE(strom.cm IGNORE NULLS) OVER(
+                    PARTITION BY minutes_table.meterid 
+                    ORDER BY minutes_table.minute 
+                    ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
+                ) AS cm,
+                strom.date,
+                strom.value,
+                strom.minutes,
+                strom.consumption 
             FROM minutes_table
             LEFT JOIN strom
             ON minutes_table.minute = strom.date AND 
                minutes_table.meterid = strom.meterid
-            ORDER BY minutes_table.minute
+            ORDER BY minutes_table.minute, minutes_table.meterid
             ;
             """
         )
 
-        return con.sql(
-            "SELECT md5(string_agg(strom_minute::text, '')) FROM strom_minute;"
-        ).df()
+        return duck_md5(con, "strom_minute")
 
 
 @task(**task_ops)
@@ -184,7 +266,7 @@ def make_strom_per_hour(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
                 "2_cd" + "3_cd" AS wd,
                 "2_cd" AS nt,
                 "3_cd" AS ht,
-                ("1_weight" + "2_weight" + "3_weight") / 3 AS weight
+                (("1_weight" + "2_weight" + "3_weight") / 3) AS weight
             FROM (
                 WITH cte AS (
                     SELECT     
