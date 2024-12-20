@@ -35,8 +35,8 @@ y_test = test_set["wd"]
 ```{python}
 import strom
 
-versions = strom.get_board().pin_versions("wd")
-vetivers = [strom.get_vetiver("wd", version=v) for v in versions.version]
+# versions = strom.get_board().pin_versions("wd")
+# vetivers = [strom.get_vetiver("wd", version=v) for v in versions.version]
 
 models = ["wd-ols", "wd-rf", "wd-gb", "wd-svm"]
 vetivers = [strom.get_vetiver(v) for v in models]
