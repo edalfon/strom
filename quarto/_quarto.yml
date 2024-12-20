@@ -3,7 +3,7 @@ project:
   execute-dir: project
   output-dir: ../results
   # having introduced an orchestrator, we do not need this anymore
-  # render:
+  render:
     # need to control the order of execution, because other pages depend on these 
     # two having done their magic. So we use this file to set the order, 
     # but we still want to render all of them, so we combine explicit definition of 
@@ -13,7 +13,7 @@ project:
     # - Process/01_strom_process.qmd
     # - Process/02_waermestrom_process.qmd
     # - Process/03_dwd_data.qmd
-    # - "*.qmd"
+    - "*.qmd"
 
 website:
   title: "Stromverbrauch"
