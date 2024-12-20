@@ -5144,12 +5144,12 @@ test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
 
 [[package]]
 name = "quarto-cli"
-version = "1.5.54"
+version = "1.6.37"
 description = "Open-source scientific and technical publishing system built on Pandoc."
 optional = false
 python-versions = "*"
 files = [
-    {file = "quarto_cli-1.5.54.tar.gz", hash = "sha256:b273038b88b1009063fff00a2c59438d1d1c41f3afab8388b750e2ea895ae29b"},
+    {file = "quarto_cli-1.6.37.tar.gz", hash = "sha256:bb36e8cf2d783e827769209104ec073e9f29ec058fd6ab9409a7258bd015f5db"},
 ]
 
 [package.dependencies]
@@ -7184,4 +7184,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "8bedcaf0f2233f7ad2f5028d5db7b37175c70a37120e2554265460b15a7e1961"
+content-hash = "3c5d02dec2949996d9219c325dc5701e139bf2e19b0bb0539967c8a0b49ea774"
