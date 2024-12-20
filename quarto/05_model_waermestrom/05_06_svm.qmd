@@ -103,7 +103,7 @@ grid.best_params_
 ```{python}
 #| eval: False
 
-strom.reload_all()
+# strom.reload_all()
 df = strom.summarize_grid_search_results(grid.cv_results_)
 
 # Get all parameter names
@@ -120,7 +120,7 @@ for param in param_names:
 ```{python}
 #| eval: False
 
-strom.reload_all()
+# strom.reload_all()
 summ_plots = strom.plot_grid_search_results_summary(grid, "param_model__max_leaf_nodes")
 weg = summ_plots["MAE - Mean Absolute Error"].show()
 weg = summ_plots["RMSE - Root Mean Squared Error"].show()

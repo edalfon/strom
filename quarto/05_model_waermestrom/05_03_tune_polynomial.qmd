@@ -82,7 +82,7 @@ grid_fit = grid
 ```
 
 ```{python}
-strom.reload_all()
+# strom.reload_all()
 plots = strom.plot_grid_search_results(grid)
 # fig = plots["MAE - Mean Absolute Error"]
 # fig.show()
@@ -183,7 +183,7 @@ grid = grid.fit(X_train, y_train)
 ```
 
 ```{python}
-strom.reload_all()
+# strom.reload_all()
 plots = strom.plot_grid_search_results(grid)
 # fig = plots["MAE - Mean Absolute Error"]
 # fig.show()

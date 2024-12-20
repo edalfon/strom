@@ -328,7 +328,7 @@ fig.show()
 :::
 
 ```{python}
-strom.reload_all()
+# strom.reload_all()
 plots = strom.plot_cross_validate_scores(scores, "version")
 # plots["MAE - Mean Absolute Error"]
 ```
