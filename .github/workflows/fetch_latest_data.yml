@@ -21,12 +21,14 @@ jobs:
         run: |
           sudo curl https://rclone.org/install.sh | sudo bash
 
-      - name: Configure rclone (using rclone config file)
+      - name: Configure rclone
         env:
           RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
         run: |
           mkdir -p ~/.config/rclone
           echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+          chmod 600 ~/.config/rclone/rclone.conf  # Restrict file permissions
+          trap 'rm -f ~/.config/rclone/rclone.conf' EXIT  # Clean up after the job
           rclone version
 
       - name: Create data directory
