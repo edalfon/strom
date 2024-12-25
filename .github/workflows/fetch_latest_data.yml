@@ -4,6 +4,11 @@ on:
   issues:
     types: [opened]
 
+# Add permissions block
+permissions:
+  contents: write
+  issues: read
+
 jobs:
   sync_files:
     runs-on: ubuntu-latest
