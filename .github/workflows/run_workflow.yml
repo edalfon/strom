@@ -5,12 +5,15 @@ on:
       - main
 permissions:
   contents: write
+  actions: write
 
 jobs:
   prefect:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install Python
         uses: actions/setup-python@v5
       - name: Install poetry
