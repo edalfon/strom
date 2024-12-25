@@ -1,0 +1,41 @@
+name: OneDrive to GitHub with rclone
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  sync_files:
+    runs-on: ubuntu-latest
+    if: github.event.issue.state == 'open'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | bash
+
+      - name: Configure rclone (using rclone config file)
+        env:
+          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+          rclone version
+
+      - name: Create data directory
+        run: mkdir -p data
+
+      - name: Copy files from OneDrive
+        run: |
+          rclone -v copy OneDrive: ./data --include "/*-ecas-export.db"
+
+      - name: Commit changes
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add data/* # Add all files in the data directory
+          git commit -m "Update DB files from OneDrive triggered by issue #${{ github.event.issue.number }}" || echo "No changes to commit"
+          git push origin HEAD:${{ github.ref }}
+          
