@@ -37,15 +37,29 @@ jobs:
           rclone -v copy OneDrive: ./data --include "/*-ecas-export.db"
 
       - name: Commit changes
+        id: commit
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
           git add data/* # Add all files in the data directory
-          git commit -m "Update DB files from OneDrive triggered by issue #${{ github.event.issue.number }}" || echo "No changes to commit"
-          git push origin HEAD:${{ github.ref }}
+          if git diff --staged --quiet; then
+            echo "changes_made=false" >> $GITHUB_OUTPUT
+            echo "No changes to commit"
+          else
+            git commit -m "Update DB files from OneDrive triggered by issue #${{ github.event.issue.number }}"
+            git push origin HEAD:${{ github.ref }}
+            echo "changes_made=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger prefect workflow
+        if: success() && steps.commit.outputs.changes_made == 'true'
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: trigger-prefect-workflow
 
       - name: Delete files from OneDrive
-        if: success() # Only run if previous steps succeeded
+        if: success()
         run: |
           rclone -v delete OneDrive: --include "/*-ecas-export.db"
 
