@@ -48,4 +48,11 @@ jobs:
         if: success() # Only run if previous steps succeeded
         run: |
           rclone -v delete OneDrive: --include "/*-ecas-export.db"
+
+      - name: Close issue
+        if: success()
+        run: |
+          gh issue close ${{ github.event.issue.number }} --comment "✅ Successfully synced files from OneDrive to GitHub and cleaned up source files."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
