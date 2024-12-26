@@ -1,28 +1,21 @@
-import json
-from prefect.results import PersistedResultBlob
-from prefect.serializers import JSONSerializer, PickleSerializer
-from prefect.tasks import task_input_hash
+from prefect.cache_policies import INPUTS, TASK_SOURCE
+
+from prefect.results import ResultStore
 from prefect.filesystems import LocalFileSystem
 
-
+# TODO: customize here the local file system, to not rely on server
+#       level config
 task_ops = dict(
-    cache_key_fn=task_input_hash,
+    cache_policy=INPUTS + TASK_SOURCE,
     result_storage_key="{task_run.task_name}",
-    result_storage=LocalFileSystem(basepath=".prefect/"),
-    refresh_cache=True,
+    # result_storage=LocalFileSystem(basepath=".prefect"),
+    # result_storage=".prefect",
+    # refresh_cache=True,
     persist_result=True,
 )
 
 
-def read_result(
-    filename: str, storage=task_ops["result_storage"], serialier: str = "pickle"
-):
-    path = storage._resolve_path(filename)
-    with open(path, "rb") as buffered_reader:
-        dict_obj = json.load(buffered_reader)
-        blob = PersistedResultBlob.parse_obj(dict_obj)
-    if serialier == "json":
-        result = JSONSerializer().loads(blob.data)
-    else:
-        result = PickleSerializer().loads(blob.data)
-    return result
+# TODO: robust way to get ResultStore, possibly customized
+def read_result(filename: str, storage=None):
+    # rr1.metadata
+    return ResultStore().read(filename).result
