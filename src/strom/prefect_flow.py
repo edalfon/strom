@@ -25,13 +25,13 @@ def merge_strom_climate_data(strom_per_day, climate_daily):
         indicator=True,
         validate="one_to_one",
     )
+    # WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
+    # WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
 
     # only pass to strom_climate the data where we have actual observations
-    period1_cond = (strom_climate["date"] >= "2020-12-01") & (
-        strom_climate["date"] <= "2021-05-25"
-    )
+    period1_cond = "2020-12-01" <= strom_climate["date"] <= "2021-05-25"
     period2_cond = strom_climate["date"] >= "2022-12-01"
-    obs_cond = strom_climate["obs"] > 0
+    # obs_cond = strom_climate["obs"] > 0 # Not used anymore
     strom_climate = strom_climate[period1_cond | period2_cond]
 
     # at tis point, there might still be NAs in the climate data
@@ -71,19 +71,15 @@ def strom_flow():
     consumption.waermestrom_consumption(duckdb_file)
 
     consumption.compare_last_days(climate_daily)
-    consumption.compare_last_days.with_options(result_storage_key="last_5_days")(climate_daily, 5)
-    consumption.compare_last_days.with_options(result_storage_key="last_15_days")(climate_daily, 15)
-    consumption.compare_last_days.with_options(result_storage_key="last_30_days")(climate_daily, 30)
-    consumption.compare_last_days.with_options(result_storage_key="last_60_days")(climate_daily, 60)
-    consumption.compare_last_days.with_options(result_storage_key="last_90_days")(climate_daily, 90)
-    consumption.compare_last_days.with_options(result_storage_key="last_365_days")(climate_daily, 
-        365.25
-    )
+    ccomp = consumption.compare_last_days.with_options
+    ccomp(result_storage_key="last_5_days")(climate_daily, 5)
+    ccomp(result_storage_key="last_15_days")(climate_daily, 15)
+    ccomp(result_storage_key="last_30_days")(climate_daily, 30)
+    ccomp(result_storage_key="last_60_days")(climate_daily, 60)
+    ccomp(result_storage_key="last_90_days")(climate_daily, 90)
+    ccomp(result_storage_key="last_365_days")(climate_daily, 365.25)
 
     quarto.render_report(strom_climate)
-
-    # WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
-    # WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
 
 
 if __name__ == "__main__":
