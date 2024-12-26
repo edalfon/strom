@@ -29,9 +29,11 @@ def merge_strom_climate_data(strom_per_day, climate_daily):
     # WHERE minute <= '2021-05-25' OR minute >= '2022-11-30'
 
     # only pass to strom_climate the data where we have actual observations
-    period1_cond = "2020-12-01" <= strom_climate["date"] <= "2021-05-25"
+    period1_cond = (strom_climate["date"] >= "2020-12-01") & (
+        strom_climate["date"] <= "2021-05-25"
+    )
     period2_cond = strom_climate["date"] >= "2022-12-01"
-    # obs_cond = strom_climate["obs"] > 0 # Not used anymore
+    obs_cond = strom_climate["obs"] > 0
     strom_climate = strom_climate[period1_cond | period2_cond]
 
     # at tis point, there might still be NAs in the climate data
