@@ -53,7 +53,7 @@ jobs:
 
       - name: Trigger prefect workflow
         if: success() && steps.commit.outputs.changes_made == 'true'
-        uses: peter-evans/repository-dispatch@v2
+        uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           event-type: trigger-prefect-workflow
