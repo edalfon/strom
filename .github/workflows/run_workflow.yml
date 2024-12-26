@@ -2,7 +2,7 @@ name: prefect
 on:
   push:
     branches:
-      - main
+      - '**'  # Run on push to any branch
   repository_dispatch:
     types: [trigger-prefect-workflow]
 permissions:
@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.ref }}  # Checkout the branch that was pushed to
       - name: Install Python
         uses: actions/setup-python@v5
       - name: Install poetry
