@@ -1,16 +1,18 @@
 
 prefect_run:
-	python -c "from strom import prefect_flow; prefect_flow.strom_flow()"
+	poetry run python -c "from strom import prefect_flow; prefect_flow.strom_flow()"
 
+prefect_viz:
+	poetry run python -c "from strom import prefect_flow; prefect_flow.strom_flow.visualize()"
 
 metaflow_run:
-	python src/strom/flow.py run
+	poetry run python src/strom/flow.py run
 
 metaflow_resume:
-	python src/strom/flow.py resume
+	poetry run python src/strom/flow.py resume
 
 metaflow_show:
-	python src/strom/flow.py show
+	poetry run python src/strom/flow.py show
 
 # render the quarto project with the defaults
 render:
