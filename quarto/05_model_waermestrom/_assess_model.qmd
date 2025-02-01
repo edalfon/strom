@@ -20,6 +20,7 @@ test_set = strom_climate[strom_climate["date"] > cutoff]
 X = strom_climate.drop(columns="wd")
 y = strom_climate["wd"]
 
+
 X_train = train_set.drop(columns="wd")
 y_train = train_set["wd"]
 X_test = test_set.drop(columns="wd")
@@ -258,6 +259,11 @@ metrics_scores
 
 ::: {.panel-tabset}
 #### Test
+```{python}
+test_set = pd.concat([y_test, X_test], axis=1)
+train_set = pd.concat([y_train, X_train], axis=1)
+```
+
 ```{python}
 strom.splom_fitted_observed(y_test, y_pred_test, test_set, cols)
 ```

@@ -13,22 +13,7 @@ import epyfun
 
 import strom
 
-strom_climate = strom.read_result("merge_strom_climate_data")
-strom_climate["ds"] = strom_climate["date"].dt.date
-strom_climate = strom_climate.set_index("ds")
-
-cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
-
-X = strom_climate.drop(columns="wd")
-y = strom_climate["wd"]
-
-train_set = strom_climate[strom_climate["date"] <= cutoff]
-test_set = strom_climate[strom_climate["date"] > cutoff]
-
-X_train = train_set.drop(columns="wd")
-y_train = train_set["wd"]
-X_test = test_set.drop(columns="wd")
-y_test = test_set["wd"]
+X_train, y_train, X_test, y_test = strom.read_result("split_data")
 ```
 
 Let's address here a couple of the to-dos from the previous pages. Namely, 

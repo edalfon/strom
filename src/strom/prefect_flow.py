@@ -2,7 +2,7 @@ from prefect import flow, task, get_run_logger
 
 from strom.prefect_ops import task_ops
 
-from strom import meter, dwd, consumption, quarto
+from strom import meter, dwd, consumption, quarto, modelling
 
 import pandas as pd
 
@@ -81,7 +81,49 @@ def strom_flow():
     ccomp(result_storage_key="last_90_days")(climate_daily, 90)
     ccomp(result_storage_key="last_365_days")(climate_daily, 365.25)
 
-    quarto.render_report(strom_climate)
+    X_train, y_train, X_test, y_test = modelling.split_data(strom_climate)
+    all_models = modelling.get_models()
+
+    model_assessments = {
+        key: modelling.assess_model.with_options(result_storage_key=key)(
+            model, X_train, y_train, X_test, y_test
+        )
+        for key, model in all_models.items()
+    }
+
+    # Try writing a custom cache function, perhaps using as starting point
+    # this from the default cache policies
+    # https://github.com/PrefectHQ/prefect/blob/26ae72909896078d4436e4b7e90075d586347f53/src/prefect/cache_policies.py#L252
+
+    # nested flows do not seem to work nicely with local sqlite-base server
+    # this error
+    # <<<ERROR>>>
+    # I suspect, it's because "When a nested flow run starts, it creates a new
+    # task runner for any tasks it contains.".
+    # And although "Nested flow runs block execution of the parent flow run
+    # until completion.", it seems it does not release the lock that the parent
+    # flow has on the sqlite database and it ends up clashing with the process
+    # running the nested flow. (emphasis in that I suspect, ..., I did not
+    # investigate prefects' internals, but the error happens reproducibly whenever I
+    # try to run a subflow, running a prefect flow locally with a sqlite-backed
+    # flow).
+    # Two questions:
+    # - Am I right in my suspicion?, or could be something else?
+    # - Is there a way to avoid this error?
+
+    # A workaround could be, do not run a subflow, but rather use a task that
+    # calls other tasks, which is one of the new features of prefect 3.0.
+
+    # That kinda work, but then I stumbled with an issue about caching.
+    # It seems the cache policy TASK_SOURCE does not recursively check for code
+    # changes in subtasks (tasks called by other tasks). So, if mytask calls
+    # mysubtask, and the first run cache all tasks. Then the cache policy does
+    # not work when I change the code of mysubtask. Apprently it just checks
+    # that the mytask source has not changed, and then loads its cache, thereby,
+    # not running the task (as expected), but failing to notice that task
+
+    #
+    quarto.render_report(strom_climate, strom_per_month, strom_per_hour)
 
 
 if __name__ == "__main__":

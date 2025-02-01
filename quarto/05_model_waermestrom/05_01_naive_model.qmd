@@ -13,23 +13,7 @@ import epyfun
 
 import strom
 
-strom_climate = strom.read_result("merge_strom_climate_data")
-strom_climate["ds"] = strom_climate["date"].dt.date
-strom_climate = strom_climate.set_index("ds")
-
-cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
-
-X = strom_climate.drop(columns="wd")
-y = strom_climate["wd"]
-
-train_set = strom_climate[strom_climate["date"] <= cutoff]
-test_set = strom_climate[strom_climate["date"] > cutoff]
-
-X_train = train_set.drop(columns="wd")
-y_train = train_set["wd"]
-X_test = test_set.drop(columns="wd")
-y_test = test_set["wd"]
-# rest = strom_climate.drop(columns=y_var)
+X_train, y_train, X_test, y_test = strom.read_result("split_data")
 ```
 
 
@@ -72,15 +56,17 @@ Clearly the naive model is not a good fit (as expected).
 <details><summary>Naive Model, but using statsmodels ...</summary>
 <p>
 ```{python}
+strom_climate = strom.read_result("merge_strom_climate_data")
+
 import statsmodels.api as sm
 import pandas as pd
 
 y_var = "wd"
-X_vars = ['tt_tu_mean', 'rf_tu_mean']
+X_vars = ["tt_tu_mean", "rf_tu_mean"]
 
 y = strom_climate[y_var]
 X = strom_climate[X_vars]
-rest = strom_climate.drop(columns = y_var)
+rest = strom_climate.drop(columns=y_var)
 X = sm.add_constant(X)
 
 model = sm.OLS(y, X).fit()
@@ -89,9 +75,9 @@ print(model.summary())
 
 # Extract R-squared value
 r_squared = model.rsquared
-print(f'R-squared: {r_squared}')
+print(f"R-squared: {r_squared}")
 
-#epyfun.reload_all()
+# epyfun.reload_all()
 ```
 </p>
 </details>

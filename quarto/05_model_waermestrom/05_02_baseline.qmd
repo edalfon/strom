@@ -13,22 +13,7 @@ import epyfun
 
 import strom
 
-strom_climate = strom.read_result("merge_strom_climate_data")
-strom_climate["ds"] = strom_climate["date"].dt.date
-strom_climate = strom_climate.set_index("ds")
-
-cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
-
-X = strom_climate.drop(columns="wd")
-y = strom_climate["wd"]
-
-train_set = strom_climate[strom_climate["date"] <= cutoff]
-test_set = strom_climate[strom_climate["date"] > cutoff]
-
-X_train = train_set.drop(columns="wd")
-y_train = train_set["wd"]
-X_test = test_set.drop(columns="wd")
-y_test = test_set["wd"]
+X_train, y_train, X_test, y_test = strom.read_result("split_data")
 ```
 
 From the first look at the correlations, a model with polynomials looked fitting.
@@ -98,15 +83,17 @@ min, max, std dev, seems to have some predictive power.
 <details><summary>Polynomials but using statsmodels ...</summary>
 <p>
 ```{python}
+strom_climate = strom.read_result("merge_strom_climate_data")
+
 from sklearn.preprocessing import PolynomialFeatures
 import matplotlib.pyplot as plt
 
 y_var = "wd"
-X_vars = ['tt_tu_mean', 'rf_tu_mean']
+X_vars = ["tt_tu_mean", "rf_tu_mean"]
 
 y = strom_climate[y_var]
 X = strom_climate[X_vars]
-rest = strom_climate.drop(columns = y_var)
+rest = strom_climate.drop(columns=y_var)
 
 
 polynomial_features = PolynomialFeatures(degree=3)
@@ -114,14 +101,18 @@ xp = polynomial_features.fit_transform(X)
 xp.shape
 
 import statsmodels.formula.api as smf
-model = smf.ols(formula="""
+
+model = smf.ols(
+    formula="""
       wd ~ tt_tu_mean + I(tt_tu_mean ** 2) + I(tt_tu_mean ** 3) + 
            I(tt_tu_mean ** 4) + I(tt_tu_mean ** 5) +
            rf_tu_mean + rf_tu_min + rf_tu_max +
            tt_tu_mean.shift(1) + tt_tu_mean.shift(2) + tt_tu_mean.shift(3)
-  """, data=strom_climate).fit()
+  """,
+    data=strom_climate,
+).fit()
 # model = smf.ols(formula="""
-#       wd ~ tt_tu_mean + I(tt_tu_mean ** 2) + I(tt_tu_mean ** 3) + 
+#       wd ~ tt_tu_mean + I(tt_tu_mean ** 2) + I(tt_tu_mean ** 3) +
 #            rf_tu_mean + I(rf_tu_mean ** 2) + I(rf_tu_mean ** 3) + tt_tu_mean:rf_tu_mean + I(tt_tu_mean ** 2):I(rf_tu_mean ** 2) +
 #            I(tt_tu_mean ** 3):I(rf_tu_mean ** 3)
 #   """, data=strom_climate).fit()
