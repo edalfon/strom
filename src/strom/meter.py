@@ -67,11 +67,10 @@ def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
                     lag(date, 1) OVER(PARTITION BY meterid ORDER BY date),
                     date
                 ) AS minutes, 
-                -- use (1/(1-first)) to induce NA when it is first measurement
-                value * (1/(1-first)) - lag(value, 1) OVER(
+                CASE WHEN first = 1 THEN NULL ELSE value - lag(value, 1) OVER(
                     PARTITION BY meterid 
                     ORDER BY date
-                ) AS consumption,
+                ) END AS consumption,
                 1.0 * consumption / minutes AS cm
             FROM strom_sqlite
             ORDER BY date
