@@ -38,7 +38,7 @@ import strom
 # versions = strom.get_board().pin_versions("wd")
 # vetivers = [strom.get_vetiver("wd", version=v) for v in versions.version]
 
-models = ["wd-ols", "wd-rf", "wd-gb", "wd-svm"]
+models = ["wd-ols", "wd-gb", "wd-svm"]
 vetivers = [strom.get_vetiver(v) for v in models]
 ```
 
