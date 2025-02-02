@@ -64,7 +64,6 @@ strom.log_vetiver(
 )
 ```
 
-{{< include _assess_model.qmd >}}
 
 Well, not that bad, but it is overfitting quite a lot. 
 
@@ -159,7 +158,6 @@ grid.best_params_
 pipe
 ```
 
-{{< include _assess_model.qmd >}}
 
 
 # Compare vanilla vs. tuned
@@ -174,7 +172,6 @@ vetivers = [strom.get_vetiver("wd-rf", version=v) for v in versions.version]
 v = strom.get_vetiver("wd-rf", version="20240820T134244Z-169bc")
 ```
 
-{{< include _compare_models.qmd >}}
 
 # TODOs
 
