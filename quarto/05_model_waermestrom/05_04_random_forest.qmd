@@ -2,7 +2,7 @@
 title: "Random forest"
 execute:
   echo: false
-  eval: true
+  eval: false
 ---
 
 ```{python}
