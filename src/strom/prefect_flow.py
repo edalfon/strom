@@ -4,7 +4,7 @@ import epyfun
 import pandas as pd
 from stepit import stepit
 
-from strom import consumption, dwd, meter
+from strom import consumption, dwd, meter, modelling
 
 
 @stepit
@@ -73,15 +73,15 @@ def strom_flow():
     ccomp(key="last_90_days")(climate_daily, 90)
     ccomp(key="last_365_days")(climate_daily, 365.25)
 
-    # X_train, y_train, X_test, y_test = modelling.split_data(strom_climate)
-    # all_models = modelling.get_models()
+    X_train, y_train, X_test, y_test = modelling.split_data(strom_climate)
+    all_models = modelling.get_models()
 
-    # model_assessments = {
-    #     key: modelling.assess_model.with_options(key=key)(
-    #         model, X_train, y_train, X_test, y_test
-    #     )
-    #     for key, model in all_models.items()
-    # }
+    model_assessments = {
+        key: modelling.assess_model.update(key=key)(
+            model, X_train, y_train, X_test, y_test
+        )
+        for key, model in all_models.items()
+    }
 
     # interim = all_models["poly"]
     # x = modelling.assess_model.with_options(key="wow2")(
