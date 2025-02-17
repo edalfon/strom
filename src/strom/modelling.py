@@ -1,36 +1,29 @@
-from prefect import flow, task, get_run_logger
-from sklearn.preprocessing import PolynomialFeatures
-
-from strom.prefect_ops import task_ops
-
-from strom import meter, dwd, consumption, quarto
-
 import pandas as pd
-
-from datetime import date
-
-import epyfun
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import cross_validate
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import PolynomialFeatures
+from sklego.preprocessing import ColumnSelector
+from stepit import stepit
 
 import strom
 
-from sklearn import metrics
-from sklearn.model_selection import cross_validate
 
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LinearRegression
-
-from sklego.preprocessing import ColumnSelector
-
-
-@task(**task_ops)
+@stepit
 def get_models():
+    return {
+        "naive": mod_naive(),
+        "baseline": mod_baseline(),
+        "poly": mod_poly(),
+        "rf": mod_rf(),
+        "rf2": mod_rf(),
+        "rf44": mod_rf(),
+    }
 
-    return {"naive": mod_naive(), "baseline": mod_baseline()}
 
-
-@task(**task_ops)
+@stepit
 def mod_naive():
-
     pipe = Pipeline(
         [
             ("vars", ColumnSelector(columns=["tt_tu_mean", "rf_tu_mean"])),
@@ -41,9 +34,8 @@ def mod_naive():
     return pipe
 
 
-@task(**task_ops)
+@stepit
 def mod_baseline():
-
     pipe = Pipeline(
         [
             ("vars", ColumnSelector(columns=["tt_tu_mean", "rf_tu_mean"])),
@@ -55,19 +47,63 @@ def mod_baseline():
     return pipe
 
 
-@task(**task_ops)
-def assess_model(pipe, X_train, y_train, X_test, y_test):
+@stepit
+def mod_poly():
+    pipe = Pipeline(
+        [
+            ("vars", ColumnSelector(columns=["tt_tu_mean", "rf_tu_mean"])),
+            ("polynomial", PolynomialFeatures(degree=2)),
+            ("model", LinearRegression()),
+        ]
+    )
 
-    pipe, y_pred_train, y_pred_test = fit_predict(pipe, X_train, y_train, X_test)
+    return pipe
+
+
+@stepit
+def mod_rf():
+    pipe = Pipeline(
+        [
+            ("vars", ColumnSelector(columns=["tt_tu_mean", "rf_tu_mean"])),
+            ("model", RandomForestRegressor()),
+        ]
+    )
+
+    return pipe
+
+
+@stepit
+def mod_rf():
+    pipe = Pipeline(
+        [
+            ("vars", ColumnSelector(columns=["tt_tu_mean", "rf_tu_mean"])),
+            ("polynomial", PolynomialFeatures(degree=2)),
+            ("model", LinearRegression()),
+        ]
+    )
+
+    return pipe
+
+
+@stepit
+def assess_model(pipe, X_train, y_train, X_test, y_test):
+    pipe = pipe.fit(X_train, y_train)
+
+    y_pred_train = pipe.predict(X_train)
+
+    y_pred_test = pipe.predict(X_test)
 
     metrics_df = get_single_split_metrics(y_train, y_pred_train, y_test, y_pred_test)
 
-    return metrics_df
+    scores = cross_validate_pipe(pipe, X_train, y_train)
+
+    scores_summ = strom.summarize_cross_validate_scores(scores)
+
+    return pipe, y_pred_train, y_pred_test, metrics_df, scores, scores_summ
 
 
-@task(**task_ops)
+@stepit
 def split_data(strom_climate, cutoff="2023-12-05"):
-
     # cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
 
     strom_climate["ds"] = strom_climate["date"].dt.date
@@ -84,9 +120,16 @@ def split_data(strom_climate, cutoff="2023-12-05"):
     return X_train, y_train, X_test, y_test
 
 
-@task(**task_ops)
-def fit_predict(pipe, X_train, y_train, X_test):
+@stepit
+def fit_model(pipe, X_train, y_train):
     pipe.fit(X_train, y_train)
+
+    return pipe
+
+
+@stepit
+def fit_predict(pipe, X_train, y_train, X_test):
+    pipe = pipe.fit(X_train, y_train)
 
     y_pred_train = pipe.predict(X_train)
 
@@ -95,11 +138,10 @@ def fit_predict(pipe, X_train, y_train, X_test):
     return pipe, y_pred_train, y_pred_test
 
 
-@task(**task_ops)
+@stepit
 def get_single_split_metrics(
     y_train, y_pred_train, y_test, y_pred_test, metrics_use=strom.get_metrics()
 ):
-
     metrics_train = {
         name: fn(y_train, y_pred_train) for name, fn in metrics_use.items()
     }
@@ -110,11 +152,10 @@ def get_single_split_metrics(
     return metrics_df
 
 
-@task(**task_ops)
+@stepit
 def cross_validate_pipe(
     pipe, X_train, y_train, scoring=strom.get_scoring(), cv=strom.get_cv()
 ):
-
     scores = cross_validate(
         pipe,
         X_train,
