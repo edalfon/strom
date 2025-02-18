@@ -4,7 +4,7 @@ import epyfun
 import pandas as pd
 from stepit import stepit
 
-from strom import consumption, dwd, meter, modelling
+from strom import consumption, dwd, meter, modelling, quarto
 
 
 @stepit
@@ -83,6 +83,10 @@ def strom_flow():
         for key, model in all_models.items()
     }
 
+    # from strom import read_result
+
+    # X_train, y_train, X_test, y_test = read_result("split_data")
+
     # interim = all_models["poly"]
     # x = modelling.assess_model.with_options(key="wow2")(
     #     interim, X_train, y_train, X_test, y_test
@@ -126,7 +130,7 @@ def strom_flow():
     # not running the task (as expected), but failing to notice that task
 
     #
-    # quarto.render_report(strom_climate, strom_per_month, strom_per_hour)
+    quarto.render_report(strom_climate, strom_per_month, strom_per_hour)
 
 
 if __name__ == "__main__":

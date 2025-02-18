@@ -35,6 +35,10 @@ pipe = Pipeline(
         ("model", LinearRegression()),
     ]
 )
+
+pipe, y_pred_train, y_pred_test, metrics_df, scores, scores_summ = strom.read_result(
+    "naive"
+)
 ```
 
 {{< include _assess_model.qmd >}}

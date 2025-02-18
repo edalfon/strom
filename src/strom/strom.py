@@ -1132,3 +1132,9 @@ def reload_all():
             None
 
     return [reloaded_modules, list(modulenames)]
+
+
+def read_result(key):
+    from stepit import default_deserialize
+
+    return default_deserialize(f".stepit_cache/{key}")

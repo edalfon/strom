@@ -50,6 +50,14 @@ strom.log_vetiver(
     "wd-ols",
     description="Baseline: An OLS regression using a polynomial specification",
 )
+
+pipe, y_pred_train, y_pred_test, metrics_df, scores, scores_summ = strom.read_result(
+    "get_models"
+)
+
+yyy = strom.read_result("get_models")
+
+yyy["poly"]
 ```
 
 {{< include _assess_model.qmd >}}
