@@ -47,6 +47,7 @@ strom.log_vetiver(
     "wd-rf",
     description="Random Forest Vanilla",
 )
+model_key = "rf_raw"
 ```
 
 {{< include _assess_model.qmd >}}
@@ -142,6 +143,7 @@ grid.best_params_
 ```
 ```{python}
 pipe
+model_key = "rf_tuned"
 ```
 
 {{< include _assess_model.qmd >}}
@@ -157,10 +159,11 @@ versions = strom.get_board().pin_versions("wd-rf")
 vetivers = [strom.get_vetiver("wd-rf", version=v) for v in versions.version]
 
 v = strom.get_vetiver("wd-rf", version="20240820T134244Z-169bc")
+
+model_key = "rf"
 ```
 
 {{< include _compare_models.qmd >}}
 
 # TODOs
-
 

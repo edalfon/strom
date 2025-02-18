@@ -281,6 +281,9 @@ show(pd.DataFrame(grid.cv_results_).filter(regex="^(mean_test|param)"))
 
 ## Assessment of the best model in that brute force approach
 
+```{python}
+model_key = "poly"
+```
 {{< include _assess_model.qmd >}}
 
 

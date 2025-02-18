@@ -47,6 +47,7 @@ strom.log_vetiver(
     "wd-svm",
     description="SVM",
 )
+model_key = "svm_raw"
 ```
 
 {{< include _assess_model.qmd >}}
@@ -159,6 +160,7 @@ strom.log_vetiver(
 
 
 grid.best_params_
+model_key = "svm_tuned"
 ```
 
 {{< include _assess_model.qmd >}}

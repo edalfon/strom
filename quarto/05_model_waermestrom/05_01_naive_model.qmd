@@ -36,9 +36,10 @@ pipe = Pipeline(
     ]
 )
 
-pipe, y_pred_train, y_pred_test, metrics_df, scores, scores_summ = strom.read_result(
-    "naive"
-)
+# pipe, y_pred_train, y_pred_test, metrics_df, scores, scores_summ = strom.read_result(
+#     "naive"
+# )
+model_key = "naive"
 ```
 
 {{< include _assess_model.qmd >}}

@@ -49,6 +49,7 @@ strom.log_vetiver(
     "wd-gb",
     description="Gradient Boost",
 )
+model_key = "gb_raw"
 ```
 
 {{< include _assess_model.qmd >}}
@@ -136,6 +137,7 @@ grid.best_params_
 ```
 ```{python}
 pipe
+model_key = "gb_tuned"
 ```
 
 {{< include _assess_model.qmd >}}

@@ -4,8 +4,6 @@ import os
 import subprocess
 import webbrowser
 
-from stepit import stepit
-
 
 def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
     file_paths = [
@@ -15,10 +13,14 @@ def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
             os.path.join(folder_path, "**", f"*.{ext}"), recursive=True
         )
     ]
-    return [hashlib.sha256(open(file, "rb").read()).hexdigest() for file in file_paths]
+    hashes = {
+        f"{file}": hashlib.sha256(open(file, "rb").read()).hexdigest()
+        for file in file_paths
+    }
+    print(hashes)
+    return hashes
 
 
-@stepit
 def render_report(*args, changes=detect_changes(), **kwargs):
     cmd = [
         "quarto",
