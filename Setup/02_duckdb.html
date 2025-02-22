@@ -422,7 +422,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1>Set-up <code>jupysql</code> to be able to write sql queries directly</h1>
 <p>To do it with DuckDB, basically following <a href="https://duckdb.org/docs/guides/python/jupyter">this guide</a>, just need to make sure <code>jupysql</code>, <code>SQLAlchemy</code> and <code>duckdb-engine</code> are installed, besides the core libraries (<code>notebook</code>, <code>pandas</code>, <code>duckdb</code>). If any of them mssing, simply pip install them.</p>
 <p>Step 1 is then to import extension. It enables SQL cells in Jupyter. It supports inline SQL using <code>%sql</code> and a whole SQL cell starting it with <code>%%sql</code>.</p>
-<div id="eb7e78a5" class="cell" data-execution_count="1">
+<div id="697da2e6" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlalchemy <span class="co"># No need to import duckdb_engine, </span></span>
@@ -475,12 +475,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>But you have to use a standard python chunk and use the <code>%sql</code> or <code>%%sql</code> to be able to write SQL direcly.</p>
 <p>Step 2 is to fire-up DuckDB, either in memory or pointing to a file.</p>
-<div id="86ceaa78" class="cell" data-execution_count="2">
+<div id="7496c0e2" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql duckdb:<span class="op">///</span>:memory:</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># %sql duckdb:///path/to/file.db</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Test it’s working</p>
-<div id="0bfba0d2" class="cell" data-execution_count="3">
+<div id="4f02d553" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql SELECT <span class="st">'Off and flying!'</span> <span class="im">as</span> a_duckdb_column</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <div>
@@ -504,7 +504,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="b6392f0f" class="cell" data-execution_count="4">
+<div id="9ceba49b" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql SELECT <span class="op">*</span> FROM duckdb_settings()<span class="op">;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <div>
@@ -532,34 +532,34 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="even">
 <td data-quarto-table-cell-role="th">1</td>
-<td>allow_persistent_secrets</td>
-<td>true</td>
-<td>Allow the creation of persistent secrets, that...</td>
+<td>allocator_background_threads</td>
+<td>false</td>
+<td>Whether to enable the allocator background thr...</td>
 <td>BOOLEAN</td>
 <td>GLOBAL</td>
 </tr>
 <tr class="odd">
 <td data-quarto-table-cell-role="th">2</td>
-<td>catalog_error_max_schemas</td>
-<td>100</td>
-<td>The maximum number of schemas the system will ...</td>
-<td>UBIGINT</td>
+<td>allocator_bulk_deallocation_flush_threshold</td>
+<td>512.0 MiB</td>
+<td>If a bulk deallocation larger than this occurs...</td>
+<td>VARCHAR</td>
 <td>GLOBAL</td>
 </tr>
 <tr class="even">
 <td data-quarto-table-cell-role="th">3</td>
-<td>checkpoint_threshold</td>
-<td>16.0 MiB</td>
-<td>The WAL size threshold at which to automatical...</td>
+<td>allocator_flush_threshold</td>
+<td>128.0 MiB</td>
+<td>Peak allocation threshold at which to flush th...</td>
 <td>VARCHAR</td>
 <td>GLOBAL</td>
 </tr>
 <tr class="odd">
 <td data-quarto-table-cell-role="th">4</td>
-<td>debug_checkpoint_abort</td>
-<td>none</td>
-<td>DEBUG SETTING: trigger an abort while checkpoi...</td>
-<td>VARCHAR</td>
+<td>allow_community_extensions</td>
+<td>true</td>
+<td>Allow to load community built extensions</td>
+<td>BOOLEAN</td>
 <td>GLOBAL</td>
 </tr>
 <tr class="even">
@@ -571,31 +571,31 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>...</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">102</td>
-<td>Calendar</td>
-<td>gregorian</td>
-<td>The current calendar</td>
-<td>VARCHAR</td>
-<td>GLOBAL</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">103</td>
+<td data-quarto-table-cell-role="th">117</td>
 <td>python_scan_all_frames</td>
 <td>false</td>
 <td>If set, restores the old behavior of scanning ...</td>
 <td>BOOLEAN</td>
 <td>GLOBAL</td>
 </tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">104</td>
+<tr class="even">
+<td data-quarto-table-cell-role="th">118</td>
 <td>TimeZone</td>
 <td>Etc/UTC</td>
 <td>The current time zone</td>
 <td>VARCHAR</td>
 <td>GLOBAL</td>
 </tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">119</td>
+<td>prefetch_all_parquet_files</td>
+<td>false</td>
+<td>Use the prefetching mechanism for all types of...</td>
+<td>BOOLEAN</td>
+<td>GLOBAL</td>
+</tr>
 <tr class="even">
-<td data-quarto-table-cell-role="th">105</td>
+<td data-quarto-table-cell-role="th">120</td>
 <td>python_enable_replacements</td>
 <td>true</td>
 <td>Whether variables visible to the current stack...</td>
@@ -603,7 +603,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>GLOBAL</td>
 </tr>
 <tr class="odd">
-<td data-quarto-table-cell-role="th">106</td>
+<td data-quarto-table-cell-role="th">121</td>
 <td>pandas_analyze_sample</td>
 <td>1000</td>
 <td>The maximum number of rows to sample when anal...</td>
@@ -613,7 +613,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 
-<p>107 rows × 5 columns</p>
+<p>122 rows × 5 columns</p>
 </div>
 </div>
 </div>
