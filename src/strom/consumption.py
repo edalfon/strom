@@ -1,11 +1,9 @@
-from prefect import task
+from datetime import timedelta
 
-from strom.prefect_ops import task_ops
+import pandas as pd
+from stepit import stepit
 
 import duckdb
-import pandas as pd
-
-from datetime import datetime, timedelta
 
 strom_prices = {"normalstrom_minute": 0.3713, "waermestrom_minute": 0.2763}
 meterid = {"normalstrom_minute": "(1)", "waermestrom_minute": "(2, 3)"}
@@ -16,7 +14,6 @@ def calculate_avg_consumption_periods(
     minute_table="normalstrom_minute",
     duckdb_file="./duckdb/strom.duckdb",
 ):
-
     if periods is None:
         with duckdb.connect(duckdb_file) as con:
             periods = con.sql(
@@ -66,14 +63,13 @@ def calculate_avg_consumption(
     minute_table="normalstrom_minute",
     duckdb_file="./duckdb/strom.duckdb",
 ):
-
     if begin is None:
         with duckdb.connect(duckdb_file) as con:
-            begin = con.sql(f"SELECT MIN(minute) FROM strom_minute").fetchone()[0]
+            begin = con.sql("SELECT MIN(minute) FROM strom_minute").fetchone()[0]
 
     if fin is None:
         with duckdb.connect(duckdb_file) as con:
-            fin = con.sql(f"SELECT MAX(minute) FROM strom_minute").fetchone()[0]
+            fin = con.sql("SELECT MAX(minute) FROM strom_minute").fetchone()[0]
 
     price = strom_prices.get(minute_table)
 
@@ -110,11 +106,11 @@ def get_period_cummulative(
 ):
     if begin is None:
         with duckdb.connect(duckdb_file) as con:
-            begin = con.sql(f"SELECT MIN(date) FROM strom_per_day").fetchone()[0]
+            begin = con.sql("SELECT MIN(date) FROM strom_per_day").fetchone()[0]
 
     if fin is None:
         with duckdb.connect(duckdb_file) as con:
-            fin = con.sql(f"SELECT MAX(date) FROM strom_per_day").fetchone()[0]
+            fin = con.sql("SELECT MAX(date) FROM strom_per_day").fetchone()[0]
 
     with duckdb.connect(duckdb_file) as con:
         period = con.sql(
@@ -139,7 +135,6 @@ def get_period(
     minute_table="normalstrom_minute",
     duckdb_file="./duckdb/strom.duckdb",
 ):
-
     daily = get_period_cummulative(begin, fin, duckdb_file)
 
     average = calculate_avg_consumption(begin, fin, minute_table, duckdb_file)
@@ -147,16 +142,15 @@ def get_period(
     return daily, average
 
 
-@task(**task_ops)
+@stepit
 def compare_last_days(
     climate_daily,
     days=15,
     years_back=4,
     duckdb_file="./duckdb/strom.duckdb",
 ):
-
     with duckdb.connect(duckdb_file) as con:
-        fin = con.sql(f"SELECT MAX(date) FROM strom_per_day").fetchone()[0]
+        fin = con.sql("SELECT MAX(date) FROM strom_per_day").fetchone()[0]
 
     begin = fin - timedelta(days=days)
 
@@ -186,7 +180,7 @@ def compare_last_days(
     return daily, average
 
 
-@task(**task_ops)
+@stepit
 def normalstrom_consumption(duckdb_file, *args, **kwargs):
     return calculate_avg_consumption(
         minute_table="normalstrom_minute",
@@ -194,7 +188,7 @@ def normalstrom_consumption(duckdb_file, *args, **kwargs):
     )
 
 
-@task(**task_ops)
+@stepit
 def waermestrom_consumption(duckdb_file, *args, **kwargs):
     return calculate_avg_consumption(
         minute_table="waermestrom_minute",

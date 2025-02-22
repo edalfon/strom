@@ -362,6 +362,7 @@ predicts = [
 ]
 
 df = pd.concat(predicts, axis=0)
+y = pd.concat([y_train, y_test], axis=0)
 df["residuals"] = df["y_true"] - df["y_hat"]
 ```
 

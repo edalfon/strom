@@ -1,6 +1,6 @@
 ```{python}
-# | eval: false
-# | include: false
+#| eval: false
+#| include: false
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -8,22 +8,7 @@ import epyfun
 
 import strom
 
-strom_climate = strom.read_result("merge_strom_climate_data")
-strom_climate["ds"] = strom_climate["date"].dt.date
-strom_climate = strom_climate.set_index("ds")
-
-cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
-
-train_set = strom_climate[strom_climate["date"] <= cutoff]
-test_set = strom_climate[strom_climate["date"] > cutoff]
-
-X = strom_climate.drop(columns="wd")
-y = strom_climate["wd"]
-
-X_train = train_set.drop(columns="wd")
-y_train = train_set["wd"]
-X_test = test_set.drop(columns="wd")
-y_test = test_set["wd"]
+X_train, y_train, X_test, y_test = strom.read_result("split_data")
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import PolynomialFeatures
@@ -42,8 +27,6 @@ pipe = Pipeline(
 
 
 ```{python}
-import strom
-
 cols = [
     "wd",
     "tt_tu_mean",
@@ -58,16 +41,23 @@ cols = [
 ```
 
 ```{python}
-pipe.fit(X_train, y_train)
+# pipe.fit(X_train, y_train)
 
-y_pred_train = pipe.predict(X_train)
+# y_pred_train = pipe.predict(X_train)
 
-y_pred_test = pipe.predict(X_test)
+# y_pred_test = pipe.predict(X_test)
+
+from strom import modelling
+
+pipe, y_pred_train, y_pred_test, metrics_df, scores, scores_summ = (
+    modelling.assess_model.update(key=model_key)(pipe, X_train, y_train, X_test, y_test)
+)
+
 ```
 
 
 ```{python}
-# | include: false
+#| include: false
 
 from sklearn import metrics
 from sklearn.model_selection import cross_validate
@@ -78,20 +68,20 @@ metrics_test = {name: fn(y_test, y_pred_test) for name, fn in metrics_use.items(
 
 metrics_df = pd.DataFrame({"train": metrics_train, "test": metrics_test})
 
-scores = cross_validate(
-    pipe,
-    X_train,
-    y_train,
-    scoring=strom.get_scoring(),
-    cv=strom.get_cv(),
-    n_jobs=-1,
-    verbose=1,
-    return_train_score=True,
-)
-scores
+# scores = cross_validate(
+#     pipe,
+#     X_train,
+#     y_train,
+#     scoring=strom.get_scoring(),
+#     cv=strom.get_cv(),
+#     n_jobs=-1,
+#     verbose=1,
+#     return_train_score=True,
+# )
+# scores
 
-scores_summ = strom.summarize_cross_validate_scores(scores)
-scores_summ
+# scores_summ = strom.summarize_cross_validate_scores(scores)
+# scores_summ
 ```
 
 
@@ -258,6 +248,11 @@ metrics_scores
 
 ::: {.panel-tabset}
 #### Test
+```{python}
+test_set = pd.concat([y_test, X_test], axis=1)
+train_set = pd.concat([y_train, X_train], axis=1)
+```
+
 ```{python}
 strom.splom_fitted_observed(y_test, y_pred_test, test_set, cols)
 ```

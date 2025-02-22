@@ -1,49 +1,35 @@
-import vetiver
-import pins
+import copy
 
+# https://rstudio.github.io/vetiver-python/stable/reference/
+# https://rstudio.github.io/pins-python/reference/
+# follow-up on this issue https://github.com/rstudio/vetiver-python/issues/188
+from functools import partial
+
+import epyfun
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-
+import pins
+import plotly.graph_objects as go
+from IPython.display import display
+from scipy.stats import probplot
 from sklearn.metrics import (
-    PredictionErrorDisplay,
+    explained_variance_score,
     make_scorer,
     mean_absolute_error,
     mean_absolute_percentage_error,
     mean_squared_error,
     median_absolute_error,
     r2_score,
-    explained_variance_score,
 )
-import numpy as np
-from scipy.stats import probplot
-import matplotlib.pyplot as plt
-
-import copy
-
-import plotly.graph_objects as go
+from sklearn.model_selection import RepeatedKFold, cross_validate
 
 import strom
-import epyfun
-
-from sklearn.model_selection import cross_validate
-from sklearn.model_selection import RepeatedKFold
-
-from IPython.display import display, Markdown
-
-import strom.prefect_ops
-
-# https://rstudio.github.io/vetiver-python/stable/reference/
-# https://rstudio.github.io/pins-python/reference/
-
-# follow-up on this issue https://github.com/rstudio/vetiver-python/issues/188
-
-
-from functools import partial
+import vetiver
 
 
 def refit_strategy(scorer_key, agg_fn="mean"):
-
     def best_index(cv_results, scorer_key, agg_fn="mean"):
-
         cv_results = pd.DataFrame(cv_results)
 
         # Identify columns that match the scorer key
@@ -67,14 +53,10 @@ def refit_strategy(scorer_key, agg_fn="mean"):
     return partial(best_index, scorer_key=scorer_key, agg_fn=agg_fn)
 
 
-from sklearn.model_selection import RepeatedKFold
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.model_selection import KFold
-from sklearn.model_selection import cross_validate
+from sklearn.model_selection import KFold, TimeSeriesSplit
 
 
 def get_cv():
-
     get_kf = False
     get_rkf = False
 
@@ -115,7 +97,6 @@ from sklearn import metrics
 
 
 def get_metrics():
-
     metrics_use = {
         "MAE - Mean Absolute Error": metrics.mean_absolute_error,
         "MSE - Mean Squared Error": metrics.mean_squared_error,
@@ -136,7 +117,6 @@ def get_metrics():
 
 
 def get_scoring():
-
     # scorer_names = metrics.get_scorer_names()
 
     scoring = {key: metrics.make_scorer(fn) for key, fn in get_metrics().items()}
@@ -184,7 +164,6 @@ def prune_duplicates(model_name, board_path="vetiver"):
 
 
 def get_vetiver(model_name, version=None, board_path="vetiver"):
-
     try:
         board = strom.get_board(board_path)
         vetiver_model = vetiver.VetiverModel.from_pin(
@@ -248,11 +227,6 @@ def residuals_predicted_matplotlib(y_true, y_pred):
     ax.set_title("Residuals vs Fitted Values")
     # plt.show()
     return fig
-
-
-import plotly
-import plotly.graph_objects as go
-import pandas as pd
 
 
 def observed_residuals_predicted(
@@ -366,7 +340,6 @@ def observed_residuals_predicted(
 
 
 def residuals_predicted(y_true, y_pred, data=None, dimensions=None):
-
     fig = scatter_plotly(y_pred, y_true - y_pred, data, dimensions)
 
     # Add a diagonal line
@@ -394,7 +367,6 @@ def residuals_predicted(y_true, y_pred, data=None, dimensions=None):
 
 
 def residuals_time(y_true, y_pred, time=None, data=None, dimensions=None):
-
     if time is None:
         # time = y_true.reset_index(name="time")["time"]
         time = y_true.index
@@ -468,7 +440,6 @@ def residuals_qq(y_true, y_pred, **kwargs):
 
 
 def scatter_plotly(x, y, data=None, dimensions=None):
-
     if data is None:
         data = pd.DataFrame()
     if dimensions is None and data is not None:
@@ -682,7 +653,6 @@ def scale_location(y_true, y_pred, pipeline, data):
 
 
 def observed_predicted(y_true, y_pred, data=None, dimensions=None):
-
     fig = scatter_plotly(y_pred, y_true, data, dimensions)
 
     # Add a diagonal line
@@ -729,7 +699,6 @@ import plotly.express as px
 # https://plotly.com/python/reference/violin/
 # https://plotly.com/python-api-reference/generated/plotly.express.violin.html
 def plot_grid_search_results_violin(df, param_var="params", resort_xaxis=True):
-
     param_means = (
         df[df["set"] == "test"].groupby(param_var)["value"].mean().sort_values()
     )
@@ -806,7 +775,6 @@ def plot_grid_search_results_violin(df, param_var="params", resort_xaxis=True):
 
 
 def plot_grid_search_results_scatter(df, scorer_col, param_var="params"):
-
     import plotly.express as px
 
     param_means = (
@@ -847,7 +815,6 @@ def plot_grid_search_results_scatter(df, scorer_col, param_var="params"):
 
 # https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html
 def tidy_grid_search_results(cv_results_):
-          
     df = pd.DataFrame(cv_results_)
 
     df = df.melt(
@@ -873,7 +840,6 @@ def tidy_grid_search_results(cv_results_):
 
 
 def summarize_grid_search_results(cv_results_, agg_fn=["mean"]):
-
     df = tidy_grid_search_results(cv_results_)
 
     param_vars = df.filter(like="param").columns.tolist()
@@ -895,7 +861,6 @@ def summarize_grid_search_results(cv_results_, agg_fn=["mean"]):
 # TODO: perhaps do something when the grid has a refit value,
 #       I don't know, give those scores a priority or something?, other color?
 def plot_grid_search_results(grid_fit, param_var="params", resort_xaxis=True):
-
     df = tidy_grid_search_results(grid_fit.cv_results_)
 
     from collections.abc import Iterable
@@ -916,7 +881,6 @@ def plot_grid_search_results(grid_fit, param_var="params", resort_xaxis=True):
 
 
 def plot_grid_search_results_summary(grid_fit, param_var="params", agg_fn=["mean"]):
-
     df = summarize_grid_search_results(grid_fit.cv_results_, agg_fn).reset_index()
 
     from collections.abc import Iterable
@@ -938,7 +902,6 @@ def plot_grid_search_results_summary(grid_fit, param_var="params", agg_fn=["mean
 # TODO: perhaps do something when the grid has a refit value,
 #       I don't know, give those scores a priority or something?, other color?
 def plot_cross_validate_scores(scores, param_var="params"):
-
     df = tidy_cross_validate_scores(scores)
 
     scorers = df.scorer.unique()
@@ -1032,7 +995,6 @@ def tidy_cross_validate_scores(scores, negate_loss=True):
 
 
 def summarize_cross_validate_scores(scores, agg_fn=["mean"]):
-
     df = tidy_cross_validate_scores(scores)
     summ_df = df.groupby(["set", "scorer"])["value"].agg(agg_fn).reset_index()
     summ_df = summ_df.pivot(index="scorer", columns="set", values=agg_fn)
@@ -1069,10 +1031,10 @@ def summarize_cross_validate_scores(scores, agg_fn=["mean"]):
 # ```
 
 
-import sys
 import importlib
 import inspect
 import os
+import sys
 
 # from cookiecutter.main import cookiecutter
 
@@ -1153,7 +1115,7 @@ def reload_all():
                 if module_file.startswith(parent_directory):
                     importlib.reload(module)
                     reloaded_modules.append(module_name)
-            except Exception as e:
+            except Exception:
                 None
 
     # This Python code snippet utilizes the inspect and importlib modules to dynamically reload all modules present in the calling frame's local variables. It identifies modules by intersecting the set of module names in the global namespace (sys.modules) with the local variables of the calling frame. For each identified module, it uses importlib.reload to refresh the module. The function returns a list of module names that were successfully reloaded. It's important to exercise caution when using dynamic module reloading, as it may lead to unexpected behavior in complex systems.
@@ -1166,7 +1128,13 @@ def reload_all():
     for module in allmodules:
         try:
             importlib.reload(module)
-        except Exception as e:
+        except Exception:
             None
 
     return [reloaded_modules, list(modulenames)]
+
+
+def read_result(key):
+    from stepit import default_deserialize
+
+    return default_deserialize(f".stepit_cache/{key}")

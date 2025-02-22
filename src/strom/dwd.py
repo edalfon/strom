@@ -1,12 +1,11 @@
-from prefect import task
-from strom.prefect_ops import task_ops
+import epyfun
+import numpy as np
 import requests
 from bs4 import BeautifulSoup
-import numpy as np
-import epyfun
+from stepit import stepit
 
 
-@task(**task_ops)
+@stepit
 def get_climate_data(current_date):
     historical_files = download_climate_data(
         "https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/"
@@ -96,9 +95,10 @@ def download_climate_data(listing_url):
     return downloaded_files
 
 
-import pandas as pd
-import zipfile
 import io
+import zipfile
+
+import pandas as pd
 
 
 def read_csv_from_zip(zip_file_path):

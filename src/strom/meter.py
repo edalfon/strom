@@ -1,13 +1,10 @@
-from prefect import task
-
-from strom.prefect_ops import task_ops
-from strom.duckdb import duck_md5
+from stepit import stepit
 
 import duckdb
-import pandas as pd
+from strom.duckdb import duck_md5
 
 
-@task(**task_ops)
+@stepit
 def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
     """Ingest strom measurements data into a DuckDB table named 'strom'.
 
@@ -67,11 +64,10 @@ def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
                     lag(date, 1) OVER(PARTITION BY meterid ORDER BY date),
                     date
                 ) AS minutes, 
-                -- use (1/(1-first)) to induce NA when it is first measurement
-                value * (1/(1-first)) - lag(value, 1) OVER(
+                CASE WHEN first = 1 THEN NULL ELSE value - lag(value, 1) OVER(
                     PARTITION BY meterid 
                     ORDER BY date
-                ) AS consumption,
+                ) END AS consumption,
                 1.0 * consumption / minutes AS cm
             FROM strom_sqlite
             ORDER BY date
@@ -82,7 +78,7 @@ def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
         return duck_md5(con, "strom")
 
 
-@task(**task_ops)
+@stepit
 def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
     """Expand the 'strom' table to create a minute-by-minute table.
 
@@ -144,7 +140,7 @@ def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
 
     with duckdb.connect(duckdb_file) as con:
         con.sql(
-            f"""
+            """
             CREATE OR REPLACE TABLE strom_minute AS
             WITH minutes_table AS (
                 SELECT 
@@ -180,11 +176,11 @@ def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
         return duck_md5(con, "strom_minute")
 
 
-@task(**task_ops)
+@stepit
 def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         strom_per_day = con.sql(
-            f"""
+            """
             CREATE OR REPLACE TABLE strom_per_day AS
             SELECT 
                 date,
@@ -212,11 +208,11 @@ def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
         return con.sql("SELECT * FROM strom_per_day;").df()
 
 
-@task(**task_ops)
+@stepit
 def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         strom_per_day = con.sql(
-            f"""
+            """
             CREATE OR REPLACE TABLE strom_per_month AS
             SELECT 
                 year, month,
@@ -254,11 +250,11 @@ def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
         return con.sql("SELECT * FROM strom_per_month;").df()
 
 
-@task(**task_ops)
+@stepit
 def make_strom_per_hour(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         strom_per_day = con.sql(
-            f"""
+            """
             CREATE OR REPLACE TABLE strom_per_hour AS
             SELECT 
                 year, month, day, hour,

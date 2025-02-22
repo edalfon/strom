@@ -1,17 +1,11 @@
-from prefect import flow, task
-
-from strom.prefect_ops import task_ops
-
+import glob
+import hashlib
+import os
 import subprocess
 import webbrowser
 
-import os
-import hashlib
-import glob
-
 
 def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
-
     file_paths = [
         file
         for ext in extensions
@@ -19,10 +13,14 @@ def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
             os.path.join(folder_path, "**", f"*.{ext}"), recursive=True
         )
     ]
-    return [hashlib.sha256(open(file, "rb").read()).hexdigest() for file in file_paths]
+    hashes = {
+        f"{file}": hashlib.sha256(open(file, "rb").read()).hexdigest()
+        for file in file_paths
+    }
+    print(hashes)
+    return hashes
 
 
-@task(**task_ops)
 def render_report(*args, changes=detect_changes(), **kwargs):
     cmd = [
         "quarto",

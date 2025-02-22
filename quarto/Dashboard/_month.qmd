@@ -35,10 +35,11 @@ month_order = [
 ## Row
 
 ```{python}
+from strom import consumption
 nd_df = monthly_averages.rename(
     columns={"month_name": "Monat", "mean_nd": "Verbrauch (kWh)"}
 ).drop(columns=["month", "mean_wd"])
-price = strom.consumption.strom_prices.get("normalstrom_minute")
+price = consumption.strom_prices.get("normalstrom_minute")
 nd_df["Verbrauch (€)"] = nd_df["Verbrauch (kWh)"] * price
 nd_df["Verbrauch (kWh)"] = nd_df["Verbrauch (kWh)"].round().astype(int)
 nd_df["Verbrauch (€)"] = nd_df["Verbrauch (€)"].round().astype(int)
@@ -49,7 +50,7 @@ nd_df
 nd_df = monthly_averages.rename(
     columns={"month_name": "Monat", "mean_wd": "Verbrauch (kWh)"}
 ).drop(columns=["month", "mean_nd"])
-price = strom.consumption.strom_prices.get("waermestrom_minute")
+price = consumption.strom_prices.get("waermestrom_minute")
 nd_df["Verbrauch (€)"] = nd_df["Verbrauch (kWh)"] * price
 nd_df["Verbrauch (kWh)"] = nd_df["Verbrauch (kWh)"].round().astype(int)
 nd_df["Verbrauch (€)"] = nd_df["Verbrauch (€)"].round().astype(int)

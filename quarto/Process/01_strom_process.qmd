@@ -1,5 +1,7 @@
 ---
 title: "Strom"
+execute: 
+  eval: false
 ---
 
 {{< include /includes/_load_data.qmd >}}

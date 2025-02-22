@@ -13,22 +13,7 @@ import epyfun
 
 import strom
 
-strom_climate = strom.read_result("merge_strom_climate_data")
-strom_climate["ds"] = strom_climate["date"].dt.date
-strom_climate = strom_climate.set_index("ds")
-
-cutoff = strom_climate["date"].max() - pd.DateOffset(years=1)
-
-X = strom_climate.drop(columns="wd")
-y = strom_climate["wd"]
-
-train_set = strom_climate[strom_climate["date"] <= cutoff]
-test_set = strom_climate[strom_climate["date"] > cutoff]
-
-X_train = train_set.drop(columns="wd")
-y_train = train_set["wd"]
-X_test = test_set.drop(columns="wd")
-y_test = test_set["wd"]
+X_train, y_train, X_test, y_test = strom.read_result("split_data")
 ```
 
 Before moving forward with the to-do list, let's throw a Random Forest to it.
@@ -62,6 +47,7 @@ strom.log_vetiver(
     "wd-rf",
     description="Random Forest Vanilla",
 )
+model_key = "rf_raw"
 ```
 
 
@@ -156,6 +142,7 @@ grid.best_params_
 ```
 ```{python}
 pipe
+model_key = "rf_tuned"
 ```
 
 
@@ -170,9 +157,10 @@ versions = strom.get_board().pin_versions("wd-rf")
 vetivers = [strom.get_vetiver("wd-rf", version=v) for v in versions.version]
 
 v = strom.get_vetiver("wd-rf", version="20240820T134244Z-169bc")
+
+model_key = "rf"
 ```
 
 
 # TODOs
-
 
