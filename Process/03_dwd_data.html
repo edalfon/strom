@@ -429,7 +429,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="stundliche-auflösung-wetter-stationen" class="level1">
 <h1>stundliche Auflösung Wetter Stationen</h1>
 <p>laden wir die Stationslisten herunter mit allen Klimastationen, die Lufttemperatur - stündliche Auflösung haben.</p>
-<div id="763928f3" class="cell" data-execution_count="1">
+<div id="1aea1ac5" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> epyfun</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>stations_file <span class="op">=</span> <span class="st">"interim/climate/latest/TU_Stundenwerte_Beschreibung_Stationen.txt"</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -438,7 +438,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>epyfun.fs.convert_to_utf8(stations_file)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Zeige die Stationen kurz auf einer Karte an, wobei sich Brannenburg in der Mitte befindet, so dass es leicht ersichtlich ist, welche Stationen näher liegen.</p>
-<div id="61392a0f" class="cell" data-execution_count="2">
+<div id="014c0954" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_fwf(</span>
@@ -457,7 +457,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    ],</span>
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="742bf6c0" class="cell" data-execution_count="3">
+<div id="a0548e65" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> folium</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> folium.plugins <span class="im">import</span> MarkerCluster</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
@@ -486,7 +486,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="fns-to-support-download-data" class="level1">
 <h1>fns to support download data</h1>
-<div id="821bbb71" class="cell" data-execution_count="4">
+<div id="f86591c7" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> bs4 <span class="im">import</span> BeautifulSoup</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -517,7 +517,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> downloaded_files</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="6a0cdd0f" class="cell" data-execution_count="5">
+<div id="f51ccacb" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zipfile</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> io</span>
@@ -544,7 +544,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="9ab76f04" class="cell" data-execution_count="6">
+<div id="f144dac5" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bind_rows_files(all_files):</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># all_files = ["interim/climate/latest/stundenwerte_TU_04261_akt.zip",</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># "./interim/climate/latest/stundenwerte_TU_04261_20060301_20221231_hist.zip"]</span></span>
@@ -558,7 +558,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="lufttemperatur---stündliche-auflösung" class="level1">
 <h1>Lufttemperatur - stündliche Auflösung</h1>
-<div id="0c602069" class="cell" data-execution_count="7">
+<div id="dda24be6" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>historical_files <span class="op">=</span> download_climate_data(<span class="st">"https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/historical/"</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>recent_files <span class="op">=</span> download_climate_data(<span class="st">"https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/"</span>)</span>
@@ -567,11 +567,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>aircols <span class="op">=</span> [<span class="st">"TT_TU"</span>, <span class="st">"RF_TU"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Es gibt komische Werte hier. Es scheint, dass -999 als Missing Value-Indikator verwendet wird (für RF_TU, relative Feuchte).</p>
-<div id="187ed9c9" class="cell" data-execution_count="8">
+<div id="9d2e1062" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>air.replace(<span class="op">-</span><span class="dv">999</span>, np.nan, inplace<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="7f814aa4" class="cell" data-execution_count="9">
+<div id="e7bed230" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.express <span class="im">as</span> px</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter rows where the date is greater than 2020</span></span>
@@ -591,7 +591,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="taupunkttemperatur---stündliche-auflösung" class="level1">
 <h1>Taupunkttemperatur - stündliche Auflösung</h1>
-<div id="88a11f93" class="cell" data-execution_count="10">
+<div id="8e1950d3" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>historical_files <span class="op">=</span> download_climate_data(<span class="st">"https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/dew_point/historical/"</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>recent_files <span class="op">=</span> download_climate_data(<span class="st">"https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/dew_point/recent/"</span>)</span>
@@ -600,11 +600,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>dewcols <span class="op">=</span> [<span class="st">"  TT"</span>, <span class="st">"  TD"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Es gibt komische Werte hier. Es scheint, dass -999 als Missing Value-Indikator verwendet wird (für RF_TU, relative Feuchte).</p>
-<div id="04d4a488" class="cell" data-execution_count="11">
+<div id="d06b4367" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>dew.replace(<span class="op">-</span><span class="dv">999</span>, np.nan, inplace<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="e69e7647" class="cell" data-execution_count="12">
+<div id="db93d78d" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.express <span class="im">as</span> px</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter rows where the date is greater than 2020</span></span>
@@ -624,7 +624,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="moisture---stündliche-auflösung" class="level1">
 <h1>Moisture - stündliche Auflösung</h1>
-<div id="8d3ab9c4" class="cell" data-execution_count="13">
+<div id="ec95cf38" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>historical_files <span class="op">=</span> download_climate_data(<span class="st">"https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/moisture/historical/"</span>)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>recent_files <span class="op">=</span> download_climate_data(<span class="st">"https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/moisture/recent/"</span>)</span>
@@ -632,7 +632,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>moist <span class="op">=</span> bind_rows_files(historical_files <span class="op">+</span> recent_files)</span>
 <span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>moistcols <span class="op">=</span> [<span class="st">'VP_STD'</span>, <span class="st">'TF_STD'</span>, <span class="st">'P_STD'</span>, <span class="st">'TT_STD'</span>, <span class="st">'RF_STD'</span>, <span class="st">'TD_STD'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="21db2de1" class="cell" data-execution_count="14">
+<div id="bc4d0e87" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.express <span class="im">as</span> px</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter rows where the date is greater than 2020</span></span>
@@ -652,7 +652,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="precipitaci---stündliche-auflösung" class="level1">
 <h1>Precipitaci - stündliche Auflösung</h1>
-<div id="08ac7818" class="cell" data-execution_count="15">
+<div id="7d1b4391" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>historical_files <span class="op">=</span> download_climate_data(<span class="st">"https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/historical/"</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>recent_files <span class="op">=</span> download_climate_data(<span class="st">"https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/precipitation/recent/"</span>)</span>
@@ -661,11 +661,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>precipcols <span class="op">=</span> [<span class="st">'  R1'</span>, <span class="st">'RS_IND'</span>, <span class="st">'WRTR'</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Es gibt komische Werte hier. Es scheint, dass -999 als Missing Value-Indikator verwendet wird.</p>
-<div id="2047bec5" class="cell" data-execution_count="16">
+<div id="d50e38f6" class="cell" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>precip.replace(<span class="op">-</span><span class="dv">999</span>, np.nan, inplace<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="a413a484" class="cell" data-execution_count="17">
+<div id="68a2a481" class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> plotly.express <span class="im">as</span> px</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter rows where the date is greater than 2020</span></span>
@@ -685,13 +685,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="join-in-a-single-table-and-mach-es-auf-täglicheauslösung" class="level1">
 <h1>join in a single table and mach es auf täglicheauslösung</h1>
-<div id="9f1d0627" class="cell" data-execution_count="18">
+<div id="b09710db" class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>oncols <span class="op">=</span> [<span class="st">"MESS_DATUM"</span>, <span class="st">"STATIONS_ID"</span>]</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>agg_df <span class="op">=</span> air.merge(dew[oncols <span class="op">+</span> dewcols], on<span class="op">=</span>oncols)</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>agg_df <span class="op">=</span> agg_df.merge(moist[oncols <span class="op">+</span> moistcols], on<span class="op">=</span>oncols)</span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>agg_df <span class="op">=</span> agg_df.merge(precip[oncols <span class="op">+</span> precipcols], on<span class="op">=</span>oncols)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="0a13a4f3" class="cell" data-execution_count="19">
+<div id="18f62675" class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>datacols <span class="op">=</span> aircols <span class="op">+</span> dewcols <span class="op">+</span> moistcols <span class="op">+</span> precipcols</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>agg_df[<span class="st">"date"</span>] <span class="op">=</span> agg_df[<span class="st">"MESS_DATUM"</span>].dt.normalize()</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>agg_df <span class="op">=</span> (</span>
@@ -701,13 +701,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>agg_df <span class="op">=</span> epyfun.pandas.clean_names(agg_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="0178ad16" class="cell" data-execution_count="20">
+<div id="31e9243a" class="cell" data-execution_count="20">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#epyfun.splom(agg_df).show("browser")</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="merge-everything-and-save-the-file" class="level1">
 <h1>merge everything and save the file</h1>
-<div id="c9c5d332" class="cell" data-execution_count="21">
+<div id="5a43d0ad" class="cell" data-execution_count="21">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># agg_df.to_parquet('./interim/climate/climate_daily.parquet', index=False)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 
