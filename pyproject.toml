@@ -41,9 +41,6 @@ stepit = "^0.3.1"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
 pytest-cov = "^4.1.0"
-myst-nb = "^1.0.0"
-sphinx-autoapi = "^3.0.0"
-sphinx-rtd-theme = "^2.0.0"
 jupyter = "^1.0.0"
 
 [tool.semantic_release]
