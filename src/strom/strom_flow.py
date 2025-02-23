@@ -74,14 +74,14 @@ def strom_flow():
     ccomp(key="last_365_days")(climate_daily, 365.25)
 
     X_train, y_train, X_test, y_test = modelling.split_data(strom_climate)
-    all_models = modelling.get_models()
+    # all_models = modelling.get_models()
 
-    model_assessments = {
-        key: modelling.assess_model.update(key=key)(
-            model, X_train, y_train, X_test, y_test
-        )
-        for key, model in all_models.items()
-    }
+    # model_assessments = {
+    #     key: modelling.assess_model.update(key=key)(
+    #         model, X_train, y_train, X_test, y_test
+    #     )
+    #     for key, model in all_models.items()
+    # }
 
     # from strom import read_result
 

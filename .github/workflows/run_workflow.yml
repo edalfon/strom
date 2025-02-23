@@ -1,16 +1,16 @@
-name: prefect
+name: stromflow
 on:
   push:
     branches:
       - '**'  # Run on push to any branch
   repository_dispatch:
-    types: [trigger-prefect-workflow]
+    types: [trigger-workflow]
 permissions:
   contents: write
   actions: write
 
 jobs:
-  prefect:
+  stromflow:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,8 +32,8 @@ jobs:
           key: venv-${{ hashFiles('poetry.lock') }}
       - name: Install the project dependencies
         run: poetry install
-      - name: Run prefect's workflow
-        run: poetry run python -c "from strom import prefect_flow; prefect_flow.strom_flow()"
+      - name: Run strom's workflow
+        run: poetry run python -c "from strom import strom_flow; strom_flow.strom_flow()"
       - name: Deploy to Github Pages 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:

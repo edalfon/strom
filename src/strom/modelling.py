@@ -17,8 +17,6 @@ def get_models():
         "baseline": mod_baseline(),
         "poly": mod_poly(),
         "rf": mod_rf(),
-        "rf2": mod_rf(),
-        "rf44": mod_rf(),
     }
 
 
