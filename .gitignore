@@ -172,7 +172,6 @@ cython_debug/
 # generated output
 results
 interim
-duckdb
 vetiver
 .metaflow
 .prefect
