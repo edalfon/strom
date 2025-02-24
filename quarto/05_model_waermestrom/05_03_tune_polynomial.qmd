@@ -43,6 +43,7 @@ pipe = Pipeline(
 ```
 
 ```{python}
+#| output: asis
 from strom import modelling
 
 param_grid = [
@@ -53,8 +54,8 @@ param_grid = [
 
 grid = modelling.grid_search_pipe(pipe, param_grid, X_train, y_train)
 
-pd.DataFrame(grid.cv_results_)
-grid.best_params_
+# pd.DataFrame(grid.cv_results_)
+# grid.best_params_
 ```
 
 ```{python}
@@ -66,7 +67,7 @@ plots = strom.plot_grid_search_results(grid)
 
 ::: {.panel-tabset}
 ```{python}
-# | output: asis
+#| output: asis
 for key in plots:
     print(f"#### {key.split('-', 1)[0].strip()}")
     plots[key].show()
