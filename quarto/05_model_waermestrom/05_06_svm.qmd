@@ -57,8 +57,7 @@ Well, not that bad, but it is overfitting quite a lot.
 
 
 ```{python}
-# | eval: False
-from sklearn.model_selection import GridSearchCV
+#| eval: False
 
 # https://www.baeldung.com/cs/random-forest-overfitting-fix#:~:text=One%20effective%20strategy%20involves%20simplifying,features%20considered%20at%20each%20split.
 param_grid = {
@@ -70,19 +69,12 @@ param_grid = {
     "model__n_jobs": [-1],
 }
 
-grid = GridSearchCV(
-    pipe,
-    param_grid=param_grid,
-    scoring=strom.get_scoring(),
-    n_jobs=-1,
-    cv=strom.get_cv(),
-    refit=strom.refit_strategy("MAE - Mean Absolute Error"),
-    return_train_score=True,
-)
-grid = grid.fit(X_train, y_train)
-grid_fit = grid
+from strom import modelling
+
+grid = modelling.grid_search_pipe(pipe, param_grid, X_train, y_train)
+
 pipe = grid.best_estimator_
-# pd.DataFrame(grid.cv_results_)
+pd.DataFrame(grid.cv_results_)
 grid.best_params_
 ```
 
@@ -116,8 +108,6 @@ weg = summ_plots["RMSE - Root Mean Squared Error"].show()
 
 
 ```{python}
-from sklearn.model_selection import GridSearchCV
-
 from itertools import combinations
 
 vars = [
@@ -139,16 +129,7 @@ param_grid = [
     },
 ]
 
-grid = GridSearchCV(
-    pipe,
-    param_grid=param_grid,
-    scoring=strom.get_scoring(),
-    n_jobs=-1,
-    cv=strom.get_cv(),
-    refit="RMSE - Root Mean Squared Error",
-    return_train_score=False,
-)
-grid = grid.fit(X_train, y_train)
+grid = modelling.grid_search_pipe(pipe, param_grid, X_train, y_train)
 
 pipe = grid.best_estimator_
 
