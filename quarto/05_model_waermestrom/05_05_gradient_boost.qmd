@@ -61,8 +61,6 @@ Again, overfits a lot.
 
 ```{python}
 # | include: false
-from sklearn.model_selection import GridSearchCV
-
 from itertools import combinations
 
 vars = [
@@ -89,16 +87,9 @@ param_grid = [
     },
 ]
 
-grid = GridSearchCV(
-    pipe,
-    param_grid=param_grid,
-    scoring=strom.get_scoring(),
-    n_jobs=-1,
-    cv=strom.get_cv(),
-    refit="RMSE - Root Mean Squared Error",
-    return_train_score=True,
-)
-grid = grid.fit(X_train, y_train)
+from strom import modelling
+
+grid = modelling.grid_search_pipe(pipe, param_grid, X_train, y_train)
 
 pipe = grid.best_estimator_
 

@@ -916,14 +916,6 @@ def plot_cross_validate_scores(scores, param_var="params"):
     return plots
 
 
-def get_model_data():
-    strom_climate = strom.prefect_ops.read_result("merge_strom_climate_data")
-    X = strom_climate.drop(columns="wd")
-    y = strom_climate["wd"]
-
-    return X, y
-
-
 def cross_validate_strom(estimator, X, y):
     rkf = RepeatedKFold(n_splits=10, n_repeats=100, random_state=7)
 

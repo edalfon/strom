@@ -43,7 +43,8 @@ pipe = Pipeline(
 ```
 
 ```{python}
-from sklearn.model_selection import GridSearchCV
+#| output: asis
+from strom import modelling
 
 param_grid = [
     {
@@ -51,17 +52,8 @@ param_grid = [
     },
 ]
 
-grid = GridSearchCV(
-    pipe,
-    param_grid=param_grid,
-    scoring=strom.get_scoring(),
-    n_jobs=-1,
-    cv=strom.get_cv(),
-    refit=False,
-    return_train_score=True,
-)
-grid = grid.fit(X_train, y_train)
-grid_fit = grid
+grid = modelling.grid_search_pipe(pipe, param_grid, X_train, y_train)
+
 # pd.DataFrame(grid.cv_results_)
 # grid.best_params_
 ```
@@ -75,7 +67,7 @@ plots = strom.plot_grid_search_results(grid)
 
 ::: {.panel-tabset}
 ```{python}
-# | output: asis
+#| output: asis
 for key in plots:
     print(f"#### {key.split('-', 1)[0].strip()}")
     plots[key].show()
@@ -116,8 +108,6 @@ what it spits out of it.
 - `p_std`: Stundenwerte Luftdruck	hpa
 
 ```{python}
-from sklearn.model_selection import GridSearchCV
-
 from itertools import combinations
 
 vars = [
@@ -152,19 +142,10 @@ param_grid = [
     },
 ]
 
-grid = GridSearchCV(
-    pipe,
-    param_grid=param_grid,
-    scoring=strom.get_scoring(),
-    n_jobs=-1,
-    cv=strom.get_cv(),
-    refit=False,
-    return_train_score=True,
-)
-grid = grid.fit(X_train, y_train)
+grid = modelling.grid_search_pipe(pipe, param_grid, X_train, y_train)
 
-# pd.DataFrame(grid.cv_results_)
-# grid.best_params_
+pd.DataFrame(grid.cv_results_)
+grid.best_params_
 ```
 
 ```{python}
@@ -209,8 +190,6 @@ kind of model.
 
 ```{python}
 # | include: false
-from sklearn.model_selection import GridSearchCV
-
 from itertools import combinations
 
 vars = [
@@ -235,17 +214,7 @@ param_grid = [
 
 from sklearn import metrics
 
-grid = GridSearchCV(
-    pipe,
-    param_grid=param_grid,
-    scoring=strom.get_scoring(),
-    n_jobs=-1,
-    cv=strom.get_cv(),
-    # refit=strom.refit_strategy("MAE - Mean Absolute Error"),
-    refit="RMSE - Root Mean Squared Error",
-    return_train_score=False,
-)
-grid = grid.fit(X_train, y_train)
+grid = modelling.grid_search_pipe(pipe, param_grid, X_train, y_train)
 
 pipe = grid.best_estimator_
 
@@ -343,16 +312,3 @@ is slightly better across all metrics (a rather small improvement, but across al
 - [ ] try lagged features and incoporate seasonal-trend decomposition in the model.
 - [ ] after that kind of feature engineering, use perhaps recursive feature elimination instead of the brute-force approach.
 
-
-
-Sorry, ich konnte nicht früher antworten. Wir waren unterwegs und sind erst ein paar Minuten vor dem Sturm zurückgekommen.
-
-Wir haben wohl nicht so viel geübt, wie wir sollten, aber wir haben ja ein paar verschiedene Schulwege ausprobiert. Am Ende haben wir beschlossen, sie gehen von hier über die Edelweißstraße zur Kaiserblickstraße, dann an eurem Haus vorbei und biegen links ab zu der Sparkasse-Ampel. Danach gehen wir an der Eisdiele vorbei, überqueren bei der Bedarfsampel die Straße und gehen dann hinauf bis zur Schule.
-
-Macht ihr etwas Ähnliches?
-
-Ich mag die Kreuzung bei der Sparkasse eigentlich nicht. Ich finde sie etwas gefährlich. Aber die Kreuzung bei Netto finde ich noch viel gefährlicher, und die Ampel bei Prechtl, obwohl es meiner Meinung nach sicherer ist, macht den Weg länger. Außerdem ist das Gehen auf dem schmalen Gehweg entlang der Hauptstraße auch nicht besonders sicher. Also ...
-
-Wir planen sowieso, die Kinder in den ersten Tagen zu begleiten und dann zu schauen, wie es weiterläuft.
-
-Und was habt ihr darüber gedacht? Vielleicht können wir etwas zusammen organisieren.
