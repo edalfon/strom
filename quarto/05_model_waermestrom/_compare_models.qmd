@@ -41,23 +41,23 @@ vetivers = [strom.get_vetiver("wd-ols", version=v) for v in versions.version]
 ```
 
 
+<details><summary>Cross-validation messages</summary>
+<p>
 
 ```{python}
+#| output: asis
 import strom
 from sklearn.model_selection import cross_validate
 import pandas as pd
 
+from strom import modelling
+
 scores = pd.concat([ 
     pd.DataFrame({
-        **cross_validate(
+        **modelling.cross_validate_pipe(
             v.model,
             X_train,
             y_train,
-            scoring=strom.get_scoring(),
-            cv=strom.get_cv(),
-            n_jobs=-1,
-            verbose=0,
-            return_train_score=True,
         ),
         "description": v.description,
         "version": v.metadata.version,
@@ -65,6 +65,9 @@ scores = pd.concat([
     for v in vetivers
 ])  # fmt: skip
 ```
+
+</p>
+</details>
 
 
 

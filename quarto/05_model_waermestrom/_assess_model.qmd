@@ -23,6 +23,7 @@ pipe = Pipeline(
         ("model", LinearRegression()),
     ]
 )
+model_key = "naive"
 ```
 
 
@@ -41,12 +42,12 @@ cols = [
 ```
 
 ```{python}
+# | warning: true
 from strom import modelling
 
 pipe, y_pred_train, y_pred_test, metrics_df, scores, scores_summ = (
     modelling.assess_model.update(key=model_key)(pipe, X_train, y_train, X_test, y_test)
 )
-
 ```
 
 
