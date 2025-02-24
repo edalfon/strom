@@ -17,6 +17,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.ref }}  # Checkout the branch that was pushed to
+          lfs: true
       - name: Install Python
         uses: actions/setup-python@v5
       - name: Install poetry
