@@ -39,7 +39,7 @@ jobs:
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          git add duckdb/ .stepit_cache/
+          git add .stepit_cache/
           git commit -m "Commit changes made by workflow"
           git push
       - name: Deploy to Github Pages 🚀
