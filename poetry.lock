@@ -4774,13 +4774,13 @@ docs = ["ipykernel", "jupyter-client", "matplotlib", "nbconvert", "nbformat", "n
 
 [[package]]
 name = "stepit"
-version = "0.4.0"
+version = "0.5.1"
 description = "Add your description here"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "stepit-0.4.0-py3-none-any.whl", hash = "sha256:0137c6b1eb757619cfdaa385fcb40ecb3af984bcd78a30b64bf309a012ad52ed"},
-    {file = "stepit-0.4.0.tar.gz", hash = "sha256:9d8503cf9dd356abe0019684ff53aee9100038e6cbcb5b09dbebf0bd965ac1cf"},
+    {file = "stepit-0.5.1-py3-none-any.whl", hash = "sha256:f1eeb3a3b92c5c42616228028ceabcfe1cfd5894e7d2d8ba5739bf795499bd04"},
+    {file = "stepit-0.5.1.tar.gz", hash = "sha256:ee1fdb27b6826a60b4a6bee2662830c0b4cbc6b8e4c7fb4d4bd75b4cead97eaf"},
 ]
 
 [[package]]
@@ -5516,4 +5516,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "b4d252e689418b0019c8a7c856e00abf44c89b10642db4e1bc6b539a5eeefa51"
+content-hash = "e9fda5fa36b0bc13a373aa0ab0a873dc4e3b5884174ebc2c86d3526d84ff173f"
