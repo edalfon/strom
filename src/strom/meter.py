@@ -1,10 +1,8 @@
-from stepit import stepit
-
 import duckdb
 from strom.duckdb import duck_md5
 
 
-@stepit
+# @stepit
 def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
     """Ingest strom measurements data into a DuckDB table named 'strom'.
 
@@ -78,7 +76,7 @@ def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
         return duck_md5(con, "strom")
 
 
-@stepit
+# @stepit
 def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
     """Expand the 'strom' table to create a minute-by-minute table.
 
@@ -176,7 +174,7 @@ def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
         return duck_md5(con, "strom_minute")
 
 
-@stepit
+# @stepit
 def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         strom_per_day = con.sql(
@@ -208,7 +206,7 @@ def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
         return con.sql("SELECT * FROM strom_per_day;").df()
 
 
-@stepit
+# @stepit
 def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         strom_per_day = con.sql(
@@ -250,7 +248,7 @@ def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
         return con.sql("SELECT * FROM strom_per_month;").df()
 
 
-@stepit
+# @stepit
 def make_strom_per_hour(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         strom_per_day = con.sql(
