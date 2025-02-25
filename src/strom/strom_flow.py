@@ -46,6 +46,10 @@ def strom_flow():
     and contributors for that repo.
     """
 
+    import logging
+
+    logging.getLogger("stepit").setLevel(logging.DEBUG)
+
     duckdb_file = "./duckdb/strom.duckdb"
     epyfun.create_dir(duckdb_file)
     sqlite_file = epyfun.get_latest_file("./data/")
