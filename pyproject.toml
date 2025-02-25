@@ -36,7 +36,7 @@ plotnine = "^0.13.6"
 datashader = "^0.16.3"
 unifiedbooster = "^0.6.0"
 typing-extensions = "^4.12.2"
-stepit = "^0.5.1"
+stepit = "^0.5.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
