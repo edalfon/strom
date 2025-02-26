@@ -17,7 +17,7 @@ def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
         f"{file}": hashlib.sha256(open(file, "rb").read()).hexdigest()
         for file in file_paths
     }
-    print(hashes)
+
     return hashes
 
 
