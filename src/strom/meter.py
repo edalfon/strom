@@ -1,3 +1,5 @@
+from stepit import stepit
+
 import duckdb
 from strom.duckdb import duck_md5
 
@@ -174,7 +176,7 @@ def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
         return duck_md5(con, "strom_minute")
 
 
-# @stepit
+@stepit
 def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         strom_per_day = con.sql(
@@ -206,7 +208,7 @@ def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
         return con.sql("SELECT * FROM strom_per_day;").df()
 
 
-# @stepit
+@stepit
 def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         strom_per_day = con.sql(
@@ -248,7 +250,7 @@ def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
         return con.sql("SELECT * FROM strom_per_month;").df()
 
 
-# @stepit
+@stepit
 def make_strom_per_hour(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         strom_per_day = con.sql(
