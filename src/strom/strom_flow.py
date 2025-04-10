@@ -46,9 +46,7 @@ def strom_flow():
     and contributors for that repo.
     """
 
-    import logging
-
-    logging.getLogger("stepit").setLevel(logging.DEBUG)
+    # logging.getLogger("stepit").setLevel(logging.DEBUG)
 
     duckdb_file = "./duckdb/strom.duckdb"
     epyfun.create_dir(duckdb_file)
@@ -65,8 +63,9 @@ def strom_flow():
 
     strom_climate = merge_strom_climate_data(strom_per_day, climate_daily)
 
-    consumption.normalstrom_consumption(duckdb_file)
-    consumption.waermestrom_consumption(duckdb_file)
+    # pass strom_minute just to induce cache update when strom_minute changed
+    consumption.normalstrom_consumption(duckdb_file, strom_minute)
+    consumption.waermestrom_consumption(duckdb_file, strom_minute)
 
     consumption.compare_last_days(climate_daily)
     ccomp = consumption.compare_last_days.update
