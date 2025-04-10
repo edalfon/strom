@@ -67,14 +67,14 @@ def strom_flow():
     consumption.normalstrom_consumption(duckdb_file, strom_minute)
     consumption.waermestrom_consumption(duckdb_file, strom_minute)
 
-    consumption.compare_last_days(climate_daily)
+    consumption.compare_last_days(strom_climate)
     ccomp = consumption.compare_last_days.update
-    ccomp(key="last_5_days")(climate_daily, 5)
-    ccomp(key="last_15_days")(climate_daily, 15)
-    ccomp(key="last_30_days")(climate_daily, 30)
-    ccomp(key="last_60_days")(climate_daily, 60)
-    ccomp(key="last_90_days")(climate_daily, 90)
-    ccomp(key="last_365_days")(climate_daily, 365.25)
+    ccomp(key="last_5_days")(strom_climate, 5)
+    ccomp(key="last_15_days")(strom_climate, 15)
+    ccomp(key="last_30_days")(strom_climate, 30)
+    ccomp(key="last_60_days")(strom_climate, 60)
+    ccomp(key="last_90_days")(strom_climate, 90)
+    ccomp(key="last_365_days")(strom_climate, 365.25)
 
     X_train, y_train, X_test, y_test = modelling.split_data(strom_climate)
     # all_models = modelling.get_models()
