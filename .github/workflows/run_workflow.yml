@@ -19,7 +19,7 @@ jobs:
           ref: ${{ github.ref }}  # Checkout the branch that was pushed to
           lfs: true
       - name: Install Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
       - name: Install poetry
         uses: abatilo/actions-poetry@v4
       - name: Setup a local virtual environment (if no poetry.toml file)
