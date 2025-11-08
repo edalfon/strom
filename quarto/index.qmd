@@ -14,6 +14,10 @@ waermestrom_consumption = strom.read_result("waermestrom_consumption")
 
 strom_per_day = strom.read_result("make_strom_per_day")
 
+import plotly.io as pio
+
+pio.renderers.default = "notebook_connected"
+
 # other icons: lightbulb, thermometer-sun
 ```
 
@@ -131,7 +135,7 @@ fig = fig.update_xaxes(
 )
 fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
-fig.show(renderer="notebook_connected")
+fig
 ```
 
 ```{python}
@@ -162,7 +166,7 @@ fig = fig.update_xaxes(
 )
 fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
-fig.show(renderer="notebook_connected")
+fig
 ```
 
 # Zeiträumen Vergleich {orientation="columns"}

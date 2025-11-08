@@ -129,7 +129,7 @@ fig = fig.update_layout(legend=dict(
     xanchor="right",
     x=0.75
 ))
-fig.show(renderer="notebook_connected")
+fig
 ```
 
 
@@ -161,6 +161,6 @@ fig = fig.update_layout(
     legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
 )
 
-fig.show(renderer="notebook_connected")
+fig
 ```
 
