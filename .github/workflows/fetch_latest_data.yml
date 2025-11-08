@@ -34,7 +34,7 @@ jobs:
 
       - name: Copy files from OneDrive
         run: |
-          rclone -v copy OneDrive: ./data --include "/*-ecas-export.db"
+          rclone -v copy OneDrive: ./data --include "/strom/*-ecas-export.db"
 
       - name: Commit changes
         id: commit
