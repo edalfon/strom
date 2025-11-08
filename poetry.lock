@@ -3727,7 +3727,7 @@ description = "Run a subprocess in a pseudo terminal"
 optional = false
 python-versions = "*"
 groups = ["main", "dev"]
-markers = "os_name != \"nt\" or sys_platform != \"win32\""
+markers = "sys_platform != \"win32\" or os_name != \"nt\""
 files = [
     {file = "ptyprocess-0.7.0-py2.py3-none-any.whl", hash = "sha256:4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35"},
     {file = "ptyprocess-0.7.0.tar.gz", hash = "sha256:5c5d0a3b48ceee0b48485e0c26037c0acd7d29765ca3fbb5cb3831d347423220"},
@@ -4425,13 +4425,13 @@ test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
 
 [[package]]
 name = "quarto-cli"
-version = "1.6.37"
+version = "1.8.25"
 description = "Open-source scientific and technical publishing system built on Pandoc."
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "quarto_cli-1.6.37.tar.gz", hash = "sha256:bb36e8cf2d783e827769209104ec073e9f29ec058fd6ab9409a7258bd015f5db"},
+    {file = "quarto_cli-1.8.25.tar.gz", hash = "sha256:71f682e441ab1e7f6bbaddf64fab72a9367b29c0838627a92fe8eb93ad44c6d2"},
 ]
 
 [package.dependencies]
@@ -6081,4 +6081,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "607e9db0ddc7944fbd1d4199fdd0b723be38d5426d923b7189a1fed97979a21b"
+content-hash = "d18d4952f2f3a801cab154ba24865daafe92bb5cf3729bfaf45ca64f415d6c1e"
