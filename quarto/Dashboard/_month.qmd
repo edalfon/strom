@@ -86,7 +86,7 @@ fig = fig.update_layout(xaxis_title=None, yaxis_title="Verbrauch im Monat (kWh)"
 fig = fig.update_layout(
     legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
 )
-fig
+fig.show(renderer="notebook_connected")
 ```
 
 
@@ -117,6 +117,6 @@ fig = fig.update_layout(xaxis_title=None, yaxis_title="Verbrauch im Monat (kWh)"
 fig = fig.update_layout(
     legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
 )
-fig
+fig.show(renderer="notebook_connected")
 ```
 

@@ -131,7 +131,7 @@ fig = fig.update_xaxes(
 )
 fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
-fig
+fig.show(renderer="notebook_connected")
 ```
 
 ```{python}
@@ -162,7 +162,7 @@ fig = fig.update_xaxes(
 )
 fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
-fig
+fig.show(renderer="notebook_connected")
 ```
 
 # Zeiträumen Vergleich {orientation="columns"}
