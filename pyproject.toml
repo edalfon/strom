@@ -35,13 +35,14 @@ dependencies = [
     "jupysql>=0.11.1",
     "matplotlib>=3.9.4",
     "scikit-learn>=1.6.1",
+    "quarto-cli>=1.8.26",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest>=7.4.3,<8",
-    "pytest-cov>=4.1.0,<5",
-    "jupyter>=1.0.0,<2",
+    "pytest>=7.4.3",
+    "pytest-cov>=4.1.0",
+    "jupyter>=1.0.0",
 ]
 
 [build-system]
