@@ -3,7 +3,7 @@ name = "strom"
 version = "0.1.0"
 description = "A package for doing great things!"
 authors = [{ name = "Eduardo Alfonso-Sierra" }]
-requires-python = "~=3.9"
+requires-python = ">=3.9"
 readme = "README.md"
 license = "MIT"
 dependencies = [
@@ -13,7 +13,7 @@ dependencies = [
     "pyarrow>=14.0.1",
     "seaborn>=0.13.0",
     "sweetviz>=2.3.1",
-    "yellowbrick~=1.5",
+    "yellowbrick>=1.5",
     "vetiver>=0.2.3",
     "scikit-lego>=0.7.0",
     "joypy>=0.2.6",
@@ -36,6 +36,10 @@ dependencies = [
     "matplotlib>=3.9.4",
     "scikit-learn>=1.6.1",
     "quarto-cli>=1.8.26",
+    "simplejson>=3.20.2",
+    "ujson>=5.11.0",
+    "orjson>=3.11.4",
+    "json-tricks>=3.17.3",
 ]
 
 [dependency-groups]
