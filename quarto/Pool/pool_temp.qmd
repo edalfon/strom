@@ -2,7 +2,7 @@
 title: "Pool"
 ---
 
-```{python}
+###```{python}
 import os
 from epyfun.fs import convert_to_utf8
 
@@ -16,27 +16,27 @@ for filename in os.listdir(input_directory):
     if filename.endswith('.csv'):
         input_file = os.path.join(input_directory, filename)
         convert_to_utf8(input_file, 'interim/pooltemp/' + filename)
-```
+###```
 
 
-```{python}
+###```{python}
 %load_ext sql
 %config SqlMagic.autopandas = True
 %config SqlMagic.feedback = False
 %config SqlMagic.displaycon = False
-```
+###```
 
 
-```{python}
+###```{python}
 %sql duckdb:///:default:
 # %sql duckdb:///:memory:
 # %sql duckdb:///path/to/file.db
-```
+###```
 
 
 
 # Ingest
-```{python}
+###```{python}
 %%sql
 
 CREATE OR REPLACE VIEW pooltemp AS
@@ -51,16 +51,16 @@ FROM read_csv(
   skip = 1
 )
 ;
-```
+###```
 
-```{python}
+###```{python}
 #%sqlcmd profile -t pooltemp;
 #this does not seem to be working, it does not work on saved queries, 
 #nor if I create the view, nor if I create the table
-```
+###```
 
 
-```{python}
+###```{python}
 %%sql
 
 CREATE OR REPLACE MACRO add_dups_count(_srctbl, _cols) AS TABLE 
@@ -69,17 +69,17 @@ FROM pooltemp)
 --TODO: figure out how to pass a table name to macros in DuckDB
 --FROM _srctbl
 ;
-```
+###```
 
 
-```{python}
+###```{python}
 %%sql
 
 SELECT * FROM add_dups_count(pooltemp, time);
-```
+###```
 
 
-```{python}
+###```{python}
 %%sql
 
 CREATE OR REPLACE MACRO count_dups_by(_srctbl, _cols) AS TABLE
@@ -91,16 +91,16 @@ SELECT
   _dups / _duniq AS _puniq
 FROM add_dups_count(_srctbl, _cols) 
 ;
-```
+###```
 
-```{python}
+###```{python}
 %%sql
 
 SELECT * FROM count_dups_by(pooltemp, (time, temp));
-```
+###```
 
 
-```{python}
+###```{python}
 %%sql --save pooltemp_clean
 
 pooltemp_clean =<< SELECT time, avg(temp) AS temp
@@ -108,14 +108,14 @@ FROM pooltemp
 GROUP BY time
 ORDER BY time
 ;
-```
+###```
 
 
-```{python}
+###```{python}
 pooltemp_clean
-```
+###```
 
-```{python}
+###```{python}
 import plotly.express as px
 
 import pandas as pd
@@ -124,7 +124,7 @@ import numpy as np
 fig = px.scatter(pooltemp_clean, x="time", y="temp", render_mode='webgl')
 fig.update_traces(marker_line=dict(width=1, color='DarkSlateGray'))
 fig.show()
-```
+###```
 
 %%timeit
 %%sql 

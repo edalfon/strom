@@ -76,7 +76,9 @@ def strom_flow():
     ccomp(key="last_90_days")(strom_climate, 90)
     ccomp(key="last_365_days")(strom_climate, 365.25)
 
-    X_train, y_train, X_test, y_test = modelling.split_data(strom_climate)
+    X_train, y_train, X_test, y_test = modelling.split_data(
+        strom_climate, cutoff="2024-07-01"
+    )
     # all_models = modelling.get_models()
 
     # model_assessments = {

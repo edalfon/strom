@@ -162,7 +162,7 @@ metrics_scores_long = metrics_scores_long.assign(
 )
 
 
-(
+plot = (
     ggplot(metrics_scores_long, aes("mode", "value", fill="traintest"))
     + geom_col(position="dodge")
     + facet_wrap("metric", scales="free", labeller="label_context")
@@ -191,6 +191,7 @@ metrics_scores_long = metrics_scores_long.assign(
         legend_position="none",
     )
 )
+plot.draw()
 
 # TODO: try to nudge the traintest labels a bit upwards, That would be like vjust = 1
 #       or something like that. But that does not seems to exists here. There is however
