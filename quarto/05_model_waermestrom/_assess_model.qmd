@@ -114,15 +114,20 @@ for split_i in splits:
 ### Metrics
 
 ```{python}
-metrics_df.columns = pd.MultiIndex.from_product([['Single Split'], metrics_df.columns.to_list()])
+metrics_df.columns = pd.MultiIndex.from_product(
+    [["Single Split"], metrics_df.columns.to_list()]
+)
 
-scores_summ.columns = pd.MultiIndex.from_product([['CV'], scores_summ.columns.droplevel(0).to_list()])
+scores_summ.columns = pd.MultiIndex.from_product(
+    [["CV"], scores_summ.columns.droplevel(0).to_list()]
+)
 metrics_scores = metrics_df.join(scores_summ, how="inner")
-
 
 metrics_scores_long = metrics_scores.melt(ignore_index=False).reset_index()
 metrics_scores_long.columns = ["metric", "mode", "traintest", "value"]
-metrics_scores_long['metric'] = metrics_scores_long['metric'].str.split('-').str[0].str.strip()
+metrics_scores_long["metric"] = (
+    metrics_scores_long["metric"].str.split("-").str[0].str.strip()
+)
 
 # ojs_define(metrics_scores=metrics_scores)
 ```

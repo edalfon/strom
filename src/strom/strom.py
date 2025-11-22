@@ -1,4 +1,5 @@
 import copy
+from collections.abc import Iterable, Mapping
 
 # https://rstudio.github.io/vetiver-python/stable/reference/
 # https://rstudio.github.io/pins-python/reference/
@@ -834,7 +835,7 @@ def tidy_grid_search_results(cv_results_):
     df.loc[mask, "value"] *= -1
 
     param_vars = df.filter(like="param").columns.tolist()
-    df.loc[:, param_vars] = df[param_vars].astype(str)
+    df[param_vars] = df[param_vars].astype(str)
 
     return df
 
@@ -863,27 +864,24 @@ def summarize_grid_search_results(cv_results_, agg_fn=["mean"]):
 def plot_grid_search_results(grid_fit, param_var="params", resort_xaxis=True):
     df = tidy_grid_search_results(grid_fit.cv_results_)
 
-    from collections.abc import Iterable
-
     plots = {}
-    if isinstance(grid_fit.scorer_, Iterable):
+    if isinstance(grid_fit.scorer_, Mapping):
         for key in grid_fit.scorer_:
             df_scorer = df[df["scorer"] == key]
             fig = plot_grid_search_results_violin(df_scorer, param_var, resort_xaxis)
             fig.update_layout(yaxis_title=key)
             plots[key] = fig
     else:
+        scorer_name = str(grid_fit.scorer_)
         fig = plot_grid_search_results_violin(df, param_var, resort_xaxis)
-        fig.update_layout(yaxis_title=str(grid_fit.scorer_))
-        plots = fig
+        fig.update_layout(yaxis_title=scorer_name)
+        plots[scorer_name] = fig  # Wrap in dict for consistency
 
     return plots
 
 
 def plot_grid_search_results_summary(grid_fit, param_var="params", agg_fn=["mean"]):
     df = summarize_grid_search_results(grid_fit.cv_results_, agg_fn).reset_index()
-
-    from collections.abc import Iterable
 
     plots = {}
     if isinstance(grid_fit.scorer_, Iterable):
