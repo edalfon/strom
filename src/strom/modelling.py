@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import cross_validate
+from sklearn.model_selection import GridSearchCV, cross_validate
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import PolynomialFeatures
 from sklego.preprocessing import ColumnSelector
@@ -17,8 +17,6 @@ def get_models():
         "baseline": mod_baseline(),
         "poly": mod_poly(),
         "rf": mod_rf(),
-        "rf2": mod_rf(),
-        "rf44": mod_rf(),
     }
 
 
@@ -168,3 +166,28 @@ def cross_validate_pipe(
     )
 
     return scores
+
+
+@stepit
+def grid_search_pipe(
+    pipe,
+    param_grid,
+    X_train,
+    y_train,
+    scoring=strom.get_scoring(),
+    cv=strom.get_cv(),
+    refit="RMSE - Root Mean Squared Error",
+    return_train_score=True,
+    n_jobs=-1,
+):
+    grid_search_cv = GridSearchCV(
+        pipe,
+        param_grid=param_grid,
+        scoring=scoring,
+        n_jobs=n_jobs,
+        cv=cv,
+        refit=refit,
+        return_train_score=return_train_score,
+    )
+
+    return grid_search_cv.fit(X_train, y_train)

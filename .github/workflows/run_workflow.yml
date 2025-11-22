@@ -1,22 +1,23 @@
-name: prefect
+name: stromflow
 on:
   push:
     branches:
       - '**'  # Run on push to any branch
   repository_dispatch:
-    types: [trigger-prefect-workflow]
+    types: [trigger-workflow]
 permissions:
   contents: write
   actions: write
 
 jobs:
-  prefect:
+  stromflow:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.ref }}  # Checkout the branch that was pushed to
+          lfs: true
       - name: Install Python
         uses: actions/setup-python@v5
       - name: Install uv
@@ -30,6 +31,17 @@ jobs:
         run: uv sync
       - name: Run prefect's workflow
         run: uv run python -c "from strom import prefect_flow; prefect_flow.strom_flow()"
+      - name: Commit changes
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add .stepit_cache/
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Commit changes made by workflow"
+            git push
+          fi
       - name: Deploy to Github Pages 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:

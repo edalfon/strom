@@ -14,6 +14,10 @@ waermestrom_consumption = strom.read_result("waermestrom_consumption")
 
 strom_per_day = strom.read_result("make_strom_per_day")
 
+import plotly.io as pio
+
+pio.renderers.default = "iframe_connected"  # notebook_connected
+
 # other icons: lightbulb, thermometer-sun
 ```
 

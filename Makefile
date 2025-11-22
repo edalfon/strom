@@ -35,7 +35,7 @@ test:
 
 
 # PHONY target is a special target that is not associated with an actual file. It is used to declare certain targets as "phony" or "fake," indicating that they don't represent real files or directories. Instead, they are used to specify actions that should be performed regardless of whether a file with that name exists.
-.PHONY: preview render render_all flow_run flow_resume flow_show test
+.PHONY: preview render render_all strom_run 
 
 
 

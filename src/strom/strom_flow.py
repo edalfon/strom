@@ -46,6 +46,8 @@ def strom_flow():
     and contributors for that repo.
     """
 
+    # logging.getLogger("stepit").setLevel(logging.DEBUG)
+
     duckdb_file = "./duckdb/strom.duckdb"
     epyfun.create_dir(duckdb_file)
     sqlite_file = epyfun.get_latest_file("./data/")
@@ -61,27 +63,28 @@ def strom_flow():
 
     strom_climate = merge_strom_climate_data(strom_per_day, climate_daily)
 
-    consumption.normalstrom_consumption(duckdb_file)
-    consumption.waermestrom_consumption(duckdb_file)
+    # pass strom_minute just to induce cache update when strom_minute changed
+    consumption.normalstrom_consumption(duckdb_file, strom_minute)
+    consumption.waermestrom_consumption(duckdb_file, strom_minute)
 
-    consumption.compare_last_days(climate_daily)
+    consumption.compare_last_days(strom_climate)
     ccomp = consumption.compare_last_days.update
-    ccomp(key="last_5_days")(climate_daily, 5)
-    ccomp(key="last_15_days")(climate_daily, 15)
-    ccomp(key="last_30_days")(climate_daily, 30)
-    ccomp(key="last_60_days")(climate_daily, 60)
-    ccomp(key="last_90_days")(climate_daily, 90)
-    ccomp(key="last_365_days")(climate_daily, 365.25)
+    ccomp(key="last_5_days")(strom_climate, 5)
+    ccomp(key="last_15_days")(strom_climate, 15)
+    ccomp(key="last_30_days")(strom_climate, 30)
+    ccomp(key="last_60_days")(strom_climate, 60)
+    ccomp(key="last_90_days")(strom_climate, 90)
+    ccomp(key="last_365_days")(strom_climate, 365.25)
 
     X_train, y_train, X_test, y_test = modelling.split_data(strom_climate)
-    all_models = modelling.get_models()
+    # all_models = modelling.get_models()
 
-    model_assessments = {
-        key: modelling.assess_model.update(key=key)(
-            model, X_train, y_train, X_test, y_test
-        )
-        for key, model in all_models.items()
-    }
+    # model_assessments = {
+    #     key: modelling.assess_model.update(key=key)(
+    #         model, X_train, y_train, X_test, y_test
+    #     )
+    #     for key, model in all_models.items()
+    # }
 
     # from strom import read_result
 

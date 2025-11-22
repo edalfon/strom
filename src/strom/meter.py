@@ -4,7 +4,7 @@ import duckdb
 from strom.duckdb import duck_md5
 
 
-@stepit
+# @stepit
 def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
     """Ingest strom measurements data into a DuckDB table named 'strom'.
 
@@ -78,7 +78,7 @@ def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
         return duck_md5(con, "strom")
 
 
-@stepit
+# @stepit
 def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
     """Expand the 'strom' table to create a minute-by-minute table.
 
