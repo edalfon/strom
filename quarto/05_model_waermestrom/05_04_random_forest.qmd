@@ -26,11 +26,8 @@ from the correlations that the relationship between temperature and consumption
 follows a polynomial shape. But let's go back to a beloved RF.
 
 ```{python}
-#| include: false
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.svm import LinearSVR
 
 from sklego.preprocessing import ColumnSelector
 
