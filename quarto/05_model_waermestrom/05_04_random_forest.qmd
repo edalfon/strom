@@ -50,6 +50,8 @@ strom.log_vetiver(
 model_key = "rf_raw"
 ```
 
+{{< include _assess_model.qmd >}}
+
 
 Well, not that bad, but it is overfitting quite a lot. 
 
