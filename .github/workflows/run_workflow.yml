@@ -42,6 +42,8 @@ jobs:
             git commit -m "Commit changes made by workflow"
             git push
           fi
+      - name: Print HTML file content
+        run: cat results/01_strom_results.html
       - name: Deploy to Github Pages 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
