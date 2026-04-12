@@ -17,11 +17,11 @@ execute:
 %%sql
 
 strom_per_day << SELECT 
-  minute::DATE AS date,
-  24.0 * 60.0 * AVG(cm) AS cd,
-  SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS obs,
-FROM waermestrom_minute
-GROUP BY minute::DATE
+  date,
+  wd AS cd,
+  obs,
+FROM strom_per_day
+ORDER BY date
 ;
 ```
 
@@ -51,10 +51,11 @@ periods << SELECT
   p.name,
   p.begin,
   p.fin,
-  24.0 * 60.0 * AVG(d.cm) AS cd
+  24.0 * 60.0 * SUM(d.cm * date_diff('minute', greatest(d.start_time, p.begin), least(d.end_time, p.fin))) / SUM(date_diff('minute', greatest(d.start_time, p.begin), least(d.end_time, p.fin))) AS cd
 FROM periods p
-JOIN waermestrom_minute d
-ON d.minute BETWEEN p.begin AND p.fin
+JOIN strom_intervals d
+ON d.start_time < p.fin AND d.end_time > p.begin
+WHERE d.meterid <> 1
 GROUP BY p.name, p.begin, p.fin
 ;
 ```

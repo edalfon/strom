@@ -15,8 +15,8 @@ execute:
 ```{python}
 #| include: false
 %%sql
-SELECT * FROM strom_minute
-WHERE meterid <> 1
+SELECT * FROM strom_intervals
+WHERE meterid <> 1 LIMIT 100
 ;
 ```
 
@@ -29,53 +29,6 @@ WHERE meterid <> 1
 ```
 
 
-<details><summary>Note on how to calculate consumption</summary>
-<p>
-
-Note that minute-level granularity makes it possible to calculate simple (unweighted)
-averages of the consumption per minute `cm` to extrapolate to periods. Thus, for a whole 
-period (e.g. one day fully extended to minute-level) summing and averaging cm 
-(times minutes in the period) are equivalent.
-```{python}
-%%sql
-
-SELECT 
-24.0 * 60.0 * AVG(cm) AS averaging_cm,
-SUM(cm) AS summing_cm,
-FROM strom_minute
-WHERE meterid = 1
-AND minute::DATE = '2024-07-09'
-```
-
-But be careful, when dealing with wärmestrom, you actually have two different meters,
-so in averaging, the denominator will be twice the number of minutes, and you would
-need to account for that.
-```{python}
-%%sql
-
-SELECT 
-24.0 * 60.0 * AVG(cm) AS averaging_cm,
-SUM(cm) AS summing_cm,
-FROM strom_minute
-WHERE meterid <> 1
-AND minute::DATE = '2024-07-09'
-```
-```{python}
-%%sql
-
-SELECT 
-2 * (24.0 * 60.0 * AVG(cm)) AS averaging_cm,
-SUM(cm) AS summing_cm,
-FROM strom_minute
-WHERE meterid <> 1
-AND minute::DATE = '2024-07-09'
-```
-
-</p>
-</details>
-
-
-
 # Wärmestrom average consumption
 
 ```{python}
@@ -85,16 +38,16 @@ SELECT
   MIN(value) AS Min,
   MAX(value) AS Max,
 
-  MIN(date) AS First,
-  MAX(date) AS Last,
-  date_sub('minute', First, Last) AS Mins, 
+  MIN(start_time) AS First,
+  MAX(end_time) AS Last,
+  date_diff('minute', First, Last) AS Mins, 
 
-  2 * (24.0 * 60.0 * AVG(cm)) AS "Use/Day", 
-  24.0 * 60.0 * SUM(cm) / Mins AS "check", 
+  24.0 * 60.0 * SUM(cm * interval_minutes) / Mins AS "Use/Day", 
+  24.0 * 60.0 * SUM(cm * interval_minutes) / Mins AS "check", 
 
   365.0 * "Use/Day" AS "Use/Year",
   0.3894 * "Use/Year" AS "Yearly Exp"
-FROM strom_minute
+FROM strom_intervals
 WHERE meterid <> 1
 ;
 ```
@@ -108,16 +61,16 @@ SELECT
   MIN(value) AS Min,
   MAX(value) AS Max,
 
-  MIN(date) AS First,
-  MAX(date) AS Last,
-  date_sub('minute', First, Last) AS Mins, 
+  MIN(start_time) AS First,
+  MAX(end_time) AS Last,
+  date_diff('minute', First, Last) AS Mins, 
 
-  2 * (24.0 * 60.0 * AVG(cm)) AS "Use/Day", 
-  24.0 * 60.0 * SUM(cm) / Mins AS "check", 
+  24.0 * 60.0 * SUM(cm * interval_minutes) / Mins AS "Use/Day", 
+  24.0 * 60.0 * SUM(cm * interval_minutes) / Mins AS "check", 
 
   365.0 * "Use/Day" AS "Use/Year",
   0.3894 * "Use/Year" AS "Yearly Exp"
-FROM strom_minute
+FROM strom_intervals
 WHERE meterid <> 1
 GROUP BY meterid
 ;
@@ -132,22 +85,22 @@ GROUP BY meterid
 %%sql
 
 SELECT 
-  year(minute) AS year,
+  year(start_time) AS year,
   MIN(value) AS Min,
   MAX(value) AS Max,
 
-  MIN(date) AS First,
-  MAX(date) AS Last,
-  date_sub('minute', First, Last) AS Mins, 
+  MIN(start_time) AS First,
+  MAX(end_time) AS Last,
+  date_diff('minute', First, Last) AS Mins, 
 
-  2 * (24.0 * 60.0 * AVG(cm)) AS "Use/Day", 
-  24.0 * 60.0 * SUM(cm) / Mins AS "check", 
+  24.0 * 60.0 * SUM(cm * interval_minutes) / Mins AS "Use/Day", 
+  24.0 * 60.0 * SUM(cm * interval_minutes) / Mins AS "check", 
 
   365.0 * "Use/Day" AS "Use/Year",
   0.3894 * "Use/Year" AS "Yearly Exp"
-FROM strom_minute
+FROM strom_intervals
 WHERE meterid <> 1
-GROUP BY year(minute)
+GROUP BY year(start_time)
 ;
 ```
 
@@ -163,11 +116,10 @@ GROUP BY year(minute)
 %%sql
 
 waermestrom_per_day << SELECT 
-  minute::DATE AS date,
-  SUM(cm) AS cd,
-FROM strom_minute
-WHERE meterid <> 1
-GROUP BY minute::DATE
+  date,
+  wd AS cd,
+FROM strom_per_day
+ORDER BY date
 ;
 ```
 
@@ -223,13 +175,12 @@ Trotzdem, schau ma moi wir war der verlauf von denen. But let's aggregate at wee
 %%sql
 
 waermestrom_per_week << SELECT 
-  DATE_TRUNC('week', minute) AS week_start,
-  SUM(cm) AS cd,
-  SUM(CASE WHEN meterid = 3 THEN cm ELSE 0 END) AS cd_hoch,
-  cd_hoch / cd AS hoch_frac
-FROM strom_minute
-WHERE meterid <> 1
-GROUP BY DATE_TRUNC('week', minute)
+  DATE_TRUNC('week', date) AS week_start,
+  SUM(wd) AS cd,
+  SUM(ht) AS cd_hoch,
+  SUM(ht) / SUM(wd) AS hoch_frac
+FROM strom_per_day
+GROUP BY DATE_TRUNC('week', date)
 ;
 ```
 

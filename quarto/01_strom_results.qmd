@@ -20,7 +20,7 @@ execute:
 
 ```{python}
 #| include: false
-%sql SELECT * FROM strom_minute;
+%sql SELECT * FROM strom_intervals LIMIT 100;
 ```
 
 # Stromverbrauch im Durchschnitt
@@ -32,20 +32,17 @@ execute:
 SELECT 
   MIN(value) AS Min,
   MAX(value) AS Max,
-  -- this approach does not work anyore, due to meter restart
-  -- MAX(value) - MIN(value) AS Use,
-  -- 24.0 * 60.0 * Use / Mins AS "Use/Day",
 
-  MIN(date) AS First,
-  MAX(date) AS Last,
-  date_sub('minute', First, Last) AS Mins, 
+  MIN(start_time) AS First,
+  MAX(end_time) AS Last,
+  date_diff('minute', First, Last) AS Mins, 
 
-  24.0 * 60.0 * AVG(cm) AS "Use/Day", 
-  24.0 * 60.0 * SUM(cm) / Mins AS "check", 
+  24.0 * 60.0 * (SUM(cm * interval_minutes) / Mins) AS "Use/Day", 
+  24.0 * 60.0 * SUM(cm * interval_minutes) / Mins AS "check", 
 
   365.0 * "Use/Day" AS "Use/Year",
   0.3894 * "Use/Year" AS "Yearly Exp"
-FROM strom_minute
+FROM strom_intervals
 WHERE meterid = 1
 ;
 ```
@@ -58,22 +55,22 @@ WHERE meterid = 1
 %%sql
 
 SELECT 
-  year(minute) AS year,
+  year(start_time) AS year,
   MIN(value) AS Min,
   MAX(value) AS Max,
 
-  MIN(date) AS First,
-  MAX(date) AS Last,
-  date_sub('minute', First, Last) AS Mins, 
+  MIN(start_time) AS First,
+  MAX(end_time) AS Last,
+  date_diff('minute', First, Last) AS Mins, 
 
-  24.0 * 60.0 * AVG(cm) AS "Use/Day", 
-  24.0 * 60.0 * SUM(cm) / Mins AS "check", 
+  24.0 * 60.0 * (SUM(cm * interval_minutes) / Mins) AS "Use/Day", 
+  24.0 * 60.0 * SUM(cm * interval_minutes) / Mins AS "check", 
 
   365.0 * "Use/Day" AS "Use/Year",
   0.3894 * "Use/Year" AS "Yearly Exp"
-FROM strom_minute
+FROM strom_intervals
 WHERE meterid = 1
-GROUP BY year(minute)
+GROUP BY year(start_time)
 ;
 ```
 
@@ -89,12 +86,11 @@ GROUP BY year(minute)
 %%sql
 
 strom_per_day << SELECT 
-  minute::DATE AS date,
-  24.0 * 60.0 * AVG(cm) AS cd,
-  24.0 * 60.0 * AVG(consumption/minutes) AS obs,
-FROM strom_minute
-WHERE meterid = 1
-GROUP BY minute::DATE
+  date,
+  nd AS cd,
+  obs,
+FROM strom_per_day
+ORDER BY date
 ;
 ```
 
@@ -188,11 +184,10 @@ LIMIT 10
 %%sql
 
 normalstrom_per_week << SELECT 
-  DATE_TRUNC('week', minute) AS week_start,
-  24.0 * 60.0 * AVG(cm) AS cd
-FROM strom_minute
-WHERE meterid = 1
-GROUP BY DATE_TRUNC('week', minute)
+  DATE_TRUNC('week', date) AS week_start,
+  SUM(nd) AS cd
+FROM strom_per_day
+GROUP BY DATE_TRUNC('week', date)
 ;
 ```
 
