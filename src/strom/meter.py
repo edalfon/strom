@@ -79,53 +79,13 @@ def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
 
 
 # @stepit
-def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
-    """Expand the 'strom' table to create a minute-by-minute table.
+def make_strom_intervals(strom, duckdb_file="./duckdb/strom.duckdb"):
+    """Create a table of observation intervals from the 'strom' table.
 
-    This function does that by generating a series of minutes for each meterid
-    (1 to 3) between the min and max dates in 'strom' and then joining the
-    strom data to bring the measurement values to the minute-level granularity.
-    The result is saved to the consumption table 'strom_minute', that includes
-    the following columns:
-
-    - meterid: int with the meter id, where 1 corresponds to normal strom and 2
-      and 3 to wärmestrom in hoch and niedrig tariff, respectively.
-    - minute: datetime (there will be one row per every minute in the
-      observation period, for every meter).
-      DONE: currently it generates to the actual first and last minute of
-      measurement. But it may be worth expanding to the whole day. >>>
-      Tried, date_trunc('day', ts[2]) + interval '1 day' - interval '1 minute'
-      and, it seems to me it would be better to stick to the observation
-      date (filling until the end of the day, would just extend the last
-      measurement consumption to the rest of the day. That's fine, but, if
-      you already have several observations within the day, perhaps it would
-      be better to extrapolate using all those obs, and not just the last
-      measurement.)
-    - cm: consumption per minute, as calculated in the strom table
-      (consumption/minutes) and extrapolated throughout the whole period.
-      So we are making here a probably unrealistic assumption that the
-      consumption between the different observations in the strom table is
-      constant. But that's fine to get an approximation to the consumption,
-      considering the relatively random-nature of the time of measurements.
-      Thus, if we have cm_(i), calculated as
-      cm_(i) = ( value_(t) - value_(t-1) ) / minutes
-      then we will assing a constant cm_(i) to the whole period between
-      t-1 and t.
-    - date: datetime indicating when the measurement was recorded. This column
-      will have a value only in the minute where the actual measurement took
-      place and thus, will have NULL in all other minutes
-      (the same applies for the columns below).
-    - value: value of the meter at the given date
-    - minutes: number of minutes between previous and current measurement.
-    - consumption: consumption since the last measurement, calculated as
-      value_(t) - value_(t-1)). Whenever there is a first measurement,
-      consumption should be NA / NULL, because the meter started again and
-      the comparison with the previous value is not relevant anymore.
-
-    Finally, note the decorator. This is a prefect task, to be used within a
-    prefect flow, gaining its benefits such as caching, logging, monitoring.
-    That's also why we decided to return the md5 checksum of the data, to
-    help prefect in tracking changes, without returning the whole table.
+    This function replaces the old minute-by-minute expansion strategy with
+    a much more computationally efficient interval-based approach. We compute
+    the start and end times of each interval, which exactly covers the valid
+    time bounds inside DuckDB without blowing up row counts.
 
     Args:
         strom: Unused parameter. It's just a placeholder to be able to induce a
@@ -135,72 +95,86 @@ def expand_strom_minute(strom, duckdb_file="./duckdb/strom.duckdb"):
 
     Returns:
         pd.DataFrame: A DataFrame containing a single column 'md5' with the MD5
-        checksum of the 'strom_minute' table's contents.
+        checksum of the 'strom_intervals' table's contents.
     """
 
     with duckdb.connect(duckdb_file) as con:
         con.sql(
             """
-            CREATE OR REPLACE TABLE strom_minute AS
-            WITH minutes_table AS (
-                SELECT 
-                    UNNEST(generate_series(
-                        ts[1], ts[2], interval 1 minute
-                    )) AS minute, 
-                    generate_series AS meterid
-                FROM (VALUES ([(
-                    SELECT MIN(date) FROM strom), (SELECT MAX(date) FROM strom)]
-                )) t(ts), generate_series(1, 3)
-            )
+            CREATE OR REPLACE TABLE strom_intervals AS
             SELECT 
-                minutes_table.meterid,
-                minutes_table.minute,
-                FIRST_VALUE(strom.cm IGNORE NULLS) OVER(
-                    PARTITION BY minutes_table.meterid 
-                    ORDER BY minutes_table.minute 
-                    ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
-                ) AS cm,
-                strom.date,
-                strom.value,
-                strom.minutes,
-                strom.consumption 
-            FROM minutes_table
-            LEFT JOIN strom
-            ON minutes_table.minute = strom.date AND 
-               minutes_table.meterid = strom.meterid
-            ORDER BY minutes_table.minute, minutes_table.meterid
+                meterid,
+                date - minutes * INTERVAL 1 MINUTE AS start_time,
+                date AS end_time,
+                minutes AS interval_minutes,
+                cm,
+                value IS NOT NULL AS has_obs,
+                value,
+                consumption
+            FROM strom
+            WHERE first = 0 OR cm IS NOT NULL
             ;
             """
         )
 
-        return duck_md5(con, "strom_minute")
+        return duck_md5(con, "strom_intervals")
 
 
 @stepit
-def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
+def make_strom_per_day(strom_intervals, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
         strom_per_day = con.sql(
             """
             CREATE OR REPLACE TABLE strom_per_day AS
             SELECT 
                 date,
-                "1_cd" AS nd,
-                "2_cd" + "3_cd" AS wd,
-                "2_cd" AS nt,
-                "3_cd" AS ht,
-                GREATEST("1_obs", "2_obs", "3_obs") AS obs
+                COALESCE("1_cd", 0) AS nd,
+                COALESCE("2_cd", 0) + COALESCE("3_cd", 0) AS wd,
+                COALESCE("2_cd", 0) AS nt,
+                COALESCE("3_cd", 0) AS ht,
+                GREATEST(COALESCE("1_obs", 0), COALESCE("2_obs", 0), COALESCE("3_obs", 0)) AS obs
             FROM (
-                WITH cte AS (
-                    SELECT CAST(minute AS DATE) AS date, * FROM strom_minute
+                WITH days AS (
+                    SELECT UNNEST(generate_series(
+                        (SELECT date_trunc('day', MIN(start_time)) FROM strom_intervals),
+                        (SELECT date_trunc('day', MAX(end_time)) FROM strom_intervals),
+                        INTERVAL 1 DAY
+                    )) AS date
+                ),
+                day_overlaps AS (
+                    SELECT 
+                        d.date,
+                        s.meterid,
+                        s.cm,
+                        date_diff('minute', 
+                            greatest(s.start_time, d.date), 
+                            least(s.end_time, d.date + INTERVAL 1 DAY)
+                        ) AS overlap_minutes,
+                        CASE WHEN date_trunc('day', s.end_time) = d.date THEN s.has_obs ELSE false END AS has_obs
+                    FROM days d
+                    JOIN strom_intervals s
+                        ON s.start_time < (d.date + INTERVAL 1 DAY) 
+                       AND s.end_time > d.date
+                ),
+                cte AS (
+                    SELECT 
+                        date,
+                        meterid,
+                        SUM(cm * overlap_minutes) AS tot,
+                        SUM(cm * overlap_minutes) / NULLIF(SUM(overlap_minutes), 0) * 24.0 * 60.0 AS cd,
+                        SUM(CASE WHEN has_obs THEN 1 ELSE 0 END) AS obs
+                    FROM day_overlaps
+                    GROUP BY date, meterid
                 )
                 PIVOT_WIDER cte
                 ON meterid
                 USING 
-                    SUM(cm) AS tot,
-                    AVG(cm* 24.0 * 60.0)  AS cd, 
-                    SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS obs
+                    SUM(tot) AS tot,
+                    SUM(cd) AS cd, 
+                    SUM(obs) AS obs
                 GROUP BY date
             )
+            ORDER BY date
             ;
             """
         )
@@ -209,40 +183,66 @@ def make_strom_per_day(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
 
 
 @stepit
-def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
+def make_strom_per_month(strom_intervals, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
-        strom_per_day = con.sql(
+        strom_per_month = con.sql(
             """
             CREATE OR REPLACE TABLE strom_per_month AS
             SELECT 
                 year, month,
-                "1_cd" AS nd,
-                "2_cd" + "3_cd" AS wd,
-                "2_cd" AS nt,
-                "3_cd" AS ht,
-                GREATEST("1_obs", "2_obs", "3_obs") AS obs
+                COALESCE("1_cd", 0) AS nd,
+                COALESCE("2_cd", 0) + COALESCE("3_cd", 0) AS wd,
+                COALESCE("2_cd", 0) AS nt,
+                COALESCE("3_cd", 0) AS ht,
+                GREATEST(COALESCE("1_obs", 0), COALESCE("2_obs", 0), COALESCE("3_obs", 0)) AS obs
             FROM (
-                WITH cte AS (
+                WITH months AS (
+                    SELECT UNNEST(generate_series(
+                        (SELECT date_trunc('month', MIN(start_time)) FROM strom_intervals),
+                        (SELECT date_trunc('month', MAX(end_time)) FROM strom_intervals),
+                        INTERVAL 1 MONTH
+                    )) AS month_start
+                ),
+                month_overlaps AS (
+                    SELECT 
+                        m.month_start,
+                        s.meterid,
+                        s.cm,
+                        date_diff('minute', 
+                            greatest(s.start_time, m.month_start), 
+                            least(s.end_time, m.month_start + INTERVAL 1 MONTH)
+                        ) AS overlap_minutes,
+                        CASE WHEN date_trunc('month', s.end_time) = m.month_start THEN s.has_obs ELSE false END AS has_obs
+                    FROM months m
+                    JOIN strom_intervals s
+                        ON s.start_time < (m.month_start + INTERVAL 1 MONTH) 
+                       AND s.end_time > m.month_start
+                ),
+                cte AS (
                     SELECT     
-                    EXTRACT(YEAR FROM minute) AS year,    
-                    EXTRACT(MONTH FROM minute) AS month,
-                    * 
-                    FROM strom_minute
+                        EXTRACT(YEAR FROM month_start) AS year,    
+                        EXTRACT(MONTH FROM month_start) AS month,
+                        meterid,
+                        SUM(cm * overlap_minutes) AS cd,
+                        SUM(CASE WHEN has_obs THEN 1 ELSE 0 END) AS obs
+                    FROM month_overlaps
                     WHERE 
-                        (minute >= '2020-12-01' AND minute <= '2021-04-30') 
+                        (month_start >= '2020-12-01' AND month_start <= '2021-04-30') 
                         OR 
-                        (minute >= '2022-12-01' AND minute < (
-                            SELECT DATE_TRUNC('month', MAX(minute))
-                            FROM strom_minute
+                        (month_start >= '2022-12-01' AND month_start < (
+                            SELECT DATE_TRUNC('month', MAX(end_time))
+                            FROM strom_intervals
                         ))
+                    GROUP BY year, month, meterid
                 )
                 PIVOT_WIDER cte
                 ON meterid
                 USING 
-                    SUM(cm) AS cd,
-                    SUM(CASE WHEN value IS NOT NULL THEN 1 ELSE 0 END) AS obs
+                    SUM(cd) AS cd,
+                    SUM(obs) AS obs
                 GROUP BY year, month
             )
+            ORDER BY year, month
             ;
             """
         )
@@ -251,44 +251,68 @@ def make_strom_per_month(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
 
 
 @stepit
-def make_strom_per_hour(strom_minute, duckdb_file="./duckdb/strom.duckdb"):
+def make_strom_per_hour(strom_intervals, duckdb_file="./duckdb/strom.duckdb"):
     with duckdb.connect(duckdb_file) as con:
-        strom_per_day = con.sql(
+        strom_per_hour = con.sql(
             """
             CREATE OR REPLACE TABLE strom_per_hour AS
             SELECT 
                 year, month, day, hour,
-                "1_cd" AS nd,
-                "2_cd" + "3_cd" AS wd,
-                "2_cd" AS nt,
-                "3_cd" AS ht,
-                (("1_weight" + "2_weight" + "3_weight") / 3) AS weight
+                COALESCE("1_cd", 0) AS nd,
+                COALESCE("2_cd", 0) + COALESCE("3_cd", 0) AS wd,
+                COALESCE("2_cd", 0) AS nt,
+                COALESCE("3_cd", 0) AS ht,
+                ((COALESCE("1_weight", 0) + COALESCE("2_weight", 0) + COALESCE("3_weight", 0)) / 3) AS weight
             FROM (
-                WITH cte AS (
+                WITH hours AS (
+                    SELECT UNNEST(generate_series(
+                        (SELECT date_trunc('hour', MIN(start_time)) FROM strom_intervals),
+                        (SELECT date_trunc('hour', MAX(end_time)) FROM strom_intervals),
+                        INTERVAL 1 HOUR
+                    )) AS hour_start
+                ),
+                hour_overlaps AS (
+                    SELECT 
+                        h.hour_start,
+                        s.meterid,
+                        s.cm,
+                        1.0 * date_diff('minute', 
+                            greatest(s.start_time, h.hour_start), 
+                            least(s.end_time, h.hour_start + INTERVAL 1 HOUR)
+                        ) / NULLIF(s.interval_minutes, 0) AS weight_overlap,
+                        date_diff('minute', 
+                            greatest(s.start_time, h.hour_start), 
+                            least(s.end_time, h.hour_start + INTERVAL 1 HOUR)
+                        ) AS overlap_minutes
+                    FROM hours h
+                    JOIN strom_intervals s
+                        ON s.start_time < (h.hour_start + INTERVAL 1 HOUR) 
+                       AND s.end_time > h.hour_start
+                ),
+                cte AS (
                     SELECT     
-                        EXTRACT(YEAR FROM minute) AS year,    
-                        EXTRACT(MONTH FROM minute) AS month,
-                        EXTRACT(DAY FROM minute) AS day,
-                        EXTRACT(HOUR FROM minute) AS hour,
-                        1 / FIRST_VALUE(minutes IGNORE NULLS) OVER(
-                            PARTITION BY meterid 
-                            ORDER BY minute 
-                            ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING 
-                        ) AS weight,
-                        * 
-                    FROM strom_minute
+                        EXTRACT(YEAR FROM hour_start) AS year,    
+                        EXTRACT(MONTH FROM hour_start) AS month,
+                        EXTRACT(DAY FROM hour_start) AS day,
+                        EXTRACT(HOUR FROM hour_start) AS hour,
+                        meterid,
+                        SUM(cm * overlap_minutes) AS cd,
+                        SUM(weight_overlap) / 60.0 AS weight
+                    FROM hour_overlaps
                     WHERE 
-                        (minute >= '2020-12-01' AND minute <= '2021-05-25') 
+                        (hour_start >= '2020-12-01' AND hour_start <= '2021-05-25') 
                         OR 
-                        (minute >= '2022-12-01')
+                        (hour_start >= '2022-12-01')
+                    GROUP BY year, month, day, hour, meterid
                 )
                 PIVOT_WIDER cte
                 ON meterid
                 USING 
-                    SUM(cm) AS cd,
-                    AVG(weight) AS weight
+                    SUM(cd) AS cd,
+                    SUM(weight) AS weight
                 GROUP BY year, month, day, hour
             )
+            ORDER BY year, month, day, hour
             ;
             """
         )

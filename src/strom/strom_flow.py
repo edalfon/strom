@@ -53,19 +53,19 @@ def strom_flow():
     sqlite_file = epyfun.get_latest_file("./data/")
 
     strom = meter.ingest_strom(sqlite_file, duckdb_file)
-    strom_minute = meter.expand_strom_minute(strom, duckdb_file)
-    strom_per_day = meter.make_strom_per_day(strom_minute, duckdb_file)
-    strom_per_month = meter.make_strom_per_month(strom_minute, duckdb_file)
-    strom_per_hour = meter.make_strom_per_hour(strom_minute, duckdb_file)
+    strom_intervals = meter.make_strom_intervals(strom, duckdb_file)
+    strom_per_day = meter.make_strom_per_day(strom_intervals, duckdb_file)
+    strom_per_month = meter.make_strom_per_month(strom_intervals, duckdb_file)
+    strom_per_hour = meter.make_strom_per_hour(strom_intervals, duckdb_file)
     # month
 
     climate_daily = dwd.get_climate_data(date.today())
 
     strom_climate = merge_strom_climate_data(strom_per_day, climate_daily)
 
-    # pass strom_minute just to induce cache update when strom_minute changed
-    consumption.normalstrom_consumption(duckdb_file, strom_minute)
-    consumption.waermestrom_consumption(duckdb_file, strom_minute)
+    # pass strom_intervals just to induce cache update when strom_intervals changed
+    consumption.normalstrom_consumption(duckdb_file, strom_intervals)
+    consumption.waermestrom_consumption(duckdb_file, strom_intervals)
 
     consumption.compare_last_days(strom_climate)
     ccomp = consumption.compare_last_days.update
