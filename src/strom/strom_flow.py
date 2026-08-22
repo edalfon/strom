@@ -137,7 +137,9 @@ def strom_flow():
     # not running the task (as expected), but failing to notice that task
 
     #
-    quarto.render_report(strom_climate, strom_per_month, strom_per_hour)
+    quarto.render_report(
+        strom_climate, strom_per_month, strom_per_hour, quarto.detect_changes()
+    )
 
 
 if __name__ == "__main__":

@@ -4,6 +4,8 @@ import os
 import subprocess
 import webbrowser
 
+from stepit import stepit
+
 
 def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
     file_paths = [
@@ -15,13 +17,14 @@ def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
     ]
     hashes = {
         f"{file}": hashlib.sha256(open(file, "rb").read()).hexdigest()
-        for file in file_paths
+        for file in sorted(file_paths)
     }
 
     return hashes
 
 
-def render_report(*args, changes=detect_changes(), **kwargs):
+@stepit
+def render_report(strom_climate, strom_per_month, strom_per_hour, template_hashes):
     cmd = [
         "quarto",
         "render",
