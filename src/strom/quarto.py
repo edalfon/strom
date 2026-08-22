@@ -23,8 +23,17 @@ def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
     return hashes
 
 
+def output_missing(output_dir="results", filename="01_strom_results.html"):
+    # a fresh CI runner with no restored results/ cache looks just like a
+    # "nothing changed" run to stepit, so fold actual output presence into
+    # the cache key: only skip re-rendering when the output is really there.
+    return not os.path.exists(os.path.join(output_dir, filename))
+
+
 @stepit
-def render_report(strom_climate, strom_per_month, strom_per_hour, template_hashes):
+def render_report(
+    strom_climate, strom_per_month, strom_per_hour, template_hashes, output_missing
+):
     cmd = [
         "quarto",
         "render",
