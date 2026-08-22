@@ -3,7 +3,7 @@ name = "strom"
 version = "0.1.0"
 description = "A package for doing great things!"
 authors = [{ name = "Eduardo Alfonso-Sierra" }]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"
 dependencies = [
@@ -30,7 +30,6 @@ dependencies = [
     "duckdb-engine>=0.17.0",
     "pandas>=2.3.3",
     "plotly>=5.24.1",
-    "h2o>=3.46.0.8",
     "statsmodels>=0.14.5",
     "jupysql>=0.11.1",
     "matplotlib>=3.9.4",
