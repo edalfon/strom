@@ -40,6 +40,8 @@ dependencies = [
     "ujson>=5.11.0",
     "orjson>=3.11.4",
     "json-tricks>=3.17.3",
+    "gspread>=6.2.1",
+    "python-dotenv>=1.2.1",
 ]
 
 [dependency-groups]

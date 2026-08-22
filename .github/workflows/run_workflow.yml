@@ -5,6 +5,9 @@ on:
       - '**'  # Run on push to any branch
   repository_dispatch:
     types: [trigger-workflow]
+  schedule:
+    - cron: '13 * * * *'  # hourly, off the top of the hour, to pick up new sheet entries
+  workflow_dispatch:  # manual on-demand runs, useful for verifying changes
 permissions:
   contents: write
   actions: write
@@ -30,6 +33,8 @@ jobs:
       - name: Install the project dependencies
         run: uv sync
       - name: Run strom's workflow
+        env:
+          GOOGLE_SHEETS_CREDENTIALS_JSON: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS_JSON }}
         run: uv run python -c "from strom import strom_flow; strom_flow.strom_flow()"
       - name: Commit changes
         run: |

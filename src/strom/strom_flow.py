@@ -2,9 +2,10 @@ from datetime import date
 
 import epyfun
 import pandas as pd
+import toml
 from stepit import stepit
 
-from strom import consumption, dwd, meter, modelling, quarto
+from strom import consumption, dwd, gsheets, meter, modelling, quarto
 
 
 @stepit
@@ -50,9 +51,10 @@ def strom_flow():
 
     duckdb_file = "./duckdb/strom.duckdb"
     epyfun.create_dir(duckdb_file)
-    sqlite_file = epyfun.get_latest_file("./data/")
 
-    strom = meter.ingest_strom(sqlite_file, duckdb_file)
+    config = toml.load("./config.toml")
+    meters = {int(k): v for k, v in config["gsheets"]["meters"].items()}
+    strom = gsheets.ingest_strom_gsheet(config["gsheets"]["sheet_id"], meters, duckdb_file)
     strom_intervals = meter.make_strom_intervals(strom, duckdb_file)
     strom_per_day = meter.make_strom_per_day(strom_intervals, duckdb_file)
     strom_per_month = meter.make_strom_per_month(strom_intervals, duckdb_file)

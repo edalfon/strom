@@ -1,0 +1,7 @@
+[gsheets]
+sheet_id = "1akdwqa6KcixNMR8xjsLhpSNGFW7MZ0LcodRe1ezjIW0"
+
+[gsheets.meters]
+1 = "Strom"
+2 = "Wärmestrom 18.2"
+3 = "Wärmestrom 18.1"

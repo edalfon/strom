@@ -4,6 +4,30 @@ import duckdb
 from strom.duckdb import duck_md5
 
 
+# Shared window-function SQL that turns a (meterid, date, value, first) source
+# into the 'strom' table (minutes/consumption/cm columns added). Used by both
+# the sqlite-based ingest_strom below and gsheets.ingest_strom_gsheet, so the
+# two sources can never compute consumption differently.
+STROM_WINDOW_SQL = """
+CREATE OR REPLACE TABLE strom AS
+SELECT
+    *,
+    date_sub(
+        'minute',
+        lag(date, 1) OVER(PARTITION BY meterid ORDER BY date),
+        date
+    ) AS minutes,
+    CASE WHEN first = 1 THEN NULL ELSE value - lag(value, 1) OVER(
+        PARTITION BY meterid
+        ORDER BY date
+    ) END AS consumption,
+    1.0 * consumption / minutes AS cm
+FROM {source}
+ORDER BY date
+;
+"""
+
+
 # @stepit
 def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
     """Ingest strom measurements data into a DuckDB table named 'strom'.
@@ -45,35 +69,20 @@ def ingest_strom(sqlite_file, duckdb_file="./duckdb/strom.duckdb"):
         con.load_extension("sqlite")  # con.sql("LOAD sqlite;")
         con.sql(
             f"""
-            CREATE OR REPLACE TABLE strom AS
-            WITH strom_sqlite AS (
-                SELECT 
-                    meterid, 
-                    -- Blob Functions, because most columns get read as blob
-                    -- https://duckdb.org/docs/sql/functions/blob
-                    CAST(decode(date) AS DATETIME) AS date, 
-                    CAST(decode(value) AS INT) AS value,
-                    CAST(decode(first) AS INT) AS first
-                FROM sqlite_scan('{sqlite_file}', 'reading') 
-                WHERE meterid = 1 OR meterid = 2 OR meterid = 3
-            )
-            SELECT 
-                *,
-                date_sub(
-                    'minute', 
-                    lag(date, 1) OVER(PARTITION BY meterid ORDER BY date),
-                    date
-                ) AS minutes, 
-                CASE WHEN first = 1 THEN NULL ELSE value - lag(value, 1) OVER(
-                    PARTITION BY meterid 
-                    ORDER BY date
-                ) END AS consumption,
-                1.0 * consumption / minutes AS cm
-            FROM strom_sqlite
-            ORDER BY date
+            CREATE OR REPLACE VIEW strom_sqlite AS
+            SELECT
+                meterid,
+                -- Blob Functions, because most columns get read as blob
+                -- https://duckdb.org/docs/sql/functions/blob
+                CAST(decode(date) AS DATETIME) AS date,
+                CAST(decode(value) AS INT) AS value,
+                CAST(decode(first) AS INT) AS first
+            FROM sqlite_scan('{sqlite_file}', 'reading')
+            WHERE meterid = 1 OR meterid = 2 OR meterid = 3
             ;
             """
         )
+        con.sql(STROM_WINDOW_SQL.format(source="strom_sqlite"))
 
         return duck_md5(con, "strom")
 

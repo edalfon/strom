@@ -20,6 +20,6 @@ def duck_md5(con, tbl_name):
     if not isinstance(tbl_name, str) or not tbl_name.isidentifier():
         raise ValueError("Invalid table name.")
 
-    query = f"SELECT md5(string_agg({tbl_name}::text, '')) FROM {tbl_name};"
+    query = f"SELECT md5(string_agg({tbl_name}::text, '')) AS md5 FROM {tbl_name};"
 
     return con.sql(query).df()
