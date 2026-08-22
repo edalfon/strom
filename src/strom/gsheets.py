@@ -39,7 +39,7 @@ def _parse_sheet_date(value):
 
 
 def _read_meter_worksheet(sh, meterid, name):
-    ws = sh.worksheet(f"{meterid} {name}")
+    ws = sh.worksheet(name)
     # UNFORMATTED_VALUE (raw values) instead of get_all_records()'s default
     # FORMATTED_VALUE (locale-rendered display strings): a formatted numeric
     # reading like "12,165" would fail to parse and silently drop the row,
@@ -73,15 +73,15 @@ def ingest_strom_gsheet(sheet_id, meters, duckdb_file="./duckdb/strom.duckdb"):
     """Ingest strom measurements from a Google Sheet into a DuckDB 'strom' table.
 
     Mirrors meter.ingest_strom, but reads from a Google Sheet (one worksheet
-    per meter, named "{meterid} {name}") instead of a sqlite export. Applies
-    the same STROM_WINDOW_SQL used by the sqlite path, so both sources compute
-    minutes/consumption/cm identically.
+    per meter) instead of a sqlite export. Applies the same STROM_WINDOW_SQL
+    used by the sqlite path, so both sources compute minutes/consumption/cm
+    identically.
 
     Args:
         sheet_id: The Google Sheet's ID (the segment between /d/ and /edit in
             its URL).
-        meters: Mapping of meterid (int) to meter name (str), used to look up
-            each meter's worksheet by its "{meterid} {name}" title.
+        meters: Mapping of meterid (int) to worksheet title (str) -- looked
+            up as-is, exactly matching the tab's name in the sheet.
         duckdb_file: Path to the DuckDB database file
                      (defaults to "./duckdb/strom.duckdb").
 
