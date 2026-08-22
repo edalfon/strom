@@ -23,17 +23,8 @@ def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
     return hashes
 
 
-def output_missing(output_dir="results", filename="01_strom_results.html"):
-    # a fresh CI runner with no restored results/ cache looks just like a
-    # "nothing changed" run to stepit, so fold actual output presence into
-    # the cache key: only skip re-rendering when the output is really there.
-    return not os.path.exists(os.path.join(output_dir, filename))
-
-
 @stepit
-def render_report(
-    strom_climate, strom_per_month, strom_per_hour, template_hashes, output_missing
-):
+def render_report(strom_climate, strom_per_month, strom_per_hour, template_hashes):
     cmd = [
         "quarto",
         "render",
@@ -45,5 +36,13 @@ def render_report(
     ]
 
     subprocess.run(cmd)
+
+    # tell the CI step that a render actually happened this run, so it can
+    # skip steps (html print, Pages deploy) that only make sense after one.
+    # a no-op locally, where GITHUB_OUTPUT isn't set.
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a") as f:
+            f.write("rendered=true\n")
 
     webbrowser.open("./results/index.html")

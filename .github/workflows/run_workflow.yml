@@ -39,14 +39,8 @@ jobs:
           key: duckdb-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: |
             duckdb-${{ github.ref_name }}-
-      - name: Restore results cache
-        uses: actions/cache/restore@v4
-        with:
-          path: results
-          key: results-${{ github.ref_name }}-${{ github.run_id }}
-          restore-keys: |
-            results-${{ github.ref_name }}-
       - name: Run strom's workflow
+        id: run_flow
         env:
           GOOGLE_SHEETS_CREDENTIALS_JSON: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS_JSON }}
         run: uv run python -c "from strom import strom_flow; strom_flow.strom_flow()"
@@ -56,12 +50,6 @@ jobs:
         with:
           path: duckdb
           key: duckdb-${{ github.ref_name }}-${{ github.run_id }}
-      - name: Save results cache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: results
-          key: results-${{ github.ref_name }}-${{ github.run_id }}
       - name: Commit changes
         run: |
           git config --local user.email "actions@github.com"
@@ -74,10 +62,12 @@ jobs:
             git push
           fi
       - name: Print HTML file content
+        if: steps.run_flow.outputs.rendered == 'true'
         run: cat results/01_strom_results.html
       - name: Deploy to Github Pages 🚀
+        if: steps.run_flow.outputs.rendered == 'true'
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           clean: false
-          branch: gh-pages          
+          branch: gh-pages
           folder: results

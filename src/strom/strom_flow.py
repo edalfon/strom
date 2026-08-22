@@ -138,11 +138,7 @@ def strom_flow():
 
     #
     quarto.render_report(
-        strom_climate,
-        strom_per_month,
-        strom_per_hour,
-        quarto.detect_changes(),
-        quarto.output_missing(),
+        strom_climate, strom_per_month, strom_per_hour, quarto.detect_changes()
     )
 
 
