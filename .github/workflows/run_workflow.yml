@@ -32,10 +32,23 @@ jobs:
           python-version-file: "pyproject.toml"
       - name: Install the project dependencies
         run: uv sync
+      - name: Restore duckdb cache
+        uses: actions/cache/restore@v4
+        with:
+          path: duckdb
+          key: duckdb-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            duckdb-${{ github.ref_name }}-
       - name: Run strom's workflow
         env:
           GOOGLE_SHEETS_CREDENTIALS_JSON: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS_JSON }}
         run: uv run python -c "from strom import strom_flow; strom_flow.strom_flow()"
+      - name: Save duckdb cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: duckdb
+          key: duckdb-${{ github.ref_name }}-${{ github.run_id }}
       - name: Commit changes
         run: |
           git config --local user.email "actions@github.com"
