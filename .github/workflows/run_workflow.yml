@@ -39,6 +39,13 @@ jobs:
           key: duckdb-${{ github.ref_name }}-${{ github.run_id }}
           restore-keys: |
             duckdb-${{ github.ref_name }}-
+      - name: Restore results cache
+        uses: actions/cache/restore@v4
+        with:
+          path: results
+          key: results-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            results-${{ github.ref_name }}-
       - name: Run strom's workflow
         env:
           GOOGLE_SHEETS_CREDENTIALS_JSON: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS_JSON }}
@@ -49,6 +56,12 @@ jobs:
         with:
           path: duckdb
           key: duckdb-${{ github.ref_name }}-${{ github.run_id }}
+      - name: Save results cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: results
+          key: results-${{ github.ref_name }}-${{ github.run_id }}
       - name: Commit changes
         run: |
           git config --local user.email "actions@github.com"
