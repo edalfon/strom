@@ -2,17 +2,23 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.26">
+<meta name="generator" content="quarto-1.10.18">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
 <title>B. DuckDB – Stromverbrauch</title>
 <style>
-code{white-space: pre-wrap;}
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
 span.smallcaps{font-variant: small-caps;}
-div.columns{display: flex; gap: min(4vw, 1.5em);}
-div.column{flex: auto; overflow-x: auto;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
 div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
 ul.task-list{list-style: none;}
 ul.task-list li input[type="checkbox"] {
@@ -68,15 +74,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../Setup/01_quarto.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-f705c645d848d6d913c5c64690eb2608.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-d5382f61a7c05c0e60b360404eaa31c2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -425,7 +430,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1>Set-up <code>jupysql</code> to be able to write sql queries directly</h1>
 <p>To do it with DuckDB, basically following <a href="https://duckdb.org/docs/guides/python/jupyter">this guide</a>, just need to make sure <code>jupysql</code>, <code>SQLAlchemy</code> and <code>duckdb-engine</code> are installed, besides the core libraries (<code>notebook</code>, <code>pandas</code>, <code>duckdb</code>). If any of them mssing, simply pip install them.</p>
 <p>Step 1 is then to import extension. It enables SQL cells in Jupyter. It supports inline SQL using <code>%sql</code> and a whole SQL cell starting it with <code>%%sql</code>.</p>
-<div id="55611d89" class="cell" data-execution_count="1">
+<div id="f30b09b7" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sqlalchemy <span class="co"># No need to import duckdb_engine, </span></span>
@@ -476,12 +481,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>But you have to use a standard python chunk and use the <code>%sql</code> or <code>%%sql</code> to be able to write SQL direcly.</p>
 <p>Step 2 is to fire-up DuckDB, either in memory or pointing to a file.</p>
-<div id="5612ecff" class="cell" data-execution_count="2">
+<div id="1cf076fc" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql duckdb:<span class="op">///</span>:memory:</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># %sql duckdb:///path/to/file.db</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Test it’s working</p>
-<div id="e4d48588" class="cell" data-execution_count="3">
+<div id="3255cec9" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql SELECT <span class="st">'Off and flying!'</span> <span class="im">as</span> a_duckdb_column</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <div>
@@ -505,7 +510,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="76d16b32" class="cell" data-execution_count="4">
+<div id="32ce1f46" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>sql SELECT <span class="op">*</span> FROM duckdb_settings()<span class="op">;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <div>
@@ -544,6 +549,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="odd">
 <th data-quarto-table-cell-role="th">2</th>
+<td>__delta_only_variant_encoding_enabled</td>
+<td>false</td>
+<td>Enables the Parquet reader to identify a Varia...</td>
+<td>BOOLEAN</td>
+<td>GLOBAL</td>
+<td>[]</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">3</th>
 <td>access_mode</td>
 <td>automatic</td>
 <td>Access mode of the database (AUTOMATIC, READ_O...</td>
@@ -551,21 +565,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>GLOBAL</td>
 <td>[]</td>
 </tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">3</th>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">4</th>
 <td>allocator_background_threads</td>
 <td>false</td>
 <td>Whether to enable the allocator background thr...</td>
 <td>BOOLEAN</td>
-<td>GLOBAL</td>
-<td>[]</td>
-</tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">4</th>
-<td>allocator_bulk_deallocation_flush_threshold</td>
-<td>512.0 MiB</td>
-<td>If a bulk deallocation larger than this occurs...</td>
-<td>VARCHAR</td>
 <td>GLOBAL</td>
 <td>[]</td>
 </tr>
@@ -579,34 +584,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>...</td>
 </tr>
 <tr class="odd">
-<th data-quarto-table-cell-role="th">131</th>
-<td>username</td>
-<td>None</td>
-<td>The username to use. Ignored for legacy compat...</td>
-<td>VARCHAR</td>
-<td>GLOBAL</td>
-<td>[user]</td>
-</tr>
-<tr class="even">
-<th data-quarto-table-cell-role="th">132</th>
-<td>variant_legacy_encoding</td>
+<th data-quarto-table-cell-role="th">155</th>
+<td>warnings_as_errors</td>
 <td>false</td>
-<td>Enables the Parquet reader to identify a Varia...</td>
+<td>Escalate all warnings to errors.</td>
 <td>BOOLEAN</td>
 <td>GLOBAL</td>
 <td>[]</td>
 </tr>
-<tr class="odd">
-<th data-quarto-table-cell-role="th">133</th>
-<td>wal_autocheckpoint</td>
-<td>16.0 MiB</td>
-<td>The WAL size threshold at which to automatical...</td>
-<td>VARCHAR</td>
-<td>GLOBAL</td>
-<td>[]</td>
-</tr>
 <tr class="even">
-<th data-quarto-table-cell-role="th">134</th>
+<th data-quarto-table-cell-role="th">156</th>
 <td>worker_threads</td>
 <td>4</td>
 <td>The number of total threads used by the system.</td>
@@ -615,7 +602,25 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>[]</td>
 </tr>
 <tr class="odd">
-<th data-quarto-table-cell-role="th">135</th>
+<th data-quarto-table-cell-role="th">157</th>
+<td>write_buffer_row_group_count</td>
+<td>5</td>
+<td>The amount of row groups to buffer in bulk ing...</td>
+<td>UBIGINT</td>
+<td>GLOBAL</td>
+<td>[]</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">158</th>
+<td>write_buffer_row_group_memory_limit</td>
+<td>511.6 MiB</td>
+<td>The maximum data to buffer in row groups (in b...</td>
+<td>VARCHAR</td>
+<td>GLOBAL</td>
+<td>[]</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">159</th>
 <td>zstd_min_string_length</td>
 <td>4096</td>
 <td>The (average) length at which to enable ZSTD c...</td>
@@ -626,7 +631,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 
-<p>136 rows × 6 columns</p>
+<p>160 rows × 6 columns</p>
 </div>
 </div>
 </div>
