@@ -38,7 +38,9 @@ def test_get_period():
 
 
 def test_compare_last_days():
-    daily, average = consumption.compare_last_days.fn()
-    daily, average = consumption.compare_last_days.fn(days=360)
+    # call the undecorated function, so the test does not touch .stepit_cache/
+    compare_last_days = consumption.compare_last_days.__wrapped__
+    daily, average = compare_last_days(climate_daily=None)
+    daily, average = compare_last_days(climate_daily=None, days=360)
     print(daily)
     print(average)

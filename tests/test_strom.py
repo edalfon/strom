@@ -1,17 +1,37 @@
+import duckdb
+import numpy as np
+
 from strom import meter
 
-import duckdb
-
-duckdb_file = "./duckdb/test.duckdb"
+SQLITE_FILE = "data/2022-12-24-ecas-export.db"
 
 
-def test_ingest_normalstrom():
-    # test it creates the table and returns an expected hash md5 value
-    md5 = meter.ingest_normalstrom.fn(
-        "data/2022-12-24-ecas-export.db", duckdb_file=duckdb_file
-    )
-    assert md5["md5"].item() == "0ab1d288e32f2f020d2f63de704c98d6"
+def test_ingest_strom(tmp_path):
+    duckdb_file = str(tmp_path / "test.duckdb")
+
+    md5 = meter.ingest_strom(SQLITE_FILE, duckdb_file=duckdb_file)
+    md5 = md5["md5"].item()
+    assert isinstance(md5, str) and len(md5) == 32
+
+    # same input -> same checksum (it is the change signal for the cache)
+    assert meter.ingest_strom(SQLITE_FILE, duckdb_file=duckdb_file)["md5"].item() == md5
 
     with duckdb.connect(duckdb_file) as con:
-        normalstrom = con.sql("SELECT * FROM normalstrom;").df()
-        normalstrom.columns
+        strom = con.sql("SELECT * FROM strom ORDER BY meterid, date").df()
+
+    assert len(strom) > 0
+    assert {"meterid", "date", "value", "first", "minutes", "consumption", "cm"}.issubset(
+        strom.columns
+    )
+    assert set(strom["meterid"].unique()).issubset({1, 2, 3})
+
+    # a (re)start of the meter has no consumption
+    assert strom.loc[strom["first"] == 1, "consumption"].isna().all()
+
+    # consumption is the difference to the previous reading of the same meter,
+    # and cm is consumption per minute
+    rest = strom[strom["first"] != 1].dropna(subset=["consumption"])
+    assert len(rest) > 0
+    prev = strom.groupby("meterid")["value"].shift(1).loc[rest.index]
+    np.testing.assert_allclose(rest["consumption"], rest["value"] - prev)
+    np.testing.assert_allclose(rest["cm"], rest["consumption"] / rest["minutes"])
