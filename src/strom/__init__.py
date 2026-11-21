@@ -2,6 +2,7 @@
 from importlib.metadata import version
 
 # from . import consumption, duckdb, dwd, meter, modelling
+from .plotly_renderer import use_plotly_once
 from .strom import (
     assess_regression,
     assess_vetiver_regression,
@@ -97,4 +98,6 @@ __all__ = [
     "tidy_cross_validate_scores",
     "tidy_grid_search_results",
     "use_project",
+    # plotly renderer
+    "use_plotly_once",
 ]
