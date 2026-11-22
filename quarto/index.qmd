@@ -310,4 +310,6 @@ ojs_define(wowdata=monthly_averages)
 
 {{< include Dashboard/_ojs.qmd >}}
 
+# Gesamte Periode (ECharts)
 
+{{< include Dashboard/_echarts.qmd >}}

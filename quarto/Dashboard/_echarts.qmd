@@ -1,0 +1,95 @@
+## Row
+
+```{python}
+#| content: valuebox
+#| title: "Normalstromverbrauch pro Tag"
+dict(
+  icon = "lightning-charge",
+  color = "light",
+  value = "{:.1f} kWh".format(normalstrom_consumption["Use/Day"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Normalstromverbrauch im Jahr"
+dict(
+  icon = "activity",
+  color = "light",
+  value = "{:.0f} kWh".format(normalstrom_consumption["Use/Year"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestromverbrauch pro Tag"
+dict(
+  icon = "lightning-charge",
+  color = "light",
+  value = "{:.1f} kWh".format(waermestrom_consumption["Use/Day"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestromverbrauch im Jahr"
+dict(
+  icon = "activity",
+  color = "light",
+  value = "{:.0f} kWh".format(waermestrom_consumption["Use/Year"].values[0])
+)
+```
+
+## Row
+
+```{python}
+#| content: valuebox
+#| title: "Normalstrom Kosten pro Tag"
+dict(
+  icon = "currency-exchange",
+  color = "#e0a931",
+  value = "{:.1f} €".format(normalstrom_consumption["Daily Exp"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Normalstrom Kosten im Jahr"
+dict(
+  icon = "credit-card",
+  color = "#e0a931",
+  value = "{:.0f} €".format(normalstrom_consumption["Yearly Exp"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestrom Kosten pro Tag"
+dict(
+  icon = "currency-exchange",
+  color = "#e3b32d",
+  value = "{:.1f} €".format(waermestrom_consumption["Daily Exp"].values[0])
+)
+```
+
+```{python}
+#| content: valuebox
+#| title: "Wärmestrom Kosten im Jahr"
+dict(
+  icon = "credit-card",
+  color = "#e3b32d",
+  value = "{:.0f} €".format(waermestrom_consumption["Yearly Exp"].values[0])
+)
+```
+
+## Row
+
+```{python}
+from strom.echarts import echarts_daily_bar
+
+echarts_daily_bar(strom_per_day, x="date", y="nd", yaxis_title="kWh / Tag")
+```
+
+```{python}
+echarts_daily_bar(strom_per_day, x="date", y="wd", yaxis_title="kWh / Tag")
+```
