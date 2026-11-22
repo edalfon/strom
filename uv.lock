@@ -9,10 +9,10 @@ resolution-markers = [
     "python_full_version == '3.13.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
@@ -1178,11 +1178,11 @@ wheels = [
 
 [[package]]
 name = "fsspec"
-version = "2025.7.0"
+version = "2026.9.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8b/02/0835e6ab9cfc03916fe3f78c0956cfcdb6ff2669ffa6651065d5ebf7fc98/fsspec-2025.7.0.tar.gz", hash = "sha256:786120687ffa54b8283d942929540d8bc5ccfa820deb555a2b5d0ed2b737bf58", size = 304432, upload-time = "2025-07-15T16:05:21.19Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/77/cd/9be253869fc42e764de7f3dedd6969af7d44ff9c3375214a3442a6f3fc08/fsspec-2026.9.0.tar.gz", hash = "sha256:0f08147951c8cb31d844c3547d631053b127863b60be04cf06e121333ee0e2fe", size = 333545, upload-time = "2026-09-18T17:50:42.825Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2f/e0/014d5d9d7a4564cf1c40b5039bc882db69fd881111e03ab3657ac0b218e2/fsspec-2025.7.0-py3-none-any.whl", hash = "sha256:8b012e39f63c7d5f10474de957f3ab793b47b45ae7d39f2fb735f8bbe25c0e21", size = 199597, upload-time = "2025-07-15T16:05:19.529Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/c0/a98505f18594f1bce828bb159cec0fcf9860562f1a2c85913409fc8f3d9e/fsspec-2026.9.0-py3-none-any.whl", hash = "sha256:8dd6e646e99ea382bd85f97a45e6b526a442d79423a7dc673f1e2756d05fcb5f", size = 221738, upload-time = "2026-09-18T17:50:41.341Z" },
 ]
 
 [[package]]
@@ -2910,7 +2910,7 @@ wheels = [
 
 [[package]]
 name = "pins"
-version = "0.9.1"
+version = "0.9.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "appdirs" },
@@ -2927,9 +2927,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "xxhash" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1f/2a/a84eff130a088fd2166927c3d5508f584b9aa99fbfaaebbdb04d902e0c60/pins-0.9.1.tar.gz", hash = "sha256:d163f0342cf57f5fa40aefb700914da4a7e6554c52dc760903eaefaeace13311", size = 119829, upload-time = "2025-10-03T17:04:52.523Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/b3/629867e2a279383974b9ba6569ee95b8710f8d36faa4c3062ccc011fe6d4/pins-0.9.2.tar.gz", hash = "sha256:bea7b10304abb5e06327ce1b47de194ff791b50546378057e3b1809bff35235e", size = 121664, upload-time = "2026-10-13T20:37:28.394Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/58/61/eea269bf29eb2123c8dba9cd8de46887b13f182d5acc3b24c7b88357d6ac/pins-0.9.1-py2.py3-none-any.whl", hash = "sha256:fa0c7294554470496f362aeee682f02c1e17d351aa0a3f09533b2e0c5e9c3738", size = 122063, upload-time = "2025-10-03T17:04:51.379Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/88/b586cae1a985f6400540fe4e9fee18407cda6aada994f73ac5c9af0b8161/pins-0.9.2-py2.py3-none-any.whl", hash = "sha256:25b88b7b34c6ccfb1fce8b8e8b046c78967327a7d33c3471faadec3c3107b900", size = 122647, upload-time = "2026-10-13T20:37:26.991Z" },
 ]
 
 [[package]]
@@ -3028,8 +3028,8 @@ resolution-markers = [
     "python_full_version == '3.13.*' and sys_platform == 'win32'",
     "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
-    "python_full_version < '3.12' and sys_platform == 'win32'",
     "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version < '3.12' and sys_platform == 'win32'",
     "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
