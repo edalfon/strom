@@ -33,6 +33,11 @@ _STYLE = """
 </style>
 """
 
+# ECharts' default palette: the first color is used for all bars (as on the
+# daily charts), the others for the lines of previous years
+BAR_COLOR = "#5470c6"
+LINE_COLORS = ["#91cc75", "#fac858", "#ee6666", "#73c0de", "#3ba272", "#fc8452", "#9a60b4", "#ea7ccc"]
+
 _echarts_included = False
 
 
@@ -156,14 +161,18 @@ def echarts_period_comparison(df, y, current_year, yaxis_title=None, opacity=0.7
     `year`.
     """
     series = []
+    line_colors = iter(LINE_COLORS * 2)
     for year in sorted(df["year"].unique()):
         sub = df[df["year"] == year].sort_values("date")
         if int(year) == int(current_year):
             series.append({"name": str(year), "type": "bar", "data": _points(sub["date"], sub[y]),
-                           "barCategoryGap": "20%", "itemStyle": {"opacity": opacity}, "z": 1})
+                           "barCategoryGap": "20%", "z": 1,
+                           "itemStyle": {"color": BAR_COLOR, "opacity": opacity}})
         else:
+            color = next(line_colors)
             series.append({"name": str(year), "type": "line", "data": _points(sub["date_day"], sub[y]),
-                           "showSymbol": False, "lineStyle": {"width": 2}, "z": 2})
+                           "showSymbol": False, "z": 2,
+                           "lineStyle": {"width": 2, "color": color}, "itemStyle": {"color": color}})
 
     option = {
         "animation": False,
