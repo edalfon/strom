@@ -34,3 +34,23 @@ def test_echarts_period_comparison_bars_for_current_year_lines_for_previous():
     assert '"name": "2025", "type": "line"' in html
     # previous years are plotted on the shifted dates
     assert '"data": [["2026-01-01", 1.5], ["2026-01-02", 3.0]]' in html
+
+
+def test_echarts_lines_with_avg_orders_categories_and_leaves_gaps():
+    echarts._echarts_included = True
+    df = pd.DataFrame(
+        {"month_name": ["February", "January", "January"], "year": [2024, 2024, 2023], "nd": [2.0, 1.0, 3.0]}
+    )
+    avg = pd.DataFrame({"month_name": ["January", "February"], "nd": [2.0, 2.0]})
+    html = echarts.echarts_lines_with_avg(
+        df, x="month_name", y="nd", group="year", avg=avg,
+        categories=["January", "February"], labels={"January": "Jan", "February": "Feb"},
+        decimals=2,
+    ).data
+
+    assert '"data": ["Jan", "Feb"]' in html
+    # lines sorted by group, missing months are gaps
+    assert html.index('"name": "2023"') < html.index('"name": "2024"')
+    assert '"name": "2023", "type": "line", "data": [3.0, null]' in html
+    assert '"name": "Durchschnitt", "type": "bar", "data": [2.0, 2.0]' in html
+    assert "toFixed(2)" in html

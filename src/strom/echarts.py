@@ -57,11 +57,11 @@ def _head():
     )
 
 
-def _chart_html(option, buttons_html="", setup_js=""):
+def _chart_html(option, buttons_html="", setup_js="", decimals=1):
     """Wrap an ECharts option in a lazily initialised, auto-resizing chart.
 
     `setup_js` runs after init, with `chart`, `el` and `buttonBar` in scope.
-    Tooltip values are formatted as kWh with one decimal.
+    Tooltip values are formatted as kWh with `decimals` decimals.
     """
     chart_id = f"echarts-{uuid.uuid4().hex}"
     buttons = (
@@ -83,7 +83,7 @@ def _chart_html(option, buttons_html="", setup_js=""):
   var buttonBar = document.getElementById("{chart_id}-buttons");
   var chart = null;
   option.tooltip = Object.assign({{trigger: "axis"}}, option.tooltip || {{}}, {{
-    valueFormatter: function(v) {{ return v == null ? "-" : v.toFixed(1) + " kWh"; }}
+    valueFormatter: function(v) {{ return v == null ? "-" : v.toFixed({decimals}) + " kWh"; }}
   }});
 
   function init() {{
@@ -185,3 +185,46 @@ def echarts_period_comparison(df, y, current_year, yaxis_title=None, opacity=0.7
         "series": series,
     }
     return _chart_html(option)
+
+
+def echarts_lines_with_avg(df, x, y, group, avg, categories=None, groups=None,
+                           yaxis_title=None, labels=None, decimals=1, opacity=0.7):
+    """One line per `group` over a category axis `x`, with the average as bars.
+
+    `avg` is a DataFrame with the columns `x` and `y` (the average per
+    category). `categories` sets the order of the axis (default: sorted
+    values of `x`), `groups` the order of the lines (default: sorted);
+    `labels` optionally maps categories to axis labels.
+    Missing combinations are gaps in the lines.
+    """
+    if categories is None:
+        categories = sorted(set(df[x]) | set(avg[x]))
+    labels = labels or {}
+
+    def values(sub):
+        s = sub.set_index(x)[y].reindex(categories)
+        return [None if pd.isna(v) else round(float(v), 4) for v in s]
+
+    series = []
+    line_colors = iter(LINE_COLORS * 2)
+    if groups is None:
+        groups = sorted(df[group].unique())
+    for g in groups:
+        color = next(line_colors)
+        series.append({"name": str(g), "type": "line", "data": values(df[df[group] == g]),
+                       "showSymbol": False, "z": 2,
+                       "lineStyle": {"width": 2, "color": color}, "itemStyle": {"color": color}})
+    series.append({"name": "Durchschnitt", "type": "bar", "data": values(avg), "z": 1,
+                   "barCategoryGap": "20%", "itemStyle": {"color": BAR_COLOR, "opacity": opacity}})
+
+    option = {
+        "animation": False,
+        "legend": {"type": "scroll", "top": 0, "itemWidth": 14, "itemHeight": 8,
+                   "itemGap": 6, "textStyle": {"fontSize": 11}},
+        "grid": {"left": 55, "right": 15, "top": 35, "bottom": 30},
+        "tooltip": {"axisPointer": {"type": "shadow"}},
+        "xAxis": {"type": "category", "data": [str(labels.get(c, c)) for c in categories]},
+        "yAxis": {"type": "value", "name": yaxis_title or "", "nameLocation": "middle", "nameGap": 42},
+        "series": series,
+    }
+    return _chart_html(option, decimals=decimals)
