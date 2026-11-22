@@ -7,7 +7,17 @@ import webbrowser
 from stepit import stepit
 
 
-def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
+def detect_changes(
+    folder_path="quarto",
+    extensions=["qmd", "yml", "css"],
+    code_path=os.path.dirname(__file__),
+):
+    """Hashes of the site's sources, so that render_report re-runs when they change.
+
+    Besides the Quarto files, this includes the package's own Python code
+    (`code_path`), because the pages call into it (e.g. the chart helpers in
+    strom.echarts): a change there must re-render the site too.
+    """
     file_paths = [
         file
         for ext in extensions
@@ -15,6 +25,8 @@ def detect_changes(folder_path="quarto", extensions=["qmd", "yml", "css"]):
             os.path.join(folder_path, "**", f"*.{ext}"), recursive=True
         )
     ]
+    if code_path:
+        file_paths += glob.glob(os.path.join(code_path, "*.py"))
     hashes = {
         f"{file}": hashlib.sha256(open(file, "rb").read()).hexdigest()
         for file in sorted(file_paths)
