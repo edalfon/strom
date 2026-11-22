@@ -1,119 +1,90 @@
 """Minimal ECharts output for Quarto pages, without a Python wrapper library.
 
-`echarts_daily_bar` returns an IPython HTML object with a canvas-rendered bar
-chart, range buttons (15d, 1m, 6m, YTD, 1y, all) and a zoom slider, similar
-to the plotly daily bar charts on the dashboard. echarts.js is loaded from
-the CDN with the first chart of the page only.
+Each function returns an IPython HTML object with a canvas-rendered chart.
+echarts.js is loaded from the CDN with the first chart of the page only.
 
 Charts are initialised lazily, when their container first gets a size: in a
-Quarto dashboard, charts on pages that are not shown cost nothing until the
-page is opened.
+Quarto dashboard, charts on pages or tabs that are not shown cost nothing
+until they are opened. They also resize with their container.
 """
 
 import json
 import uuid
 
+import pandas as pd
 from IPython.display import HTML
 
 ECHARTS_URL = "https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"
 
 _RANGE_BUTTONS = [("15d", 15), ("1m", 31), ("6m", 183), ("YTD", "ytd"), ("1y", 365), ("all", None)]
 
-_echarts_included = False
-
-
-def echarts_daily_bar(df, x, y, yaxis_title=None, initial_days=365, opacity=0.7):
-    global _echarts_included
-
-    chart_id = f"echarts-{uuid.uuid4().hex}"
-    data = [
-        [d.strftime("%Y-%m-%d"), round(float(v), 3)]
-        for d, v in zip(df[x], df[y])
-    ]
-    buttons = "".join(
-        f'<button type="button" data-range="{days if days is not None else "all"}">{label}</button>'
-        for label, days in _RANGE_BUTTONS
-    )
-
-    # Quarto pages load require.js, and echarts' UMD build would then register
-    # as an AMD module instead of setting window.echarts: hide `define` while
-    # echarts.js loads.
-    script_tag = (
-        ""
-        if _echarts_included
-        else (
-            "<script>window.__stromDefine = window.define; window.define = undefined;</script>"
-            f'<script src="{ECHARTS_URL}"></script>'
-            "<script>window.define = window.__stromDefine;</script>"
-        )
-    )
-    _echarts_included = True
-
-    html = f"""
-{script_tag}
-<div class="strom-echarts" style="display:flex;flex-direction:column;width:100%;height:100%;min-height:320px;overflow:hidden">
-  <div class="strom-echarts-buttons" id="{chart_id}-buttons">{buttons}</div>
-  <div id="{chart_id}" style="position:relative;flex:1 1 0;width:100%;min-width:0;min-height:0;overflow:hidden"></div>
-</div>
+_STYLE = """
 <style>
-  .strom-echarts-buttons {{
+  .strom-echarts-buttons {
     display: flex !important; flex-direction: row !important; flex-wrap: wrap;
     gap: 3px; flex: 0 0 auto !important; margin-bottom: 4px;
-  }}
-  .strom-echarts-buttons button {{
+  }
+  .strom-echarts-buttons button {
     display: inline-block !important; width: auto !important; flex: 0 0 auto !important;
     font-size: 11px; line-height: 1.4; padding: 1px 7px; margin: 0; border: 0;
     border-radius: 3px; background: #eef0f4; color: #444; cursor: pointer;
-  }}
-  .strom-echarts-buttons button.active {{ background: #d4d8e0; }}
+  }
+  .strom-echarts-buttons button.active { background: #d4d8e0; }
 </style>
+"""
+
+_echarts_included = False
+
+
+def _head():
+    """echarts.js and the shared CSS, only for the first chart of the page."""
+    global _echarts_included
+    if _echarts_included:
+        return ""
+    _echarts_included = True
+    # Quarto pages load require.js, and echarts' UMD build would then register
+    # as an AMD module instead of setting window.echarts: hide `define` while
+    # echarts.js loads.
+    return (
+        "<script>window.__stromDefine = window.define; window.define = undefined;</script>"
+        f'<script src="{ECHARTS_URL}"></script>'
+        "<script>window.define = window.__stromDefine;</script>" + _STYLE
+    )
+
+
+def _chart_html(option, buttons_html="", setup_js=""):
+    """Wrap an ECharts option in a lazily initialised, auto-resizing chart.
+
+    `setup_js` runs after init, with `chart`, `el` and `buttonBar` in scope.
+    Tooltip values are formatted as kWh with one decimal.
+    """
+    chart_id = f"echarts-{uuid.uuid4().hex}"
+    buttons = (
+        f'<div class="strom-echarts-buttons" id="{chart_id}-buttons">{buttons_html}</div>'
+        if buttons_html
+        else f'<div id="{chart_id}-buttons" style="display:none"></div>'
+    )
+    return HTML(
+        f"""
+{_head()}
+<div class="strom-echarts" style="display:flex;flex-direction:column;width:100%;height:100%;min-height:320px;overflow:hidden">
+  {buttons}
+  <div id="{chart_id}" style="position:relative;flex:1 1 0;width:100%;min-width:0;min-height:0;overflow:hidden"></div>
+</div>
 <script>
 (function() {{
-  var data = {json.dumps(data)};
+  var option = {json.dumps(option)};
   var el = document.getElementById("{chart_id}");
   var buttonBar = document.getElementById("{chart_id}-buttons");
-  var DAY = 86400000;
-  var last = new Date(data[data.length - 1][0]).getTime();
-  var first = new Date(data[0][0]).getTime();
   var chart = null;
-
-  function rangeFor(r) {{
-    if (r === "all") return [first, last];
-    if (r === "ytd") return [new Date(new Date(last).getFullYear(), 0, 1).getTime(), last];
-    return [last - Number(r) * DAY, last];
-  }}
-
-  function setRange(r) {{
-    var range = rangeFor(r);
-    chart.dispatchAction({{type: "dataZoom", startValue: range[0], endValue: range[1]}});
-    buttonBar.querySelectorAll("button").forEach(function(b) {{
-      b.classList.toggle("active", b.dataset.range === String(r));
-    }});
-  }}
+  option.tooltip = Object.assign({{trigger: "axis"}}, option.tooltip || {{}}, {{
+    valueFormatter: function(v) {{ return v == null ? "-" : v.toFixed(1) + " kWh"; }}
+  }});
 
   function init() {{
-    var initial = rangeFor({json.dumps(str(initial_days) if initial_days else "all")});
     chart = window.echarts.init(el, null, {{renderer: "canvas"}});
-    chart.setOption({{
-      animation: false,
-      grid: {{left: 45, right: 15, top: 15, bottom: 70}},
-      tooltip: {{trigger: "axis", axisPointer: {{type: "shadow"}},
-                 valueFormatter: function(v) {{ return v.toFixed(1) + " kWh"; }}}},
-      xAxis: {{type: "time"}},
-      yAxis: {{type: "value", name: {json.dumps(yaxis_title or "")},
-               nameLocation: "middle", nameGap: 32}},
-      dataZoom: [
-        {{type: "inside", startValue: initial[0], endValue: initial[1]}},
-        {{type: "slider", startValue: initial[0], endValue: initial[1], height: 28, bottom: 8}}
-      ],
-      series: [{{
-        type: "bar", data: data, large: false, progressive: 0,
-        barCategoryGap: "20%", itemStyle: {{opacity: {opacity}}}
-      }}]
-    }});
-    buttonBar.querySelectorAll("button").forEach(function(b) {{
-      b.addEventListener("click", function() {{ setRange(b.dataset.range); }});
-    }});
+    chart.setOption(option);
+    {setup_js}
   }}
 
   new ResizeObserver(function() {{
@@ -123,4 +94,85 @@ def echarts_daily_bar(df, x, y, yaxis_title=None, initial_days=365, opacity=0.7)
 }})();
 </script>
 """
-    return HTML(html)
+    )
+
+
+def _points(dates, values):
+    return [[d.strftime("%Y-%m-%d"), round(float(v), 3)] for d, v in zip(dates, values)]
+
+
+def echarts_daily_bar(df, x, y, yaxis_title=None, initial_days=365, opacity=0.7):
+    """Daily bars with range buttons (15d, 1m, 6m, YTD, 1y, all) and a zoom slider."""
+    data = _points(df[x], df[y])
+    last = df[x].max()
+    start = df[x].min() if not initial_days else last - pd.Timedelta(days=initial_days)
+
+    option = {
+        "animation": False,
+        "grid": {"left": 45, "right": 15, "top": 15, "bottom": 70},
+        "tooltip": {"axisPointer": {"type": "shadow"}},
+        "xAxis": {"type": "time"},
+        "yAxis": {"type": "value", "name": yaxis_title or "", "nameLocation": "middle", "nameGap": 32},
+        "dataZoom": [
+            {"type": "inside", "startValue": start.strftime("%Y-%m-%d"), "endValue": last.strftime("%Y-%m-%d")},
+            {"type": "slider", "startValue": start.strftime("%Y-%m-%d"), "endValue": last.strftime("%Y-%m-%d"),
+             "height": 28, "bottom": 8},
+        ],
+        # no `large`/progressive mode: it draws in chunks, which shows as a
+        # seam in the bars when they are semi-transparent
+        "series": [{"type": "bar", "data": data, "large": False, "progressive": 0,
+                    "barCategoryGap": "20%", "itemStyle": {"opacity": opacity}}],
+    }
+    buttons = "".join(
+        f'<button type="button" data-range="{days if days is not None else "all"}">{label}</button>'
+        for label, days in _RANGE_BUTTONS
+    )
+    setup_js = """
+    var DAY = 86400000;
+    var data = option.series[0].data;
+    var first = new Date(data[0][0]).getTime();
+    var last = new Date(data[data.length - 1][0]).getTime();
+    function rangeFor(r) {
+      if (r === "all") return [first, last];
+      if (r === "ytd") return [new Date(new Date(last).getFullYear(), 0, 1).getTime(), last];
+      return [last - Number(r) * DAY, last];
+    }
+    buttonBar.querySelectorAll("button").forEach(function(b) {
+      b.addEventListener("click", function() {
+        var range = rangeFor(b.dataset.range);
+        chart.dispatchAction({type: "dataZoom", startValue: range[0], endValue: range[1]});
+        buttonBar.querySelectorAll("button").forEach(function(o) { o.classList.toggle("active", o === b); });
+      });
+    });
+    """
+    return _chart_html(option, buttons, setup_js)
+
+
+def echarts_period_comparison(df, y, current_year, yaxis_title=None, opacity=0.7):
+    """Cumulative consumption of a period: current year as bars, previous years as lines.
+
+    `df` needs the columns `date` (dates of the current year's period),
+    `date_day` (dates of previous years shifted onto the current period) and
+    `year`.
+    """
+    series = []
+    for year in sorted(df["year"].unique()):
+        sub = df[df["year"] == year].sort_values("date")
+        if int(year) == int(current_year):
+            series.append({"name": str(year), "type": "bar", "data": _points(sub["date"], sub[y]),
+                           "barCategoryGap": "20%", "itemStyle": {"opacity": opacity}, "z": 1})
+        else:
+            series.append({"name": str(year), "type": "line", "data": _points(sub["date_day"], sub[y]),
+                           "showSymbol": False, "lineStyle": {"width": 2}, "z": 2})
+
+    option = {
+        "animation": False,
+        # compact, so that 4-5 years fit in one row on a phone
+        "legend": {"type": "scroll", "top": 0, "itemWidth": 14, "itemHeight": 8,
+                   "itemGap": 6, "textStyle": {"fontSize": 11}},
+        "grid": {"left": 55, "right": 15, "top": 35, "bottom": 30},
+        "xAxis": {"type": "time"},
+        "yAxis": {"type": "value", "name": yaxis_title or "", "nameLocation": "middle", "nameGap": 42},
+        "series": series,
+    }
+    return _chart_html(option)

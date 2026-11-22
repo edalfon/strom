@@ -99,68 +99,34 @@ dict(
 #### Row
 
 ```{python}
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import timedelta
+from strom.echarts import echarts_period_comparison
 
 last_year = int(daily["year"].max())
 unique_years = daily["year"].unique()
 prev_years = unique_years[unique_years != last_year]
 
+# shift previous years onto the dates of the current period
 daily["date_day"] = daily["date"]
 for y in prev_years:
     daily.loc[daily["year"] == y, "date_day"] += timedelta(365 * (last_year - int(y)))
 
-fig = px.line(daily[daily["year"] != last_year], x="date_day", y="nd_cum", color="year")
-
-fig = fig.add_trace(
-    go.Bar(
-        x=daily[daily["year"] == last_year]["date"],
-        y=daily[daily["year"] == last_year]["nd_cum"],
-        name=f"{last_year}",
-    )
-)
-fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh - Kumulierter Verbrauch")
-fig = fig.update_layout(legend=dict(
-    orientation="h",
-    yanchor="bottom",
-    y=1,
-    xanchor="right",
-    x=0.75
-))
-fig
+echarts_period_comparison(daily, y="nd_cum", current_year=last_year, yaxis_title="kWh - Kumulierter Verbrauch")
 ```
 
 
 ```{python}
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import timedelta
+from strom.echarts import echarts_period_comparison
 
 last_year = int(daily["year"].max())
 unique_years = daily["year"].unique()
 prev_years = unique_years[unique_years != last_year]
 
+# shift previous years onto the dates of the current period
 daily["date_day"] = daily["date"]
 for y in prev_years:
     daily.loc[daily["year"] == y, "date_day"] += timedelta(365 * (last_year - int(y)))
 
-fig = px.line(daily[daily["year"] != last_year], x="date_day", y="wd_cum", color="year")
-
-fig = fig.add_trace(
-    go.Bar(
-        x=daily[daily["year"] == last_year]["date"],
-        y=daily[daily["year"] == last_year]["wd_cum"],
-        name=f"{last_year}",
-    )
-)
-fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh - Kumulierter Verbrauch")
-fig = fig.update_layout(
-    legend=dict(orientation="h", yanchor="bottom", y=1, xanchor="right", x=0.75)
-)
-
-fig
+echarts_period_comparison(daily, y="wd_cum", current_year=last_year, yaxis_title="kWh - Kumulierter Verbrauch")
 ```
-

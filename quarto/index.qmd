@@ -107,71 +107,13 @@ dict(
 ## Row
 
 ```{python}
-# | eval: true
-import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from strom.echarts import echarts_daily_bar
 
-fig = px.bar(strom_per_day, y="nd", x="date")
-fig = fig.update_xaxes(
-    rangeslider_visible=True,
-    rangeselector=dict(
-        buttons=list(
-            [
-                dict(count=15, label="15d", step="day", stepmode="backward"),
-                dict(count=1, label="1m", step="month", stepmode="backward"),
-                dict(count=6, label="6m", step="month", stepmode="backward"),
-                dict(count=1, label="YTD", step="year", stepmode="todate"),
-                dict(count=1, label="1y", step="year", stepmode="backward"),
-                dict(step="all"),
-            ]
-        )
-    ),
-    range=[
-        strom_per_day["date"].max() - timedelta(days=365),
-        strom_per_day["date"].max(),
-    ],
-)
-fig = fig.update_xaxes(rangeslider_thickness=0.1)
-fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
-# no outline: with thousands of sub-pixel bars, the default template's
-# background-colored bar outline washes the bars out
-fig = fig.update_traces(marker_line_width=0, marker_opacity=0.7)
-fig
+echarts_daily_bar(strom_per_day, x="date", y="nd", yaxis_title="kWh / Tag")
 ```
 
 ```{python}
-# | eval: true
-import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
-
-fig = px.bar(strom_per_day, y="wd", x="date")
-fig = fig.update_xaxes(
-    rangeslider_visible=True,
-    rangeselector=dict(
-        buttons=list(
-            [
-                dict(count=15, label="15d", step="day", stepmode="backward"),
-                dict(count=1, label="1m", step="month", stepmode="backward"),
-                dict(count=6, label="6m", step="month", stepmode="backward"),
-                dict(count=1, label="YTD", step="year", stepmode="todate"),
-                dict(count=1, label="1y", step="year", stepmode="backward"),
-                dict(step="all"),
-            ]
-        )
-    ),
-    range=[
-        strom_per_day["date"].max() - timedelta(days=365),
-        strom_per_day["date"].max(),
-    ],
-)
-fig = fig.update_xaxes(rangeslider_thickness=0.1)
-fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
-# no outline: with thousands of sub-pixel bars, the default template's
-# background-colored bar outline washes the bars out
-fig = fig.update_traces(marker_line_width=0, marker_opacity=0.7)
-fig
+echarts_daily_bar(strom_per_day, x="date", y="wd", yaxis_title="kWh / Tag")
 ```
 
 # Zeiträumen Vergleich {orientation="columns"}
@@ -309,7 +251,3 @@ ojs_define(wowdata=monthly_averages)
 
 
 {{< include Dashboard/_ojs.qmd >}}
-
-# Gesamte Periode (ECharts)
-
-{{< include Dashboard/_echarts.qmd >}}
