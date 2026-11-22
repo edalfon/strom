@@ -134,6 +134,10 @@ fig = fig.update_xaxes(
 )
 fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
+# no outline and no gap: with thousands of sub-pixel bars, the default
+# background-colored outline and 20% gap wash the bars out
+fig = fig.update_traces(marker_line_width=0)
+fig = fig.update_layout(bargap=0)
 fig
 ```
 
@@ -165,6 +169,10 @@ fig = fig.update_xaxes(
 )
 fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
+# no outline and no gap: with thousands of sub-pixel bars, the default
+# background-colored outline and 20% gap wash the bars out
+fig = fig.update_traces(marker_line_width=0)
+fig = fig.update_layout(bargap=0)
 fig
 ```
 
