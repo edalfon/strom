@@ -136,7 +136,7 @@ fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
 # no outline: with thousands of sub-pixel bars, the default template's
 # background-colored bar outline washes the bars out
-fig = fig.update_traces(marker_line_width=0)
+fig = fig.update_traces(marker_line_width=0, marker_opacity=0.7)
 fig
 ```
 
@@ -170,7 +170,7 @@ fig = fig.update_xaxes(rangeslider_thickness=0.1)
 fig = fig.update_layout(xaxis_title=None, yaxis_title="kWh / Tag")
 # no outline: with thousands of sub-pixel bars, the default template's
 # background-colored bar outline washes the bars out
-fig = fig.update_traces(marker_line_width=0)
+fig = fig.update_traces(marker_line_width=0, marker_opacity=0.7)
 fig
 ```
 
