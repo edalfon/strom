@@ -43,6 +43,8 @@ price = consumption.strom_prices.get("normalstrom_minute")
 nd_df["Verbrauch (€)"] = nd_df["Verbrauch (kWh)"] * price
 nd_df["Verbrauch (kWh)"] = nd_df["Verbrauch (kWh)"].round().astype(int)
 nd_df["Verbrauch (€)"] = nd_df["Verbrauch (€)"].round().astype(int)
+# combined total of both meters, last
+nd_df["Gesamt (kWh)"] = nd_df.pop("tot").round().astype(int)
 nd_df
 ```
 
@@ -54,6 +56,8 @@ price = consumption.strom_prices.get("waermestrom_minute")
 nd_df["Verbrauch (€)"] = nd_df["Verbrauch (kWh)"] * price
 nd_df["Verbrauch (kWh)"] = nd_df["Verbrauch (kWh)"].round().astype(int)
 nd_df["Verbrauch (€)"] = nd_df["Verbrauch (€)"].round().astype(int)
+# combined total of both meters, last
+nd_df["Gesamt (kWh)"] = nd_df.pop("tot").round().astype(int)
 nd_df
 ```
 
